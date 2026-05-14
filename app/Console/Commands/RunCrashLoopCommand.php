@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Models\Game;
+use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Game\Services\RoundOrchestrator;
 use Illuminate\Console\Command;
@@ -34,6 +36,15 @@ class RunCrashLoopCommand extends Command
         $i = 0;
 
         $this->info("crash:loop on game '{$game->code}' — betting={$bettingSeconds}s waiting={$waitingSeconds}s");
+
+        $orphans = GameRound::query()
+            ->whereIn('state', [RoundState::Waiting, RoundState::Betting, RoundState::Running, RoundState::Crashed])
+            ->where('created_at', '<', now()->subMinutes(5))
+            ->update(['state' => RoundState::Settled, 'settled_at' => now(), 'updated_at' => now()]);
+
+        if ($orphans > 0) {
+            $this->warn("cleaned up {$orphans} orphan round(s) left over from a previous run");
+        }
 
         while ($maxRounds === 0 || $i < $maxRounds) {
             $i++;
