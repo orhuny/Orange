@@ -327,32 +327,147 @@
             50%      { opacity: 0.8; }
         }
 
-        /* ---------- Implode ---------- */
+        /* ===================================================
+           CRASH / IMPLODE SEQUENCE (multi-layer)
+           Layer order from back to front:
+             .scene → .strobe → .shockwave → .crash-flash →
+             .crash-debris → .crash-cracks → .crash-banner
+           =================================================== */
+
+        /* (1) Hard white flash — punches first, fades fast */
+        .crash-flash {
+            position: absolute; inset: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 48;
+        }
+        .crashed .crash-flash {
+            animation: crash-flash 0.9s ease-out forwards;
+        }
+        @keyframes crash-flash {
+            0%   { opacity: 0; }
+            6%   { opacity: 1; }
+            18%  { opacity: 0.9; }
+            55%  { opacity: 0.25; }
+            100% { opacity: 0; }
+        }
+
+        /* (2) Expanding shockwave ring */
         .shockwave {
             position: absolute; left: 50%; top: 50%;
-            width: 4px; height: 4px;
-            border-radius: 50%; background: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 65%);
             transform: translate(-50%, -50%) scale(0);
-            box-shadow: 0 0 80px white;
-            opacity: 0; pointer-events: none;
-            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 49;
+            box-shadow: 0 0 60px white, inset 0 0 60px white;
         }
         .crashed .shockwave {
-            animation: implode 1s cubic-bezier(0.5, 0, 0.7, 1) forwards;
+            animation: shockwave 1.1s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
         }
-        @keyframes implode {
-            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            10%  { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
-            70%  { transform: translate(-50%, -50%) scale(60); opacity: 0.6; background: rgba(255,255,255,0.1); }
-            100% { transform: translate(-50%, -50%) scale(120); opacity: 0; }
+        @keyframes shockwave {
+            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; border-width: 6px; }
+            10%  { opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(45); opacity: 0; border-width: 1px; }
         }
-        .crashed .stage { animation: glitch 0.4s linear; }
-        @keyframes glitch {
-            0%   { transform: translate(0); }
-            20%  { transform: translate(-3px, 2px); }
-            40%  { transform: translate(2px, -3px); filter: hue-rotate(40deg); }
-            60%  { transform: translate(-2px, 1px); filter: hue-rotate(-30deg); }
-            100% { transform: translate(0); }
+
+        /* (3) Debris — 24 fragments shooting outward */
+        .crash-debris {
+            position: absolute; left: 50%; top: 50%;
+            width: 1px; height: 1px;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .frag {
+            position: absolute; left: 0; top: 0;
+            width: 6px; height: 6px;
+            background: linear-gradient(135deg, #fef3c7, #f59e0b 50%, #7f1d1d);
+            border-radius: 1px;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px rgba(251,191,36,0.7);
+        }
+        .crashed .frag {
+            animation: frag-fly 1.4s cubic-bezier(0.15, 0.85, 0.4, 1) forwards;
+        }
+        @keyframes frag-fly {
+            0%   { opacity: 0; transform: translate(-50%, -50%) rotate(0); }
+            8%   { opacity: 1; }
+            100% {
+                opacity: 0;
+                transform: translate(calc(-50% + var(--dx, 200px)), calc(-50% + var(--dy, 200px))) rotate(720deg);
+            }
+        }
+
+        /* (4) Glass crack overlay — SVG inline, masked over the dome */
+        .crash-cracks {
+            position: absolute; inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            z-index: 52;
+        }
+        .crashed .crash-cracks {
+            animation: cracks-in 1.6s ease-out forwards;
+        }
+        @keyframes cracks-in {
+            0%   { opacity: 0; transform: scale(0.4); }
+            12%  { opacity: 0.95; transform: scale(1); }
+            65%  { opacity: 0.7; }
+            100% { opacity: 0; }
+        }
+
+        /* (5) HULL BREACH banner */
+        .crash-banner {
+            position: absolute; left: 50%; top: 36%;
+            transform: translate(-50%, 0) scale(0.5);
+            opacity: 0;
+            font-size: clamp(20px, 5vw, 38px);
+            font-weight: 800; letter-spacing: 0.32em;
+            color: var(--warn);
+            text-shadow: 0 0 20px var(--warn), 0 0 40px var(--warn);
+            text-transform: uppercase;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 53;
+        }
+        .crashed .crash-banner {
+            animation: banner-slam 1.6s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+        @keyframes banner-slam {
+            0%   { opacity: 0; transform: translate(-50%, 0) scale(0.5); letter-spacing: 0.6em; }
+            12%  { opacity: 1; transform: translate(-50%, 0) scale(1.1); letter-spacing: 0.32em; }
+            22%  { transform: translate(-50%, 0) scale(1); }
+            70%  { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -8px) scale(0.95); }
+        }
+
+        /* (6) Stage shake — strong then settle */
+        .crashed .stage { animation: stage-rumble 0.9s linear; }
+        @keyframes stage-rumble {
+            0%   { transform: translate(0,0); }
+            10%  { transform: translate(-8px, 6px) rotate(-0.4deg); filter: hue-rotate(20deg) saturate(1.3); }
+            20%  { transform: translate(7px, -5px) rotate(0.3deg); filter: hue-rotate(-30deg); }
+            30%  { transform: translate(-5px, 4px) rotate(-0.2deg); }
+            45%  { transform: translate(4px, -3px); }
+            60%  { transform: translate(-2px, 2px); }
+            80%  { transform: translate(1px, -1px); }
+            100% { transform: translate(0,0); filter: none; }
+        }
+
+        /* (7) Submarine itself rolls + fades on impact */
+        .crashed .sub-wrap {
+            animation: sub-collapse 1.3s cubic-bezier(0.4, 0.1, 0.6, 1) forwards;
+        }
+        @keyframes sub-collapse {
+            0%   { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; filter: none; }
+            15%  { transform: translate(-50%, -52%) scale(0.85) rotate(-6deg); filter: brightness(2); }
+            45%  { transform: translate(-50%, -44%) scale(1.4) rotate(15deg); opacity: 0.6; filter: blur(2px); }
+            100% { transform: translate(-50%, -30%) scale(0.4) rotate(60deg); opacity: 0; filter: blur(8px); }
         }
 
         /* ---------- Log ---------- */
@@ -450,8 +565,43 @@
             </button>
         </div>
 
-        <!-- Implode shockwave layer -->
+        <!-- Implode sequence layers -->
         <div class="shockwave"></div>
+        <div class="crash-flash"></div>
+        <div id="debris" class="crash-debris"></div>
+        <svg class="crash-cracks" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+                <radialGradient id="crackGrad" cx="50%" cy="50%" r="60%">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+                    <stop offset="50%" stop-color="#ffffff" stop-opacity="0.7"/>
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <g stroke="url(#crackGrad)" stroke-width="0.18" fill="none" stroke-linecap="round" opacity="0.95">
+                <!-- center web -->
+                <path d="M50,50 L8,4"/>
+                <path d="M50,50 L94,6"/>
+                <path d="M50,50 L4,38"/>
+                <path d="M50,50 L98,42"/>
+                <path d="M50,50 L12,98"/>
+                <path d="M50,50 L92,96"/>
+                <path d="M50,50 L48,2"/>
+                <path d="M50,50 L52,99"/>
+                <!-- secondary fractures -->
+                <path d="M50,50 L26,18 L32,12 L38,8"/>
+                <path d="M50,50 L70,28 L78,22 L86,18"/>
+                <path d="M50,50 L24,68 L18,80 L8,90"/>
+                <path d="M50,50 L74,72 L82,82 L92,90"/>
+                <path d="M50,50 L18,46 L8,48"/>
+                <path d="M50,50 L82,54 L94,52"/>
+                <!-- branches off the spokes -->
+                <path d="M30,30 L18,22 M30,30 L34,18"/>
+                <path d="M70,30 L84,20 M70,30 L72,16"/>
+                <path d="M30,72 L20,84 M30,72 L26,86"/>
+                <path d="M72,70 L86,82 M72,70 L78,86"/>
+            </g>
+        </svg>
+        <div class="crash-banner">⚠ HULL BREACH ⚠</div>
 
         <!-- Activity log -->
         <div id="log" class="log"></div>
@@ -469,7 +619,7 @@
         const $cashout = document.getElementById('cashout');
         const $cashoutHint = document.getElementById('cashoutHint');
 
-        // particles
+        // ambient silt particles
         const particleHost = document.getElementById('particles');
         for (let i = 0; i < 50; i++) {
             const p = document.createElement('div');
@@ -480,6 +630,24 @@
             p.style.opacity = (0.3 + Math.random() * 0.5);
             particleHost.appendChild(p);
         }
+
+        // 24 hull fragments — preset random vectors, only animated when .crashed fires
+        const debrisHost = document.getElementById('debris');
+        function rebuildDebris() {
+            debrisHost.innerHTML = '';
+            for (let i = 0; i < 24; i++) {
+                const f = document.createElement('div');
+                f.className = 'frag';
+                const angle = (i / 24) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+                const dist = 280 + Math.random() * 320;
+                f.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+                f.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+                f.style.animationDelay = (Math.random() * 0.18) + 's';
+                f.style.width = f.style.height = (3 + Math.random() * 8) + 'px';
+                debrisHost.appendChild(f);
+            }
+        }
+        rebuildDebris();
 
         const log = (msg) => {
             const line = document.createElement('div');
@@ -538,6 +706,7 @@
                     updateMultiplierUI(e.multiplier);
                 })
                 .listen('.round.crashed', (e) => {
+                    rebuildDebris(); // fresh random vectors each crash
                     setStage(['crashed', 'critical']);
                     $mult.textContent = e.crash_point.toFixed(2) + 'x';
                     $state.textContent = `IMPLODED @ ${e.crash_point.toFixed(2)}x`;
