@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Game\Services;
 
 use App\Domain\Game\Enums\RoundState;
+use App\Domain\Game\Events\BettingOpened;
+use App\Domain\Game\Events\RoundCrashed;
+use App\Domain\Game\Events\RoundSettled;
+use App\Domain\Game\Events\RoundStarted;
 use App\Domain\Game\Exceptions\InvalidRoundTransition;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
@@ -45,9 +49,13 @@ final class RoundOrchestrator
 
     public function openBetting(GameRound $round): GameRound
     {
-        return $this->transition($round, RoundState::Betting, [
+        $opened = $this->transition($round, RoundState::Betting, [
             'betting_opened_at' => now(),
         ]);
+
+        BettingOpened::dispatch($opened);
+
+        return $opened;
     }
 
     public function start(GameRound $round): GameRound
@@ -58,17 +66,25 @@ final class RoundOrchestrator
             $round->nonce,
         );
 
-        return $this->transition($round, RoundState::Running, [
+        $started = $this->transition($round, RoundState::Running, [
             'started_at' => now(),
             'crash_point' => $crashPoint,
         ]);
+
+        RoundStarted::dispatch($started);
+
+        return $started;
     }
 
     public function crash(GameRound $round): GameRound
     {
-        return $this->transition($round, RoundState::Crashed, [
+        $crashed = $this->transition($round, RoundState::Crashed, [
             'crashed_at' => now(),
         ]);
+
+        RoundCrashed::dispatch($crashed);
+
+        return $crashed;
     }
 
     public function settle(GameRound $round): GameRound
@@ -84,6 +100,8 @@ final class RoundOrchestrator
                 $this->seeds->rotate();
             }
         }
+
+        RoundSettled::dispatch($settled);
 
         return $settled;
     }
