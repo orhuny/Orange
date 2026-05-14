@@ -11,6 +11,7 @@ use App\Domain\Operator\Models\Player;
 use App\Domain\Operator\Services\OperatorSignature;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 function signedCashoutHeaders(Operator $operator, int $betId, string $idempotencyKey, ?int $timestamp = null): array
 {
@@ -58,7 +59,10 @@ function placedBetForOperator(Operator $operator): Bet
     ]);
 }
 
-beforeEach(fn () => Cache::flush());
+beforeEach(function (): void {
+    Cache::flush();
+    Http::fake();
+});
 
 it('cashout endpoint returns 401 without HMAC headers', function (): void {
     $this->postJson('/v1/bets/1/cashout')->assertUnauthorized();

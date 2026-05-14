@@ -6,6 +6,7 @@ namespace App\Domain\Game\Services;
 
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Enums\RoundState;
+use App\Domain\Game\Events\CashoutCompleted;
 use App\Domain\Game\Exceptions\AlreadyCashedOut;
 use App\Domain\Game\Exceptions\RoundNotRunning;
 use App\Domain\Game\Models\Bet;
@@ -70,6 +71,8 @@ class CashoutService
             $round->forceFill([
                 'total_payout_amount' => bcadd((string) $round->total_payout_amount, $payout, 8),
             ])->save();
+
+            CashoutCompleted::dispatch($cashout);
 
             return $cashout;
         });

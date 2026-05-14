@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Game\Services;
 
 use App\Domain\Game\Enums\BetStatus;
+use App\Domain\Game\Events\BetPlaced;
 use App\Domain\Game\Exceptions\BettingClosed;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\GameRound;
@@ -90,6 +91,8 @@ class BetPlacementService
             $round->forceFill([
                 'total_bet_amount' => bcadd((string) $round->total_bet_amount, $amount, 8),
             ])->save();
+
+            BetPlaced::dispatch($bet);
 
             return $bet;
         });

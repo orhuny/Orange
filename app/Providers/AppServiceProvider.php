@@ -2,9 +2,14 @@
 
 namespace App\Providers;
 
+use App\Domain\Game\Events\BetPlaced;
+use App\Domain\Game\Events\CashoutCompleted;
 use App\Domain\Game\Events\MultiplierTick;
+use App\Domain\Game\Events\RoundCrashed;
+use App\Domain\Game\Events\RoundSettled;
 use App\Domain\Game\Listeners\AutoCashoutOnTick;
 use App\Domain\Game\Services\MultiplierCalculator;
+use App\Domain\Wallet\Listeners\WebhookOnGameEvents;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -28,5 +33,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(MultiplierTick::class, AutoCashoutOnTick::class);
+
+        Event::listen(BetPlaced::class, [WebhookOnGameEvents::class, 'onBetPlaced']);
+        Event::listen(CashoutCompleted::class, [WebhookOnGameEvents::class, 'onCashoutCompleted']);
+        Event::listen(RoundCrashed::class, [WebhookOnGameEvents::class, 'onRoundCrashed']);
+        Event::listen(RoundSettled::class, [WebhookOnGameEvents::class, 'onRoundSettled']);
     }
 }

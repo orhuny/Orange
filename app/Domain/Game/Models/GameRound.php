@@ -10,6 +10,7 @@ use Database\Factories\GameRoundFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GameRound extends Model
 {
@@ -57,5 +58,11 @@ class GameRound extends Model
     public function serverSeed(): BelongsTo
     {
         return $this->belongsTo(RngSeed::class, 'server_seed_id');
+    }
+
+    /** @return HasMany<Bet, $this> */
+    public function bets(): HasMany
+    {
+        return $this->hasMany(Bet::class, 'round_id');
     }
 }

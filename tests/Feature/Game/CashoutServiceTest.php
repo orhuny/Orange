@@ -16,6 +16,9 @@ use App\Domain\Operator\Models\Operator;
 use App\Domain\Operator\Models\Player;
 use App\Domain\Wallet\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
+
+beforeEach(fn () => Http::fake());
 
 function placedBetOnRunningRound(?float $autoCashoutAt = null): Bet
 {
