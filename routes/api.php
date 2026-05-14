@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\Fairness\VerifyController;
+use App\Http\Controllers\Api\OperatorApi\BetController;
 use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\VerifyOperatorSignature;
 use Illuminate\Http\Request;
@@ -20,5 +21,7 @@ Route::prefix('v1')->group(function (): void {
                     'received_at' => now()->toIso8601String(),
                 ], 201);
             });
+
+            Route::post('/bets', [BetController::class, 'store']);
         });
 });
