@@ -1,0 +1,78 @@
+name: orange
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: orange-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-orange}
+      POSTGRES_USER: ${DB_USERNAME:-orange}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-orange}
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-orange} -d ${DB_DATABASE:-orange}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - orange
+
+  redis:
+    image: redis:7-alpine
+    container_name: orange-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory-policy allkeys-lru
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - orange
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: orange-mailpit
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_MAILPIT_PORT:-1025}:1025"
+      - "${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025"
+    networks:
+      - orange
+
+  # Optional: enable when PHP 8.3 image is desired instead of host PHP
+  # app:
+  #   build:
+  #     context: ./docker/php
+  #     dockerfile: Dockerfile
+  #   container_name: orange-app
+  #   restart: unless-stopped
+  #   working_dir: /var/www/html
+  #   volumes:
+  #     - .:/var/www/html
+  #   environment:
+  #     DB_HOST: postgres
+  #     REDIS_HOST: redis
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - orange
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  orange:
+    driver: bridge

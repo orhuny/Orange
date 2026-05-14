@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - database/factories
+        - database/seeders
+        - tests
+    level: 6
+    excludePaths:
+        - app/Filament/**/Pages/**
+    checkMissingIterableValueType: false
+    ignoreErrors:
+        - '#PHPDoc tag @use#'
