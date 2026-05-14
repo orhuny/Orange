@@ -4,8 +4,12 @@ B2B crash-game / RNG casino game provider platform built on Laravel 13.
 
 Provably-fair RNG, real-time WebSocket gameplay, multi-operator REST API with HMAC signing, double-entry wallet ledger, and Filament-powered admin & operator self-service panels.
 
-> **Status:** Pre-MVP scaffold (Week 1).
-> See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full system design and 10-week roadmap.
+> **Status:** 10-week MVP shipped — closed-beta ready (pending license + RNG cert).
+> See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full system design.
+>
+> API: **[docs/api/openapi.yaml](docs/api/openapi.yaml)** ·
+> Security: **[docs/security-review.md](docs/security-review.md)** ·
+> Load test: **[tests/Load/k6-bet-cashout.js](tests/Load/k6-bet-cashout.js)**
 
 ---
 
@@ -19,11 +23,11 @@ Provably-fair RNG, real-time WebSocket gameplay, multi-operator REST API with HM
 | Cache / Queue / Locks / Pub-Sub | Redis 7 |
 | Queue dashboard | Laravel Horizon |
 | WebSocket | Laravel Reverb |
-| Admin panel | Filament v3 |
+| Admin panel | Filament v4 |
 | Auth (API tokens) | Laravel Sanctum |
 | Permissions | spatie/laravel-permission |
 | DTOs | spatie/laravel-data |
-| Testing | Pest 3 |
+| Testing | Pest 4 |
 | Static analysis | Larastan (PHPStan max) |
 | Linter | Laravel Pint |
 
@@ -133,18 +137,20 @@ orange/
 
 10-week MVP plan — see [ARCHITECTURE.md §16](ARCHITECTURE.md#16-mvp-yol-haritası).
 
-| Week | Deliverable |
-|---|---|
-| 1 | Repo + Docker infra + Laravel scaffold ← **you are here** |
-| 2 | Operator + API key + HMAC + Idempotency middleware |
-| 3 | ProvablyFair service + seed mgmt + verify endpoint |
-| 4 | GameRound state machine + RunCrashRoundJob (DB-only) |
-| 5 | Bet placement + WalletService (mock callback) |
-| 6 | Reverb + tick broadcast + Vue scaffold |
-| 7 | Cashout (manual + auto) + race condition tests |
-| 8 | Webhook dispatcher + real operator HTTP callbacks |
-| 9 | Filament resources (operators, rounds, RTP, seeds) |
-| 10 | Load test, security review, OpenAPI, closed beta deploy |
+| Week | Deliverable | Commit |
+|---|---|---|
+| 1 | Repo + Docker infra + Laravel scaffold | `e4a7ed6` |
+| 2 | Operator + API key + HMAC + Idempotency middleware | `e9aaf1a` |
+| 3 | ProvablyFair service + seed mgmt + verify endpoint | `38111b4` |
+| 4 | GameRound state machine + RunCrashRoundJob (DB-only) | `1d22715` |
+| 5 | Bet placement + WalletService (mock callback) | `0470a39` |
+| 6 | Reverb + tick broadcast + crash demo page | `bf778ca` |
+| 7 | Cashout (manual + auto) + race condition tests | `86d6447` |
+| 8 | Webhook dispatcher + real operator HTTP callbacks | `bafa37f` |
+| 9 | Filament resources (operators, rounds, bets, seeds, webhooks…) | `048a356` |
+| 10 | Load test (k6), security review, OpenAPI 3.1 | `79bf860` |
+
+**Test suite:** 88 Pest tests, 723 assertions. Run `vendor/bin/pest`.
 
 ---
 
