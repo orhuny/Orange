@@ -703,7 +703,17 @@
                 })
                 .listen('.round.tick', (e) => {
                     if ($stage.classList.contains('crashed')) return;
-                    updateMultiplierUI(e.multiplier);
+                    const m = Number(e.multiplier ?? e.data?.multiplier ?? NaN);
+                    if (!Number.isFinite(m)) return;
+                    updateMultiplierUI(m);
+                    // Tick implies running. If user opened the page mid-round and
+                    // missed betting_opened/started, sync state text + cashout button.
+                    const elapsed = Number(e.elapsed_seconds ?? 0).toFixed(1);
+                    $state.textContent = `DIVING · ${elapsed}s`;
+                    if ($cashout.disabled) {
+                        $cashout.disabled = false;
+                        $cashoutHint.textContent = 'cash out at current x';
+                    }
                 })
                 .listen('.round.crashed', (e) => {
                     try {
@@ -727,6 +737,19 @@
                 })
                 .listen('.round.settled', (e) => {
                     log(`settled · seed ${e.server_seed?.slice(0,12)}…`);
+                    // Brief moment so the IMPLODED text is readable, then reset
+                    // the visuals back to a neutral "between rounds" state.
+                    setTimeout(() => {
+                        if (!$stage.classList.contains('betting')) {
+                            setStage(['waiting']);
+                            $mult.textContent = '1.00x';
+                            $state.textContent = 'Awaiting next dive…';
+                            $pressVal.textContent = '0';
+                            $hullVal.textContent = '100';
+                            $pressArc.setAttribute('stroke-dashoffset', '100');
+                            $hullFill.style.width = '100%';
+                        }
+                    }, 1800);
                 });
         }
 
