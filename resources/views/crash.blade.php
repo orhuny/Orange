@@ -776,8 +776,8 @@
                             $stage.classList.contains('running')) return;
                         setStage(['waiting']);
                         resetIdleVisuals();
-                        // Server's waiting_seconds isn't broadcast (yet) — assume 5s.
-                        startCountdown(5, 'Next dive in', () => {
+                        const wait = Number(e.next_round_in_seconds ?? 5);
+                        startCountdown(wait, 'Next dive in', () => {
                             $state.textContent = 'Awaiting next dive…';
                         });
                     }, 1200);

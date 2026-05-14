@@ -39,6 +39,7 @@ class RoundSettled implements ShouldBroadcast
             'settled_at' => $this->round->settled_at?->toIso8601String(),
             'server_seed' => $this->round->serverSeed?->server_seed,
             'crash_point' => (float) $this->round->crash_point,
+            'next_round_in_seconds' => (int) config('crash.waiting_seconds', 5),
         ];
     }
 }
