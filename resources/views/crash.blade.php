@@ -706,14 +706,24 @@
                     updateMultiplierUI(e.multiplier);
                 })
                 .listen('.round.crashed', (e) => {
-                    console.log('[crash payload]', e); // verify server is sending distinct crash_points
-                    rebuildDebris();
-                    setStage(['crashed', 'critical']);
-                    $mult.textContent = e.crash_point.toFixed(2) + 'x';
-                    $state.textContent = `IMPLODED @ ${e.crash_point.toFixed(2)}x`;
-                    $cashout.disabled = true;
-                    $cashoutHint.textContent = 'round over';
-                    log(`💥 imploded @ ${e.crash_point.toFixed(2)}x`);
+                    try {
+                        log('💥 raw: ' + JSON.stringify(e));
+                        const cp = Number(e.crash_point ?? e.crashPoint ?? e.data?.crash_point ?? NaN);
+                        rebuildDebris();
+                        setStage(['crashed', 'critical']);
+                        if (Number.isFinite(cp)) {
+                            $mult.textContent = cp.toFixed(2) + 'x';
+                            $state.textContent = `IMPLODED @ ${cp.toFixed(2)}x`;
+                            log(`💥 imploded @ ${cp.toFixed(2)}x`);
+                        } else {
+                            $state.textContent = 'IMPLODED (no crash_point)';
+                            log('⚠ crash_point missing in payload');
+                        }
+                        $cashout.disabled = true;
+                        $cashoutHint.textContent = 'round over';
+                    } catch (err) {
+                        log('⚠ crashed handler threw: ' + err.message);
+                    }
                 })
                 .listen('.round.settled', (e) => {
                     log(`settled · seed ${e.server_seed?.slice(0,12)}…`);
