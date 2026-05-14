@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: Orange B2B Crash-Game Provider API
+  version: 0.1.0
+  description: |
+    Provider-side REST API for B2B crash-game integration.
+
+    All mutating endpoints require the four standard headers:
+    `X-Operator-Id`, `X-Timestamp`, `X-Signature`, `Idempotency-Key`.
+
+    See [ARCHITECTURE.md §8](../../ARCHITECTURE.md#8-api-tasarımı) and
+    [docs/security-review.md](../security-review.md) for signing details.
+  contact:
+    name: Orange Provider
+    email: dev@arkingroup.com
+
+servers:
+  - url: https://api.orange.example/v1
+    description: Production
+  - url: http://localhost:8000/v1
+    description: Local dev
+
+tags:
+  - name: Bets
+    description: Bet placement and cashout
+  - name: Fairness
+    description: Public provably-fair verification
+
+components:
+  securitySchemes:
+    OperatorHmac:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: |
+        HMAC-SHA256 over `METHOD\nPATH\nBODY\nTIMESTAMP` using the operator's
+        shared secret. Requires accompanying `X-Operator-Id`, `X-Timestamp`,
+        and `Idempotency-Key` headers.
+
+  parameters:
+    OperatorIdHeader:
+      in: header
+      name: X-Operator-Id
+      required: true
+      schema: { type: string, format: uuid }
+    TimestampHeader:
+      in: header
+      name: X-Timestamp
+      required: true
+      schema: { type: integer, format: int64, description: Unix seconds, ±30s window. }
+    SignatureHeader:
+      in: header
+      name: X-Signature
+      required: true
+      schema: { type: string, description: HMAC-SHA256 hex (64 chars). }
+    IdempotencyHeader:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: { type: string, maxLength: 128 }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, example: signature_mismatch }
+        reason: { type: string }
+        detail: { type: string }
+
+    BetCreate:
+      type: object
+      required: [round_uuid, external_player_id, amount, currency]
+      properties:
+        round_uuid: { type: string, format: uuid }
+        external_player_id: { type: string, maxLength: 128 }
+        amount: { type: string, example: "1.50000000", description: Decimal string. }
+        currency: { type: string, example: EUR, minLength: 3, maxLength: 8 }
+        auto_cashout_at: { type: number, nullable: true, example: 2.00 }
+
+    Bet:
+      type: object
+      properties:
+        bet_id: { type: integer }
+        round_uuid: { type: string, format: uuid }
+        amount: { type: string }
+        currency: { type: string }
+        status: { type: string, enum: [placed, won, lost, refunded, rolled_back] }
+        auto_cashout_at: { type: number, nullable: true }
+
+    Cashout:
+      type: object
+      properties:
+        cashout_id: { type: integer }
+        bet_id: { type: integer }
+        multiplier: { type: number, example: 2.34 }
+        payout_amount: { type: string }
+        cashed_out_at: { type: string, format: date-time }
+        is_auto: { type: boolean }
+
+    FairnessRequest:
+      type: object
+      required: [server_seed, client_seed, nonce]
+      properties:
+        server_seed: { type: string, minLength: 8, maxLength: 128 }
+        client_seed: { type: string, minLength: 1, maxLength: 128 }
+        nonce: { type: integer, minimum: 0 }
+        expected_server_seed_hash:
+          type: string
+          nullable: true
+          pattern: ^[0-9a-f]{64}$
+
+    FairnessResponse:
+      type: object
+      properties:
+        algorithm: { type: string, example: bustabit-style-hmac-sha256-1over33-edge }
+        server_seed_hash: { type: string }
+        expected_hash_matches: { type: boolean, nullable: true }
+        hmac: { type: string }
+        crash_point: { type: number }
+
+paths:
+  /bets:
+    post:
+      tags: [Bets]
+      summary: Place a bet on the currently-betting round
+      security: [{ OperatorHmac: [] }]
+      parameters:
+        - $ref: '#/components/parameters/OperatorIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BetCreate' }
+      responses:
+        '201':
+          description: Bet placed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bet' }
+        '401': { description: HMAC failure, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '402': { description: insufficient_funds (operator wallet rejected) }
+        '409': { description: betting_closed | idempotency_conflict }
+        '422': { description: validation error }
+
+  /bets/{bet_id}/cashout:
+    post:
+      tags: [Bets]
+      summary: Cash out a placed bet at the current server-side multiplier
+      security: [{ OperatorHmac: [] }]
+      parameters:
+        - in: path
+          name: bet_id
+          required: true
+          schema: { type: integer }
+        - $ref: '#/components/parameters/OperatorIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyHeader'
+      responses:
+        '200':
+          description: Cashout settled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cashout' }
+        '401': { description: HMAC failure }
+        '404': { description: bet_not_found (bet does not belong to operator) }
+        '409': { description: already_cashed_out | already_settled | round_not_running }
+
+  /fairness/verify:
+    post:
+      tags: [Fairness]
+      summary: Public provably-fair verification
+      description: |
+        Reproduces a round's crash point from a server seed, client seed, and nonce.
+        No HMAC is required — the math is fully deterministic and may be run by
+        anyone with the post-round seed reveal.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FairnessRequest' }
+      responses:
+        '200':
+          description: Crash point computed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FairnessResponse' }
+        '422': { description: validation error }
