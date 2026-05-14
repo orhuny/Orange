@@ -706,7 +706,8 @@
                     updateMultiplierUI(e.multiplier);
                 })
                 .listen('.round.crashed', (e) => {
-                    rebuildDebris(); // fresh random vectors each crash
+                    console.log('[crash payload]', e); // verify server is sending distinct crash_points
+                    rebuildDebris();
                     setStage(['crashed', 'critical']);
                     $mult.textContent = e.crash_point.toFixed(2) + 'x';
                     $state.textContent = `IMPLODED @ ${e.crash_point.toFixed(2)}x`;

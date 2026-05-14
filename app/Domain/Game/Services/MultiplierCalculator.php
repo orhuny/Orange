@@ -37,8 +37,9 @@ final class MultiplierCalculator
 
         $now ??= Carbon::now();
         $endpoint = $round->crashed_at ?? $now;
-        $elapsed = max(0.0, $endpoint->diffInMicroseconds($round->started_at) / -1_000_000);
-        $live = $this->atElapsed(abs($elapsed));
+
+        $elapsedSeconds = abs($round->started_at->diffInMicroseconds($endpoint)) / 1_000_000;
+        $live = $this->atElapsed($elapsedSeconds);
 
         if ($round->crash_point !== null) {
             return min($live, (float) $round->crash_point);

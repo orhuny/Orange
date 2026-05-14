@@ -34,10 +34,10 @@ class BroadcastRoundTickCommand extends Command
 
             if ($round instanceof GameRound) {
                 $now = Carbon::now();
-                $elapsed = max(0.0, $now->diffInMicroseconds($round->started_at) / -1_000_000);
+                $elapsedSeconds = abs($round->started_at->diffInMicroseconds($now)) / 1_000_000;
                 $multiplier = $calculator->forRound($round, $now);
 
-                MultiplierTick::dispatch($round, $multiplier, abs($elapsed));
+                MultiplierTick::dispatch($round, $multiplier, $elapsedSeconds);
             }
 
             if ($this->option('once')) {
