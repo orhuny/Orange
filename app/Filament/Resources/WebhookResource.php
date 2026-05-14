@@ -40,11 +40,12 @@ class WebhookResource extends Resource
                 TextColumn::make('event')->badge(),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (WebhookStatus $s) => match ($s) {
+                    ->color(fn ($state) => match ($state) {
                         WebhookStatus::Pending => 'gray',
                         WebhookStatus::Delivered => 'success',
                         WebhookStatus::Failed => 'warning',
                         WebhookStatus::DeadLetter => 'danger',
+                        default => 'gray',
                     }),
                 TextColumn::make('attempts'),
                 TextColumn::make('next_retry_at')->dateTime('Y-m-d H:i:s')->placeholder('—'),

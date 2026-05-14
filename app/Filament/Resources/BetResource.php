@@ -41,12 +41,13 @@ class BetResource extends Resource
                 TextColumn::make('auto_cashout_at')->numeric(decimalPlaces: 2)->suffix('x')->placeholder('—'),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (BetStatus $s) => match ($s) {
+                    ->color(fn ($state) => match ($state) {
                         BetStatus::Placed => 'info',
                         BetStatus::Won => 'success',
                         BetStatus::Lost => 'danger',
                         BetStatus::Refunded => 'warning',
                         BetStatus::RolledBack => 'gray',
+                        default => 'gray',
                     }),
                 TextColumn::make('placed_at')->dateTime('Y-m-d H:i:s')->sortable(),
             ])

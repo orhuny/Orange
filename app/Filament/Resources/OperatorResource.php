@@ -57,10 +57,11 @@ class OperatorResource extends Resource
                 TextColumn::make('slug')->searchable()->copyable(),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (OperatorStatus $state) => match ($state) {
+                    ->color(fn ($state) => match ($state) {
                         OperatorStatus::Active => 'success',
                         OperatorStatus::Suspended => 'warning',
                         OperatorStatus::Disabled => 'danger',
+                        default => 'gray',
                     }),
                 TextColumn::make('callback_base_url')->limit(40)->toggleable(),
                 TextColumn::make('apiKeys_count')->counts('apiKeys')->label('API keys'),

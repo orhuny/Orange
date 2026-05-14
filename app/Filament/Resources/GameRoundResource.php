@@ -38,12 +38,13 @@ class GameRoundResource extends Resource
                 TextColumn::make('game.code'),
                 TextColumn::make('state')
                     ->badge()
-                    ->color(fn (RoundState $s) => match ($s) {
+                    ->color(fn ($state) => match ($state) {
                         RoundState::Waiting => 'gray',
                         RoundState::Betting => 'info',
                         RoundState::Running => 'success',
                         RoundState::Crashed => 'danger',
                         RoundState::Settled => 'gray',
+                        default => 'gray',
                     }),
                 TextColumn::make('crash_point')->numeric(decimalPlaces: 2)->suffix('x'),
                 TextColumn::make('total_bet_amount')->numeric(decimalPlaces: 2),
