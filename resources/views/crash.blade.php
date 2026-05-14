@@ -680,21 +680,52 @@
             setStage(tiers);
         }
 
+        // ---------- Countdown helper (state text only) ----------
+        let countdownTimer = null;
+        function cancelCountdown() {
+            if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+        }
+        function startCountdown(seconds, label, onZero) {
+            cancelCountdown();
+            let remaining = Math.max(0, Math.floor(seconds));
+            const render = () => {
+                if (remaining <= 0) {
+                    cancelCountdown();
+                    if (onZero) onZero();
+                    return;
+                }
+                $state.textContent = `${label} ${remaining}s`;
+                remaining--;
+            };
+            render();
+            countdownTimer = setInterval(render, 1000);
+        }
+
+        function resetIdleVisuals() {
+            $mult.textContent = '1.00x';
+            $pressVal.textContent = '0';
+            $hullVal.textContent = '100';
+            $pressArc.setAttribute('stroke-dashoffset', '100');
+            $pressArc.setAttribute('stroke', 'var(--hud)');
+            $hullFill.style.width = '100%';
+        }
+
         function attachEcho() {
             log('Echo ready, joining channel: crash');
             window.Echo.channel('crash')
                 .listen('.round.betting_opened', (e) => {
+                    cancelCountdown();
                     setStage(['betting']);
-                    $mult.textContent = '1.00x';
-                    $pressVal.textContent = '0'; $hullVal.textContent = '100';
-                    $pressArc.setAttribute('stroke-dashoffset', '100');
-                    $hullFill.style.width = '100%';
-                    $state.textContent = `Betting open · ${e.betting_seconds}s window`;
+                    resetIdleVisuals();
                     $cashout.disabled = true;
                     $cashoutHint.textContent = 'awaiting dive';
                     log(`betting_opened ${e.round_uuid.slice(0,8)}…`);
+                    startCountdown(e.betting_seconds || 10, 'Diving in', () => {
+                        $state.textContent = 'Pressurising…';
+                    });
                 })
                 .listen('.round.started', (e) => {
+                    cancelCountdown();
                     setStage(['running']);
                     $state.textContent = 'DIVING';
                     $cashout.disabled = false;
@@ -737,19 +768,19 @@
                 })
                 .listen('.round.settled', (e) => {
                     log(`settled · seed ${e.server_seed?.slice(0,12)}…`);
-                    // Brief moment so the IMPLODED text is readable, then reset
-                    // the visuals back to a neutral "between rounds" state.
+                    // Hold the IMPLODED splash for ~1.2s so the player can read
+                    // the crash point, then snap back to a neutral idle and
+                    // start a visible countdown until the next betting window.
                     setTimeout(() => {
-                        if (!$stage.classList.contains('betting')) {
-                            setStage(['waiting']);
-                            $mult.textContent = '1.00x';
+                        if ($stage.classList.contains('betting') ||
+                            $stage.classList.contains('running')) return;
+                        setStage(['waiting']);
+                        resetIdleVisuals();
+                        // Server's waiting_seconds isn't broadcast (yet) — assume 5s.
+                        startCountdown(5, 'Next dive in', () => {
                             $state.textContent = 'Awaiting next dive…';
-                            $pressVal.textContent = '0';
-                            $hullVal.textContent = '100';
-                            $pressArc.setAttribute('stroke-dashoffset', '100');
-                            $hullFill.style.width = '100%';
-                        }
-                    }, 1800);
+                        });
+                    }, 1200);
                 });
         }
 
