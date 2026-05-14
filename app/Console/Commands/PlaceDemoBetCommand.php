@@ -37,7 +37,7 @@ class PlaceDemoBetCommand extends Command
 
         $body = json_encode([
             'round_uuid' => $round->round_uuid,
-            'external_player_id' => (string) $this->option('player'),
+            'player_external_id' => (string) $this->option('player'),
             'amount' => $this->argument('amount'),
             'currency' => 'EUR',
             'auto_cashout_at' => $this->option('auto-cashout') !== null
