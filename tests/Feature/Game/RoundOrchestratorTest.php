@@ -8,13 +8,10 @@ use App\Domain\Game\Models\Game;
 use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\ProvablyFair\Models\RngSeed;
 use App\Domain\ProvablyFair\Services\ProvablyFairService;
-use App\Domain\ProvablyFair\Services\SeedRotator;
 
 function orchestrator(): RoundOrchestrator
 {
-    $math = new ProvablyFairService;
-
-    return new RoundOrchestrator(new SeedRotator($math), $math);
+    return app(RoundOrchestrator::class);
 }
 
 it('creates a waiting round bound to the active seed with an incrementing nonce', function (): void {

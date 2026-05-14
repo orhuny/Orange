@@ -23,6 +23,7 @@ final class RoundOrchestrator
     public function __construct(
         private readonly SeedRotator $seeds,
         private readonly ProvablyFairService $math,
+        private readonly CashoutService $cashouts,
     ) {}
 
     public function create(Game $game, ?string $clientSeed = null): GameRound
@@ -81,6 +82,8 @@ final class RoundOrchestrator
         $crashed = $this->transition($round, RoundState::Crashed, [
             'crashed_at' => now(),
         ]);
+
+        $this->cashouts->settleLosers($crashed);
 
         RoundCrashed::dispatch($crashed);
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\Bets\CashoutController;
 use App\Http\Controllers\Api\Fairness\VerifyController;
 use App\Http\Controllers\Api\OperatorApi\BetController;
 use App\Http\Middleware\EnforceIdempotency;
@@ -23,5 +24,6 @@ Route::prefix('v1')->group(function (): void {
             });
 
             Route::post('/bets', [BetController::class, 'store']);
+            Route::post('/bets/{bet}/cashout', CashoutController::class)->whereNumber('bet');
         });
 });
