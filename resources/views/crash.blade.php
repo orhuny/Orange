@@ -26,9 +26,13 @@
             user-select: none;
         }
 
-        /* ---------- Stage / depth gradient ---------- */
-        .stage {
-            position: fixed; inset: 0;
+        /* ---------- Stage = container only, never filtered ---------- */
+        .stage { position: fixed; inset: 0; background: var(--abyss); }
+
+        /* All depth darkening lives on this layer so the HUD/multiplier
+           stay readable. */
+        .scene {
+            position: absolute; inset: 0;
             background:
               radial-gradient(ellipse at 50% -10%, rgba(255,255,255,0.18) 0%, transparent 35%),
               linear-gradient(180deg,
@@ -38,10 +42,11 @@
                   var(--depth-2) 75%,
                   var(--abyss) 100%);
             transition: filter 1s ease, background 2s ease;
+            z-index: 1;
         }
-        .stage.deep   { filter: brightness(0.55) saturate(1.1); }
-        .stage.abyss  { filter: brightness(0.25) saturate(0.7) contrast(1.2); }
-        .stage.critical { filter: brightness(0.2) saturate(0.6) contrast(1.4) hue-rotate(-20deg); }
+        .stage.deep    .scene { filter: brightness(0.7) saturate(1.1); }
+        .stage.abyss   .scene { filter: brightness(0.5) saturate(0.85) contrast(1.1); }
+        .stage.critical .scene { filter: brightness(0.45) saturate(0.75) contrast(1.25) hue-rotate(-15deg); }
 
         /* ---------- God rays ---------- */
         .rays {
@@ -373,23 +378,27 @@
 </head>
 <body>
     <div id="stage" class="stage waiting">
-        <div class="rays"></div>
-        <div class="strobe"></div>
+        <!-- Filtered scene (depth darkening lives here) -->
+        <div class="scene">
+            <div class="rays"></div>
+            <div id="particles" class="particles"></div>
 
-        <div id="particles" class="particles"></div>
+            <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"></div>
+            <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"></div>
+            <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"></div>
 
-        <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"></div>
-        <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"></div>
-        <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"></div>
-
-        <div class="sub-wrap">
-            <div class="sub-body">
-                <div class="porthole p1"></div>
-                <div class="porthole p2"></div>
-                <div class="fin"></div>
-                <div class="lights"></div>
+            <div class="sub-wrap">
+                <div class="sub-body">
+                    <div class="porthole p1"></div>
+                    <div class="porthole p2"></div>
+                    <div class="fin"></div>
+                    <div class="lights"></div>
+                </div>
             </div>
         </div>
+
+        <!-- Strobe sits above the scene but below the UI -->
+        <div class="strobe"></div>
 
         <!-- HUD -->
         <div class="hud-top">
