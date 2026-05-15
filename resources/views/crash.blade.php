@@ -80,6 +80,64 @@
             to   { transform: translateY(-10vh) translateX(40px); opacity: 0; }
         }
 
+        /* ---------- Rising bubbles (always on) ---------- */
+        .bubbles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background:
+              radial-gradient(circle at 32% 30%, rgba(255,255,255,0.85) 0%, rgba(186,230,253,0.45) 35%, rgba(14,165,233,0.15) 70%, transparent 100%);
+            box-shadow: inset 0 0 4px rgba(255,255,255,0.4);
+            opacity: 0;
+            animation: rise linear infinite;
+        }
+        @keyframes rise {
+            0%   { transform: translate(0, 110vh) scale(0.6);  opacity: 0; }
+            8%   { opacity: 0.85; }
+            50%  { transform: translate(20px, 50vh) scale(1.0); }
+            92%  { opacity: 0.7; }
+            100% { transform: translate(-15px, -10vh) scale(1.1); opacity: 0; }
+        }
+
+        /* ---------- Caustic light shimmer (surface zone) ---------- */
+        .caustics {
+            position: absolute; inset: 0;
+            background:
+              radial-gradient(ellipse 50% 25% at 30% 18%, rgba(186,230,253,0.18), transparent 70%),
+              radial-gradient(ellipse 60% 30% at 70% 12%, rgba(186,230,253,0.14), transparent 70%);
+            mix-blend-mode: screen;
+            opacity: 0.85;
+            transition: opacity 1.5s ease;
+            animation: shimmer 11s ease-in-out infinite;
+            z-index: 3;
+        }
+        .deep .caustics  { opacity: 0.25; }
+        .abyss .caustics, .critical .caustics { opacity: 0; }
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(0)    scaleY(1); }
+            50%      { transform: translateX(-25px) scaleY(1.06); }
+        }
+
+        /* ---------- Distant creature silhouettes (deep+ only) ---------- */
+        .creatures { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
+        .creature {
+            position: absolute;
+            opacity: 0;
+            transition: opacity 2s ease;
+            animation: cross linear infinite;
+            filter: blur(1.5px);
+        }
+        .deep .creature, .abyss .creature, .critical .creature { opacity: 0.55; }
+        .creature svg { display: block; }
+        @keyframes cross {
+            0%   { transform: translateX(-30vw); }
+            100% { transform: translateX(130vw); }
+        }
+        @keyframes cross-reverse {
+            0%   { transform: translateX(130vw) scaleX(-1); }
+            100% { transform: translateX(-30vw) scaleX(-1); }
+        }
+
         /* ---------- Jellyfish (mid depth) ---------- */
         .jelly {
             position: absolute;
@@ -473,6 +531,58 @@
         <div class="scene">
             <div class="rays"></div>
             <div id="particles" class="particles"></div>
+            <div class="caustics"></div>
+            <div id="bubbles"  class="bubbles"></div>
+            <div id="creatures" class="creatures">
+                <!-- Whale silhouette, slow drift left → right (only visible in deep+) -->
+                <div class="creature" style="left:0; top:55%; animation-duration:42s; animation-delay:-15s;">
+                    <svg width="220" height="60" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 20 30
+                                 Q 10 20 5 30
+                                 Q 10 35 25 32
+                                 Q 60 18 130 22
+                                 Q 195 25 200 35
+                                 Q 215 32 215 38
+                                 Q 200 42 180 42
+                                 Q 110 50 60 42
+                                 Q 30 40 20 30 Z"
+                              fill="rgba(0,0,0,0.65)"/>
+                        <ellipse cx="105" cy="13" rx="18" ry="3" fill="rgba(0,0,0,0.45)"/>
+                    </svg>
+                </div>
+
+                <!-- Anglerfish-style silhouette, right → left -->
+                <div class="creature" style="right:0; top:75%; animation: cross-reverse 56s linear infinite; animation-delay:-30s;">
+                    <svg width="120" height="55" viewBox="0 0 120 55" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 10 30
+                                 Q 25 10 60 16
+                                 Q 95 22 110 30
+                                 Q 95 38 65 42
+                                 Q 30 45 18 38
+                                 Q 5 36 10 30 Z"
+                              fill="rgba(0,0,0,0.7)"/>
+                        <path d="M 105 28 Q 118 22 115 32 Q 118 35 110 35 Z" fill="rgba(0,0,0,0.6)"/>
+                        <circle cx="115" cy="30" r="1.2" fill="rgba(252,211,77,0.9)"/>
+                    </svg>
+                </div>
+
+                <!-- Eel-like serpent silhouette, slow weaving (top) -->
+                <div class="creature" style="left:0; top:35%; animation-duration:70s; animation-delay:-40s;">
+                    <svg width="280" height="40" viewBox="0 0 280 40" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 5 20
+                                 Q 40 5 80 20
+                                 Q 120 35 160 20
+                                 Q 200 5 240 20
+                                 Q 260 26 270 22
+                                 L 268 25
+                                 Q 240 30 200 25
+                                 Q 160 30 120 25
+                                 Q 80 30 40 25
+                                 Q 15 22 5 20 Z"
+                              fill="rgba(0,0,0,0.55)"/>
+                    </svg>
+                </div>
+            </div>
 
             <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"></div>
             <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"></div>
@@ -672,6 +782,19 @@
         const $hullVal = document.getElementById('hullValue');
         const $cashout = document.getElementById('cashout');
         const $cashoutHint = document.getElementById('cashoutHint');
+
+        // rising bubbles (24, varying size + speed)
+        const bubbleHost = document.getElementById('bubbles');
+        for (let i = 0; i < 24; i++) {
+            const b = document.createElement('div');
+            b.className = 'bubble';
+            const size = 4 + Math.random() * 14;
+            b.style.width = b.style.height = size + 'px';
+            b.style.left = (Math.random() * 100) + 'vw';
+            b.style.animationDuration = (10 + Math.random() * 16) + 's';
+            b.style.animationDelay = (-Math.random() * 18) + 's';
+            bubbleHost.appendChild(b);
+        }
 
         // ambient silt particles
         const particleHost = document.getElementById('particles');
