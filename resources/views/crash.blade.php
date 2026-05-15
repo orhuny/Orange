@@ -168,6 +168,7 @@
             transform: scale(1.35);
             transform-origin: center;
         }
+        .creature.whale svg { transform: scale(1.55); }
         @keyframes cross {
             0%   { transform: translateX(-35vw); }
             100% { transform: translateX(135vw); }
@@ -695,21 +696,50 @@
             </div>
 
             <div id="creatures" class="creatures">
-                <!-- Whale silhouette, slow drift left → right (only visible in deep+) -->
-                <div class="creature" style="left:0; top:55%; animation-duration:42s; animation-delay:-15s;">
-                    <svg width="220" height="60" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M 20 30
-                                 Q 10 20 5 30
-                                 Q 10 35 25 32
-                                 Q 60 18 130 22
-                                 Q 195 25 200 35
-                                 Q 215 32 215 38
-                                 Q 200 42 180 42
-                                 Q 110 50 60 42
-                                 Q 30 40 20 30 Z"
+                <!-- Whale silhouette, slow drift left → right -->
+                <div class="creature whale" style="left:0; top:50%; animation-duration:58s; animation-delay:-15s;">
+                    <svg width="340" height="120" viewBox="0 0 340 120" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Tail flukes (horizontal V at the back) -->
+                        <path d="M 295 55
+                                 Q 310 38 335 30
+                                 Q 322 50 308 60
+                                 Q 322 66 335 88
+                                 Q 310 80 295 65 Z"
+                              fill="rgba(2,6,23,0.95)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+
+                        <!-- Main body -->
+                        <path d="M 25 58
+                                 Q 12 48 22 38
+                                 Q 35 18 95 22
+                                 Q 185 18 255 32
+                                 Q 285 38 298 52
+                                 L 298 66
+                                 Q 285 78 255 84
+                                 Q 185 96 95 92
+                                 Q 35 100 22 78
+                                 Q 12 70 25 58 Z"
+                              fill="rgba(2,6,23,0.95)" stroke="rgba(15,23,42,1)" stroke-width="0.8"/>
+
+                        <!-- Dorsal fin -->
+                        <path d="M 185 22 Q 195 6 215 24 Q 205 22 195 24 Z"
                               fill="rgba(2,6,23,0.95)" stroke="rgba(15,23,42,1)" stroke-width="0.6"/>
-                        <ellipse cx="105" cy="13" rx="18" ry="3" fill="rgba(2,6,23,0.85)"/>
-                        <circle cx="180" cy="32" r="1.8" fill="rgba(255,255,255,0.6)"/>
+
+                        <!-- Pectoral fin (under, midbody) -->
+                        <path d="M 90 84 Q 100 110 135 100 Q 115 88 90 84 Z"
+                              fill="rgba(2,6,23,0.85)" stroke="rgba(15,23,42,1)" stroke-width="0.5"/>
+
+                        <!-- Mouth line -->
+                        <path d="M 22 68 Q 42 74 68 70" stroke="rgba(15,23,42,0.9)" stroke-width="1.1" fill="none"/>
+
+                        <!-- Belly seam (subtle texture) -->
+                        <path d="M 60 88 Q 140 96 240 84" stroke="rgba(103,232,249,0.15)" stroke-width="1" fill="none"/>
+
+                        <!-- Eye -->
+                        <circle cx="58" cy="50" r="2.4" fill="white"/>
+                        <circle cx="58.5" cy="50.4" r="1.3" fill="#0f172a"/>
+
+                        <!-- Blowhole -->
+                        <ellipse cx="92" cy="22" rx="3" ry="1.2" fill="rgba(15,23,42,0.7)"/>
                     </svg>
                 </div>
 
