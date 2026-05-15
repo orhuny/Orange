@@ -236,6 +236,48 @@
             transition: width 0.2s linear;
         }
 
+        /* ---------- Recent crashes history ---------- */
+        .history {
+            position: absolute;
+            top: 96px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 6px;
+            padding: 6px 10px;
+            background: rgba(2,6,23,0.55);
+            border: 1px solid rgba(103,232,249,0.25);
+            border-radius: 999px;
+            backdrop-filter: blur(6px);
+            z-index: 9;
+            max-width: 92vw;
+            overflow: hidden;
+        }
+        .history-chip {
+            font-size: 10px; font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
+            letter-spacing: 0.04em;
+            transition: transform 0.3s ease;
+        }
+        .history-chip.tier-low  { background: rgba(239,68,68,0.20);  color: #fecaca; }
+        .history-chip.tier-mid  { background: rgba(251,191,36,0.20); color: #fef3c7; }
+        .history-chip.tier-high { background: rgba(34,197,94,0.20);  color: #bbf7d0; }
+        .history-chip.tier-epic {
+            background: rgba(168,85,247,0.30);
+            color: #f3e8ff;
+            box-shadow: 0 0 12px rgba(168,85,247,0.45);
+        }
+        .history-chip.is-new { animation: chip-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes chip-pop {
+            0%   { transform: scale(0); opacity: 0; }
+            60%  { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        @media (max-width: 500px) {
+            .history { top: 84px; gap: 4px; padding: 5px 8px; }
+            .history-chip { font-size: 9px; padding: 2px 7px; }
+        }
+
         /* ---------- Multiplier ---------- */
         .center {
             position: absolute; inset: 0;
@@ -706,6 +748,9 @@
             </div>
         </div>
 
+        <!-- Recent crashes -->
+        <div id="history" class="history" aria-label="Recent crashes"></div>
+
         <!-- Center multiplier -->
         <div class="center">
             <div id="multiplier" class="multiplier">1.00x</div>
@@ -826,6 +871,29 @@
         }
         rebuildDebris();
 
+        // ---------- Recent crash history (top chip rail) ----------
+        const HISTORY_MAX = 12;
+        const $history = document.getElementById('history');
+        const history = @json($recentCrashes ?? []);
+
+        function tierClassFor(cp) {
+            if (cp >= 10) return 'tier-epic';
+            if (cp >= 3)  return 'tier-high';
+            if (cp >= 1.5) return 'tier-mid';
+            return 'tier-low';
+        }
+        function renderHistory(highlightFirst = false) {
+            $history.innerHTML = history.map((cp, i) =>
+                `<span class="history-chip ${tierClassFor(cp)}${highlightFirst && i === 0 ? ' is-new' : ''}">${cp.toFixed(2)}x</span>`
+            ).join('');
+        }
+        function pushHistory(cp) {
+            history.unshift(cp);
+            if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+            renderHistory(true);
+        }
+        renderHistory();
+
         const log = (msg) => {
             const line = document.createElement('div');
             line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
@@ -933,6 +1001,7 @@
                             $mult.textContent = cp.toFixed(2) + 'x';
                             $state.textContent = `IMPLODED @ ${cp.toFixed(2)}x`;
                             log(`💥 imploded @ ${cp.toFixed(2)}x`);
+                            pushHistory(cp);
                         } else {
                             $state.textContent = 'IMPLODED (no crash_point)';
                             log('⚠ crash_point missing in payload');
