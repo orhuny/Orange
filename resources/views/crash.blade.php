@@ -118,6 +118,33 @@
             50%      { transform: translateX(-25px) scaleY(1.06); }
         }
 
+        /* ---------- Shallow-water tropical fish (early phase) ---------- */
+        .fishes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
+        .fish {
+            position: absolute;
+            opacity: 0.85;
+            transition: opacity 1.5s ease;
+            animation: swim linear infinite;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+        }
+        .deep .fish, .abyss .fish, .critical .fish, .crashed .fish { opacity: 0; }
+        .fish svg {
+            display: block;
+            animation: bob 2.4s ease-in-out infinite;
+        }
+        @keyframes swim {
+            0%   { transform: translateX(-20vw); }
+            100% { transform: translateX(120vw); }
+        }
+        @keyframes swim-reverse {
+            0%   { transform: translateX(120vw) scaleX(-1); }
+            100% { transform: translateX(-20vw) scaleX(-1); }
+        }
+        @keyframes bob {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-6px); }
+        }
+
         /* ---------- Distant creature silhouettes ---------- */
         .creatures { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
         .creature {
@@ -602,6 +629,71 @@
             <div id="particles" class="particles"></div>
             <div class="caustics"></div>
             <div id="bubbles"  class="bubbles"></div>
+            <div class="fishes">
+                <!-- Orange tropical fish, left → right -->
+                <div class="fish" style="left:0; top:18%; animation-duration:18s; animation-delay:-3s;">
+                    <svg width="46" height="26" viewBox="0 0 46 26" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="22" cy="13" rx="14" ry="7" fill="#f97316"/>
+                        <ellipse cx="22" cy="13" rx="14" ry="7" fill="none" stroke="#7c2d12" stroke-width="0.6"/>
+                        <path d="M 8 13 L 1 6 L 1 20 Z" fill="#fb923c" stroke="#7c2d12" stroke-width="0.6"/>
+                        <path d="M 22 6 Q 26 2 30 6 Z" fill="#fdba74"/>
+                        <line x1="14" y1="9" x2="14" y2="17" stroke="#7c2d12" stroke-width="0.7"/>
+                        <line x1="20" y1="9" x2="20" y2="17" stroke="#7c2d12" stroke-width="0.7"/>
+                        <circle cx="34" cy="11" r="1.6" fill="#fff"/>
+                        <circle cx="34.4" cy="11.2" r="0.9" fill="#0f172a"/>
+                    </svg>
+                </div>
+
+                <!-- Yellow & black striped fish, right → left -->
+                <div class="fish" style="right:0; top:32%; animation: swim-reverse 22s linear infinite; animation-delay:-8s;">
+                    <svg width="40" height="22" viewBox="0 0 40 22" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="19" cy="11" rx="12" ry="6" fill="#fde047"/>
+                        <ellipse cx="19" cy="11" rx="12" ry="6" fill="none" stroke="#713f12" stroke-width="0.5"/>
+                        <path d="M 7 11 L 1 5 L 1 17 Z" fill="#facc15"/>
+                        <rect x="13" y="5" width="2" height="12" fill="#1e293b"/>
+                        <rect x="20" y="5" width="2" height="12" fill="#1e293b"/>
+                        <rect x="27" y="6" width="2" height="10" fill="#1e293b"/>
+                        <circle cx="29" cy="9" r="1.3" fill="#fff"/>
+                        <circle cx="29.3" cy="9.2" r="0.7" fill="#0f172a"/>
+                    </svg>
+                </div>
+
+                <!-- Pink fish, left → right -->
+                <div class="fish" style="left:0; top:45%; animation-duration:26s; animation-delay:-15s;">
+                    <svg width="38" height="22" viewBox="0 0 38 22" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="18" cy="11" rx="11" ry="6" fill="#f472b6"/>
+                        <ellipse cx="18" cy="11" rx="11" ry="6" fill="none" stroke="#831843" stroke-width="0.5"/>
+                        <path d="M 7 11 L 1 5 L 1 17 Z" fill="#f9a8d4"/>
+                        <path d="M 18 5 Q 22 1 26 5 Z" fill="#fbcfe8"/>
+                        <circle cx="28" cy="9" r="1.4" fill="#fff"/>
+                        <circle cx="28.3" cy="9.2" r="0.8" fill="#0f172a"/>
+                    </svg>
+                </div>
+
+                <!-- Cyan fish, right → left, smaller -->
+                <div class="fish" style="right:0; top:25%; animation: swim-reverse 16s linear infinite; animation-delay:-1s;">
+                    <svg width="32" height="18" viewBox="0 0 32 18" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="15" cy="9" rx="9" ry="5" fill="#22d3ee"/>
+                        <ellipse cx="15" cy="9" rx="9" ry="5" fill="none" stroke="#155e75" stroke-width="0.5"/>
+                        <path d="M 6 9 L 1 4 L 1 14 Z" fill="#67e8f9"/>
+                        <circle cx="22" cy="7.5" r="1.2" fill="#fff"/>
+                        <circle cx="22.3" cy="7.7" r="0.7" fill="#0f172a"/>
+                    </svg>
+                </div>
+
+                <!-- Purple fish, left → right -->
+                <div class="fish" style="left:0; top:55%; animation-duration:32s; animation-delay:-20s;">
+                    <svg width="42" height="24" viewBox="0 0 42 24" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="20" cy="12" rx="13" ry="7" fill="#a855f7"/>
+                        <ellipse cx="20" cy="12" rx="13" ry="7" fill="none" stroke="#581c87" stroke-width="0.5"/>
+                        <path d="M 7 12 L 1 5 L 1 19 Z" fill="#c084fc"/>
+                        <path d="M 20 5 Q 24 1 28 5 Z" fill="#d8b4fe"/>
+                        <circle cx="31" cy="10" r="1.5" fill="#fff"/>
+                        <circle cx="31.3" cy="10.2" r="0.8" fill="#0f172a"/>
+                    </svg>
+                </div>
+            </div>
+
             <div id="creatures" class="creatures">
                 <!-- Whale silhouette, slow drift left → right (only visible in deep+) -->
                 <div class="creature" style="left:0; top:55%; animation-duration:42s; animation-delay:-15s;">
