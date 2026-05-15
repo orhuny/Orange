@@ -237,23 +237,33 @@
         }
 
         /* ---------- Recent crashes history ---------- */
-        .history {
+        .history-wrap {
             position: absolute;
             top: 96px; left: 50%;
             transform: translateX(-50%);
-            display: flex; gap: 6px;
-            padding: 6px 10px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 6px;
+            z-index: 9;
+            max-width: 96vw;
+        }
+        .history-label {
+            font-size: 10px; letter-spacing: 0.32em;
+            color: var(--hud); opacity: 0.7;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(103,232,249,0.3);
+        }
+        .history {
+            display: flex; gap: 7px;
+            padding: 8px 14px;
             background: rgba(2,6,23,0.55);
             border: 1px solid rgba(103,232,249,0.25);
             border-radius: 999px;
             backdrop-filter: blur(6px);
-            z-index: 9;
-            max-width: 92vw;
             overflow: hidden;
         }
         .history-chip {
-            font-size: 10px; font-weight: 700;
-            padding: 3px 9px;
+            font-size: 14px; font-weight: 700;
+            padding: 5px 12px;
             border-radius: 999px;
             white-space: nowrap;
             letter-spacing: 0.04em;
@@ -274,21 +284,25 @@
             100% { transform: scale(1); }
         }
         @media (max-width: 500px) {
-            .history { top: 84px; gap: 4px; padding: 5px 8px; }
-            .history-chip { font-size: 9px; padding: 2px 7px; }
+            .history-wrap { top: 84px; gap: 4px; }
+            .history-label { font-size: 9px; letter-spacing: 0.24em; }
+            .history { gap: 5px; padding: 6px 10px; }
+            .history-chip { font-size: 12px; padding: 4px 9px; }
         }
 
-        /* ---------- Multiplier ---------- */
+        /* ---------- Multiplier (positioned between submarine and CASH OUT) ---------- */
         .center {
-            position: absolute; inset: 0;
+            position: absolute;
+            left: 0; right: 0;
+            bottom: 130px;
             display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
+            align-items: center; gap: 4px;
             pointer-events: none;
             z-index: 8;
         }
         .multiplier {
             font-family: "SF Mono", ui-monospace, monospace;
-            font-size: clamp(96px, 18vw, 220px);
+            font-size: clamp(72px, 14vw, 160px);
             font-weight: 700; line-height: 0.95;
             letter-spacing: -0.04em;
             background: linear-gradient(180deg, #cffafe 0%, var(--hud) 50%, #0891b2 100%);
@@ -322,10 +336,11 @@
             100% { transform: scale(0.6); filter: blur(8px); opacity: 0.4; }
         }
         .state {
-            margin-top: 10px;
-            font-size: 11px; letter-spacing: 0.3em;
-            color: var(--hud); opacity: 0.7;
+            margin: 0;
+            font-size: 13px; letter-spacing: 0.3em;
+            color: var(--hud); opacity: 0.85;
             text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(103,232,249,0.4);
         }
 
         /* ---------- Warnings (only critical) ---------- */
@@ -749,12 +764,15 @@
         </div>
 
         <!-- Recent crashes -->
-        <div id="history" class="history" aria-label="Recent crashes"></div>
+        <div class="history-wrap" aria-label="Recent crashes">
+            <div class="history-label">Recent crashes</div>
+            <div id="history" class="history"></div>
+        </div>
 
-        <!-- Center multiplier -->
+        <!-- State + multiplier (anchored above CASH OUT, leaves the descending sub visible) -->
         <div class="center">
-            <div id="multiplier" class="multiplier">1.00x</div>
             <div id="state" class="state">Awaiting next dive…</div>
+            <div id="multiplier" class="multiplier">1.00x</div>
         </div>
 
         <!-- Critical warnings -->
