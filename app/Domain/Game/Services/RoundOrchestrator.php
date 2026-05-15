@@ -48,13 +48,13 @@ final class RoundOrchestrator
         });
     }
 
-    public function openBetting(GameRound $round): GameRound
+    public function openBetting(GameRound $round, ?int $bettingSeconds = null): GameRound
     {
         $opened = $this->transition($round, RoundState::Betting, [
             'betting_opened_at' => now(),
         ]);
 
-        BettingOpened::dispatch($opened);
+        BettingOpened::dispatch($opened, $bettingSeconds);
 
         return $opened;
     }

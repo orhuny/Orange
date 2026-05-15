@@ -51,7 +51,7 @@ class RunCrashLoopCommand extends Command
             $round = $orchestrator->create($game);
             $this->line("[{$i}] round {$round->round_uuid} created");
 
-            $orchestrator->openBetting($round);
+            $orchestrator->openBetting($round, $bettingSeconds);
             $this->line("    → betting open for {$bettingSeconds}s");
             sleep($bettingSeconds);
 

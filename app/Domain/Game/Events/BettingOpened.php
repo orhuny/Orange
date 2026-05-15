@@ -15,7 +15,7 @@ class BettingOpened implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public GameRound $round) {}
+    public function __construct(public GameRound $round, public ?int $bettingSeconds = null) {}
 
     /** @return list<Channel> */
     public function broadcastOn(): array
@@ -39,7 +39,7 @@ class BettingOpened implements ShouldBroadcastNow
             'server_seed_hash' => $this->round->serverSeed?->server_seed_hash,
             'nonce' => $this->round->nonce,
             'betting_opened_at' => $this->round->betting_opened_at?->toIso8601String(),
-            'betting_seconds' => (int) config('crash.betting_seconds', 10),
+            'betting_seconds' => $this->bettingSeconds ?? (int) config('crash.betting_seconds', 10),
         ];
     }
 }
