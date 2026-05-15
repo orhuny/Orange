@@ -118,24 +118,36 @@
             50%      { transform: translateX(-25px) scaleY(1.06); }
         }
 
-        /* ---------- Distant creature silhouettes (deep+ only) ---------- */
+        /* ---------- Distant creature silhouettes ---------- */
         .creatures { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
         .creature {
             position: absolute;
             opacity: 0;
-            transition: opacity 2s ease;
+            transition: opacity 1.5s ease;
             animation: cross linear infinite;
-            filter: blur(1.5px);
+            filter:
+              blur(0.6px)
+              drop-shadow(0 0 14px rgba(8,15,30,0.85))
+              drop-shadow(0 0 22px rgba(103,232,249,0.18));
         }
-        .deep .creature, .abyss .creature, .critical .creature { opacity: 0.55; }
-        .creature svg { display: block; }
+        /* Hint at creatures even before deep zone, then ramp up. */
+        .running  .creature { opacity: 0.35; }
+        .deep     .creature { opacity: 0.7;  filter: blur(0.4px) drop-shadow(0 0 16px rgba(2,6,23,0.9)) drop-shadow(0 0 24px rgba(103,232,249,0.25)); }
+        .abyss    .creature { opacity: 0.88; filter: blur(0.3px) drop-shadow(0 0 18px rgba(2,6,23,0.95)) drop-shadow(0 0 28px rgba(103,232,249,0.30)); }
+        .critical .creature { opacity: 0.95; filter: blur(0.3px) drop-shadow(0 0 18px rgba(2,6,23,0.95)) drop-shadow(0 0 24px rgba(239,68,68,0.30)); }
+
+        .creature svg {
+            display: block;
+            transform: scale(1.35);
+            transform-origin: center;
+        }
         @keyframes cross {
-            0%   { transform: translateX(-30vw); }
-            100% { transform: translateX(130vw); }
+            0%   { transform: translateX(-35vw); }
+            100% { transform: translateX(135vw); }
         }
         @keyframes cross-reverse {
-            0%   { transform: translateX(130vw) scaleX(-1); }
-            100% { transform: translateX(-30vw) scaleX(-1); }
+            0%   { transform: translateX(135vw) scaleX(-1); }
+            100% { transform: translateX(-35vw) scaleX(-1); }
         }
 
         /* ---------- Jellyfish (mid depth) ---------- */
@@ -603,8 +615,9 @@
                                  Q 200 42 180 42
                                  Q 110 50 60 42
                                  Q 30 40 20 30 Z"
-                              fill="rgba(0,0,0,0.65)"/>
-                        <ellipse cx="105" cy="13" rx="18" ry="3" fill="rgba(0,0,0,0.45)"/>
+                              fill="rgba(2,6,23,0.95)" stroke="rgba(15,23,42,1)" stroke-width="0.6"/>
+                        <ellipse cx="105" cy="13" rx="18" ry="3" fill="rgba(2,6,23,0.85)"/>
+                        <circle cx="180" cy="32" r="1.8" fill="rgba(255,255,255,0.6)"/>
                     </svg>
                 </div>
 
@@ -617,9 +630,12 @@
                                  Q 95 38 65 42
                                  Q 30 45 18 38
                                  Q 5 36 10 30 Z"
-                              fill="rgba(0,0,0,0.7)"/>
-                        <path d="M 105 28 Q 118 22 115 32 Q 118 35 110 35 Z" fill="rgba(0,0,0,0.6)"/>
-                        <circle cx="115" cy="30" r="1.2" fill="rgba(252,211,77,0.9)"/>
+                              fill="rgba(2,6,23,0.95)" stroke="rgba(15,23,42,1)" stroke-width="0.6"/>
+                        <path d="M 105 28 Q 118 22 115 32 Q 118 35 110 35 Z" fill="rgba(2,6,23,0.9)"/>
+                        <circle cx="115" cy="30" r="2" fill="rgba(252,211,77,1)" filter="url(#glow)"/>
+                        <circle cx="115" cy="30" r="4" fill="rgba(252,211,77,0.4)"/>
+                        <circle cx="115" cy="30" r="7" fill="rgba(252,211,77,0.18)"/>
+                        <circle cx="22" cy="28" r="1" fill="rgba(186,230,253,0.7)"/>
                     </svg>
                 </div>
 
@@ -636,7 +652,8 @@
                                  Q 160 30 120 25
                                  Q 80 30 40 25
                                  Q 15 22 5 20 Z"
-                              fill="rgba(0,0,0,0.55)"/>
+                              fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.5"/>
+                        <circle cx="20" cy="20" r="1.2" fill="rgba(255,255,255,0.55)"/>
                     </svg>
                 </div>
             </div>
