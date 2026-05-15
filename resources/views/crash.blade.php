@@ -149,19 +149,19 @@
         .creatures { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
         .creature {
             position: absolute;
-            opacity: 0;
-            transition: opacity 1.5s ease;
+            opacity: 0.55;             /* always visible, including waiting/betting */
+            transition: opacity 1.5s ease, filter 1.5s ease;
             animation: cross linear infinite;
             filter:
               blur(0.6px)
               drop-shadow(0 0 14px rgba(8,15,30,0.85))
               drop-shadow(0 0 22px rgba(103,232,249,0.18));
         }
-        /* Hint at creatures even before deep zone, then ramp up. */
-        .running  .creature { opacity: 0.35; }
-        .deep     .creature { opacity: 0.7;  filter: blur(0.4px) drop-shadow(0 0 16px rgba(2,6,23,0.9)) drop-shadow(0 0 24px rgba(103,232,249,0.25)); }
-        .abyss    .creature { opacity: 0.88; filter: blur(0.3px) drop-shadow(0 0 18px rgba(2,6,23,0.95)) drop-shadow(0 0 28px rgba(103,232,249,0.30)); }
-        .critical .creature { opacity: 0.95; filter: blur(0.3px) drop-shadow(0 0 18px rgba(2,6,23,0.95)) drop-shadow(0 0 24px rgba(239,68,68,0.30)); }
+        /* Visibility ramps up with depth but never fades to zero. */
+        .running  .creature { opacity: 0.7; }
+        .deep     .creature { opacity: 0.82; filter: blur(0.4px) drop-shadow(0 0 16px rgba(2,6,23,0.9)) drop-shadow(0 0 24px rgba(103,232,249,0.25)); }
+        .abyss    .creature { opacity: 0.92; filter: blur(0.3px) drop-shadow(0 0 18px rgba(2,6,23,0.95)) drop-shadow(0 0 28px rgba(103,232,249,0.30)); }
+        .critical .creature { opacity: 0.96; filter: blur(0.3px) drop-shadow(0 0 18px rgba(2,6,23,0.95)) drop-shadow(0 0 24px rgba(239,68,68,0.30)); }
 
         .creature svg {
             display: block;
@@ -222,9 +222,9 @@
         .sub-wrap {
             position: absolute; left: 50%; top: 30%;
             transform: translate(-50%, -50%);
-            width: 288px; height: 156px;
+            width: 346px; height: 187px;
             transition: top 12s linear, transform 0.15s ease;
-            filter: drop-shadow(0 22px 30px rgba(0,0,0,0.55));
+            filter: drop-shadow(0 26px 36px rgba(0,0,0,0.55));
         }
         .running .sub-wrap   { top: 55%; }
         .deep .sub-wrap      { top: 65%; }
