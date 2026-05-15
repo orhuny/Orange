@@ -16,32 +16,39 @@ class BroadcastRoundTickCommand extends Command
 {
     protected $signature = 'crash:tick
         {--once : Emit a single tick for the active round and exit}
-        {--interval-ms= : Override config crash.tick_interval_ms}';
+        {--interval-ms= : Override config crash.tick_interval_ms}
+        {--max-ticks=0 : Exit gracefully after N ticks (0 = forever). Use a wrapper loop for periodic restart.}
+        {--memory=512M : Soft memory ceiling (passed to ini_set). Override per-process if php.ini wins.}';
 
     protected $description = 'Long-running ticker that broadcasts MultiplierTick events for the active running round.';
 
     public function handle(MultiplierCalculator $calculator): int
     {
-        // Long-running CLI hardening: bump memory ceiling, kill the query log
-        // (Laravel pins every executed query in memory by default for debug),
-        // and run periodic GC to release stale Eloquent / Carbon instances.
-        ini_set('memory_limit', '256M');
+        // Long-running CLI hardening.
+        $requested = (string) $this->option('memory');
+        $iniResult = ini_set('memory_limit', $requested);
+        $effective = ini_get('memory_limit');
+
         DB::connection()->disableQueryLog();
         gc_enable();
 
         $intervalMs = (int) ($this->option('interval-ms') ?? config('crash.tick_interval_ms', 100));
         $intervalUs = max(1, $intervalMs) * 1000;
+        $maxTicks = (int) $this->option('max-ticks');
 
-        $this->info("Tick loop started (interval={$intervalMs}ms). Ctrl+C to stop.");
+        $this->info("Tick loop started — interval={$intervalMs}ms · memory_limit={$effective} · max_ticks=".($maxTicks ?: '∞'));
+        if ($iniResult === false || $effective !== $requested) {
+            $this->warn("ini_set('memory_limit','{$requested}') was rejected by PHP — got '{$effective}' instead.");
+            $this->warn('Add `memory_limit=512M` to C:\\php83\\php.ini, or run with `php -d memory_limit=512M artisan crash:tick`.');
+        }
 
         $maxAgeSeconds = 120.0;
         $warned = [];
         $tickCount = 0;
-        $gcEvery = 200;          // ~20s at 100ms cadence
-        $warnedCap = 64;         // bounded — drop oldest entries past this
+        $gcEvery = 50;           // ~5s at 100ms cadence
+        $warnedCap = 64;
 
         do {
-            // Lean SELECT — only the columns needed to compute a tick.
             $round = GameRound::query()
                 ->where('state', RoundState::Running)
                 ->latest('started_at')
@@ -76,10 +83,23 @@ class BroadcastRoundTickCommand extends Command
                 gc_collect_cycles();
             }
 
+            if ($maxTicks > 0 && $tickCount >= $maxTicks) {
+                $this->info("Reached --max-ticks={$maxTicks} — exiting gracefully (memory used: ".self::fmt(memory_get_peak_usage(true)).').');
+
+                return self::SUCCESS;
+            }
+
             usleep($intervalUs);
         } while (! $this->shouldStop());
 
         return self::SUCCESS;
+    }
+
+    private static function fmt(int $bytes): string
+    {
+        $mb = $bytes / 1024 / 1024;
+
+        return number_format($mb, 1).'MB';
     }
 
     private function shouldStop(): bool
