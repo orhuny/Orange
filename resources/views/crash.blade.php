@@ -168,7 +168,9 @@
             transform: scale(1.35);
             transform-origin: center;
         }
-        .creature.whale svg { transform: scale(1.55); }
+        /* Whale SVG was authored with head on the left, but the .cross animation
+           drifts left → right — flip horizontally so the head leads. */
+        .creature.whale svg { transform: scale(-1.55, 1.55); }
         @keyframes cross {
             0%   { transform: translateX(-35vw); }
             100% { transform: translateX(135vw); }
