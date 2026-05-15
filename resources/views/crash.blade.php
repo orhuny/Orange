@@ -110,8 +110,9 @@
         .sub-wrap {
             position: absolute; left: 50%; top: 30%;
             transform: translate(-50%, -50%);
-            width: 180px; height: 90px;
+            width: 240px; height: 130px;
             transition: top 12s linear, transform 0.15s ease;
+            filter: drop-shadow(0 18px 25px rgba(0,0,0,0.55));
         }
         .running .sub-wrap   { top: 55%; }
         .deep .sub-wrap      { top: 65%; }
@@ -123,41 +124,16 @@
             50%     { transform: translate(-48%,-51%); }
             80%     { transform: translate(-51%,-50%); }
         }
-
-        .sub-body {
-            width: 100%; height: 100%;
-            background: linear-gradient(180deg, #94a3b8 0%, #475569 50%, #1e293b 100%);
-            border-radius: 50% 35% 35% 50% / 50% 60% 60% 50%;
-            position: relative;
-            box-shadow:
-              inset 0 -10px 18px rgba(0,0,0,0.5),
-              inset 0 5px 10px rgba(255,255,255,0.18),
-              0 0 50px rgba(0,0,0,0.5);
+        .sub-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+        .propeller {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: spin 0.5s linear infinite;
         }
-        .porthole {
-            position: absolute; top: 28px; width: 22px; height: 22px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #fbbf24 0%, #b45309 70%, #1e293b 100%);
-            box-shadow: 0 0 12px rgba(251,191,36,0.7), inset 0 0 4px #000;
-            border: 2px solid #334155;
-        }
-        .p1 { left: 50px; }
-        .p2 { left: 90px; }
-        .fin {
-            position: absolute; right: -22px; top: 25px;
-            width: 30px; height: 38px;
-            background: linear-gradient(135deg, #475569, #1e293b);
-            clip-path: polygon(0 50%, 100% 0%, 100% 100%);
-        }
-        .lights {
-            position: absolute; left: -18px; top: 38px;
-            width: 0; height: 0;
-            border-style: solid;
-            border-width: 28px 30px 28px 0;
-            border-color: transparent rgba(255,255,255,0.18) transparent transparent;
-            filter: blur(6px);
-        }
-        .running .lights { border-color: transparent rgba(255,243,184,0.35) transparent transparent; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .running .propeller { animation-duration: 0.18s; }
+        .periscope-light { opacity: 0; }
+        .running .periscope-light { opacity: 0.85; }
 
         /* ---------- HUD ---------- */
         .hud-top {
@@ -503,12 +479,90 @@
             <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"></div>
 
             <div class="sub-wrap">
-                <div class="sub-body">
-                    <div class="porthole p1"></div>
-                    <div class="porthole p2"></div>
-                    <div class="fin"></div>
-                    <div class="lights"></div>
-                </div>
+                <svg class="sub-svg" viewBox="0 0 240 130" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="bodyGrad" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0"    stop-color="#5a6471"/>
+                            <stop offset="0.45" stop-color="#3a4250"/>
+                            <stop offset="1"    stop-color="#1c2230"/>
+                        </linearGradient>
+                        <linearGradient id="towerGrad" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0" stop-color="#6b7480"/>
+                            <stop offset="1" stop-color="#2d3340"/>
+                        </linearGradient>
+                        <linearGradient id="amber" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0" stop-color="#fcd34d"/>
+                            <stop offset="1" stop-color="#d97706"/>
+                        </linearGradient>
+                        <radialGradient id="port" cx="0.35" cy="0.35" r="0.85">
+                            <stop offset="0"    stop-color="#bae6fd"/>
+                            <stop offset="0.45" stop-color="#1d4ed8"/>
+                            <stop offset="1"    stop-color="#0b1230"/>
+                        </radialGradient>
+                    </defs>
+
+                    <!-- propeller (back / left) -->
+                    <g transform="translate(20, 78)">
+                        <g class="propeller">
+                            <ellipse rx="12" ry="3" fill="url(#amber)" opacity="0.95"/>
+                            <ellipse rx="3" ry="12" fill="url(#amber)" opacity="0.95"/>
+                            <circle r="3.5" fill="#7c2d12"/>
+                        </g>
+                    </g>
+
+                    <!-- yellow tail fin -->
+                    <path d="M 35 78 L 35 105 L 60 86 Z" fill="url(#amber)" stroke="#7c2d12" stroke-width="0.6"/>
+                    <path d="M 35 78 L 35 50  L 60 70 Z" fill="url(#amber)" stroke="#7c2d12" stroke-width="0.6"/>
+
+                    <!-- main body -->
+                    <ellipse cx="135" cy="78" rx="100" ry="34" fill="url(#bodyGrad)" stroke="#0b1220" stroke-width="1.2"/>
+
+                    <!-- amber accent stripes -->
+                    <path d="M 50 64 Q 135 50 220 70" stroke="url(#amber)" stroke-width="2.2" fill="none" opacity="0.85"/>
+                    <path d="M 50 92 Q 135 106 220 90" stroke="url(#amber)" stroke-width="2.2" fill="none" opacity="0.85"/>
+
+                    <!-- bow nose accent -->
+                    <path d="M 225 70 Q 240 78 225 86 Z" fill="url(#amber)"/>
+
+                    <!-- conning tower -->
+                    <path d="M 110 50 Q 110 30 130 30 L 175 30 Q 195 30 195 50 L 195 56 L 110 56 Z"
+                          fill="url(#towerGrad)" stroke="#0b1220" stroke-width="1.1"/>
+                    <line x1="110" y1="42" x2="195" y2="42" stroke="url(#amber)" stroke-width="1.4" opacity="0.8"/>
+
+                    <!-- periscope -->
+                    <rect x="178" y="8" width="3" height="22" fill="#475569" rx="1"/>
+                    <path d="M 179.5 8 Q 192 8 192 18" stroke="#475569" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <circle class="periscope-light" cx="192" cy="18" r="2.4" fill="#fcd34d"/>
+
+                    <!-- 3 portholes -->
+                    <g>
+                        <circle cx="90"  cy="78" r="13"  fill="url(#amber)"/>
+                        <circle cx="90"  cy="78" r="10.5" fill="url(#port)"/>
+                        <circle cx="90"  cy="64" r="0.9" fill="#7c2d12"/>
+                        <circle cx="90"  cy="92" r="0.9" fill="#7c2d12"/>
+                        <circle cx="76"  cy="78" r="0.9" fill="#7c2d12"/>
+                        <circle cx="104" cy="78" r="0.9" fill="#7c2d12"/>
+                    </g>
+                    <g>
+                        <circle cx="135" cy="78" r="13"  fill="url(#amber)"/>
+                        <circle cx="135" cy="78" r="10.5" fill="url(#port)"/>
+                        <circle cx="135" cy="64" r="0.9" fill="#7c2d12"/>
+                        <circle cx="135" cy="92" r="0.9" fill="#7c2d12"/>
+                        <circle cx="121" cy="78" r="0.9" fill="#7c2d12"/>
+                        <circle cx="149" cy="78" r="0.9" fill="#7c2d12"/>
+                    </g>
+                    <g>
+                        <circle cx="180" cy="78" r="13"  fill="url(#amber)"/>
+                        <circle cx="180" cy="78" r="10.5" fill="url(#port)"/>
+                        <circle cx="180" cy="64" r="0.9" fill="#7c2d12"/>
+                        <circle cx="180" cy="92" r="0.9" fill="#7c2d12"/>
+                        <circle cx="166" cy="78" r="0.9" fill="#7c2d12"/>
+                        <circle cx="194" cy="78" r="0.9" fill="#7c2d12"/>
+                    </g>
+
+                    <!-- glossy top highlight -->
+                    <ellipse cx="120" cy="58" rx="55" ry="4" fill="white" opacity="0.18"/>
+                </svg>
             </div>
         </div>
 
