@@ -171,6 +171,18 @@
         /* Whale SVG was authored with head on the left, but the .cross animation
            drifts left → right — flip horizontally so the head leads. */
         .creature.whale svg { transform: scale(-1.55, 1.55); }
+
+        /* Octopus tentacles sway gently from the mantle. */
+        .creature.octopus svg { transform: scale(1.2); }
+        .creature.octopus .tentacles {
+            transform-box: fill-box;
+            transform-origin: 50% 30%;
+            animation: octopus-sway 3.6s ease-in-out infinite;
+        }
+        @keyframes octopus-sway {
+            0%, 100% { transform: rotate(-3deg) scaleY(1); }
+            50%      { transform: rotate(3deg)  scaleY(1.04); }
+        }
         @keyframes cross {
             0%   { transform: translateX(-35vw); }
             100% { transform: translateX(135vw); }
@@ -778,6 +790,51 @@
                                  Q 15 22 5 20 Z"
                               fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.5"/>
                         <circle cx="20" cy="20" r="1.2" fill="rgba(255,255,255,0.55)"/>
+                    </svg>
+                </div>
+
+                <!-- Octopus, slow drift right → left with swaying tentacles -->
+                <div class="creature octopus" style="right:0; top:42%; animation: cross-reverse 64s linear infinite; animation-delay:-25s;">
+                    <svg width="220" height="200" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Tentacles (animated sway via group) -->
+                        <g class="tentacles">
+                            <!-- 8 curling tentacles fanning out from the mantle -->
+                            <path d="M 60 95 Q 35 130 30 165 Q 28 180 36 178 Q 32 170 38 160 Q 50 130 70 105 Z"
+                                  fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 78 100 Q 60 145 70 185 Q 78 188 76 180 Q 70 165 80 140 Q 88 115 90 105 Z"
+                                  fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 95 105 Q 88 155 100 195 Q 110 195 105 185 Q 96 165 105 130 Q 108 115 105 105 Z"
+                                  fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 115 105 Q 115 155 120 198 Q 128 196 124 188 Q 118 165 122 130 Q 122 115 122 105 Z"
+                                  fill="rgba(2,6,23,0.94)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 135 105 Q 142 155 138 195 Q 130 195 134 185 Q 142 165 134 130 Q 130 115 130 105 Z"
+                                  fill="rgba(2,6,23,0.94)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 152 100 Q 170 145 158 185 Q 150 188 152 178 Q 158 165 148 140 Q 142 115 142 105 Z"
+                                  fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 170 95 Q 195 130 195 165 Q 200 180 188 178 Q 192 170 188 160 Q 175 130 160 105 Z"
+                                  fill="rgba(2,6,23,0.92)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                            <path d="M 50 85 Q 18 105 14 140 Q 12 155 22 152 Q 18 145 24 132 Q 38 110 60 95 Z"
+                                  fill="rgba(2,6,23,0.9)" stroke="rgba(15,23,42,1)" stroke-width="0.7"/>
+                        </g>
+
+                        <!-- Mantle / head -->
+                        <ellipse cx="110" cy="60" rx="62" ry="46" fill="rgba(2,6,23,0.96)" stroke="rgba(15,23,42,1)" stroke-width="0.9"/>
+
+                        <!-- Eyes -->
+                        <ellipse cx="88" cy="55" rx="9" ry="7" fill="white"/>
+                        <ellipse cx="88" cy="55" rx="3.5" ry="6" fill="#0f172a"/>
+                        <circle cx="89.5" cy="53" r="1.4" fill="white"/>
+                        <ellipse cx="132" cy="55" rx="9" ry="7" fill="white"/>
+                        <ellipse cx="132" cy="55" rx="3.5" ry="6" fill="#0f172a"/>
+                        <circle cx="133.5" cy="53" r="1.4" fill="white"/>
+
+                        <!-- Mantle highlight (texture) -->
+                        <ellipse cx="100" cy="32" rx="32" ry="6" fill="rgba(255,255,255,0.10)"/>
+                        <!-- Bioluminescent spots along mantle -->
+                        <circle cx="60" cy="68" r="1.3" fill="rgba(186,230,253,0.65)"/>
+                        <circle cx="160" cy="65" r="1.3" fill="rgba(186,230,253,0.65)"/>
+                        <circle cx="155" cy="80" r="1" fill="rgba(186,230,253,0.5)"/>
+                        <circle cx="65" cy="82" r="1" fill="rgba(186,230,253,0.5)"/>
                     </svg>
                 </div>
             </div>
