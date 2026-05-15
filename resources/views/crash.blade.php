@@ -225,6 +225,7 @@
             width: 346px; height: 187px;
             transition: top 12s linear, transform 0.15s ease;
             filter: drop-shadow(0 26px 36px rgba(0,0,0,0.55));
+            z-index: 7;  /* always above sea life (creatures z:4, fish z:4, jellyfish, bubbles), below HUD (z:8+) */
         }
         .running .sub-wrap   { top: 55%; }
         .deep .sub-wrap      { top: 65%; }
