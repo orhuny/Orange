@@ -207,9 +207,9 @@
         .sub-wrap {
             position: absolute; left: 50%; top: 30%;
             transform: translate(-50%, -50%);
-            width: 240px; height: 130px;
+            width: 288px; height: 156px;
             transition: top 12s linear, transform 0.15s ease;
-            filter: drop-shadow(0 18px 25px rgba(0,0,0,0.55));
+            filter: drop-shadow(0 22px 30px rgba(0,0,0,0.55));
         }
         .running .sub-wrap   { top: 55%; }
         .deep .sub-wrap      { top: 65%; }
