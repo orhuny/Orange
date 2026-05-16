@@ -10,6 +10,7 @@ use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Game\Services\RoundOrchestrator;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class RunCrashLoopCommand extends Command
 {
@@ -17,12 +18,20 @@ class RunCrashLoopCommand extends Command
         {--game=crash : Game code to run}
         {--rounds=0 : Stop after N rounds (0 = forever)}
         {--betting= : Override betting window (seconds)}
-        {--waiting= : Override post-crash pause (seconds)}';
+        {--waiting= : Override post-crash pause (seconds)}
+        {--memory=512M : Soft memory ceiling (passed to ini_set).}';
 
     protected $description = 'Drive a continuous crash round loop with realistic timing so the /crash demo page can be observed.';
 
     public function handle(RoundOrchestrator $orchestrator, MultiplierCalculator $calculator): int
     {
+        // Long-running CLI hardening (same recipe as crash:tick).
+        $requested = (string) $this->option('memory');
+        $iniResult = ini_set('memory_limit', $requested);
+        $effective = ini_get('memory_limit');
+        DB::connection()->disableQueryLog();
+        gc_enable();
+
         $game = Game::query()->where('code', $this->option('game'))->first();
         if (! $game) {
             $this->error("game '{$this->option('game')}' not found — did you run db:seed?");
@@ -35,7 +44,10 @@ class RunCrashLoopCommand extends Command
         $maxRounds = (int) $this->option('rounds');
         $i = 0;
 
-        $this->info("crash:loop on game '{$game->code}' — betting={$bettingSeconds}s waiting={$waitingSeconds}s");
+        $this->info("crash:loop on game '{$game->code}' — betting={$bettingSeconds}s waiting={$waitingSeconds}s · memory_limit={$effective}");
+        if ($iniResult === false || $effective !== $requested) {
+            $this->warn("ini_set('memory_limit','{$requested}') was rejected — got '{$effective}'. Use `php -d memory_limit=512M …` or update php.ini.");
+        }
 
         $orphans = GameRound::query()
             ->whereIn('state', [RoundState::Waiting, RoundState::Betting, RoundState::Running, RoundState::Crashed])
@@ -45,6 +57,12 @@ class RunCrashLoopCommand extends Command
         if ($orphans > 0) {
             $this->warn("cleaned up {$orphans} orphan round(s) left over from a previous run");
         }
+
+        // Voluntary exit at 70 % of the ceiling so the wrapper script can
+        // restart us cleanly before any leak in the broadcast pipeline can
+        // hard-OOM the process.
+        $memoryCeilingBytes = self::parseShorthandBytes($effective ?: '512M');
+        $softLimitBytes = (int) ($memoryCeilingBytes * 0.70);
 
         while ($maxRounds === 0 || $i < $maxRounds) {
             $i++;
@@ -69,8 +87,39 @@ class RunCrashLoopCommand extends Command
             $orchestrator->settle($round->refresh());
             $this->line("    → settled. cooldown {$waitingSeconds}s");
             sleep($waitingSeconds);
+
+            unset($round);
+            gc_collect_cycles();
+
+            if (memory_get_usage(true) > $softLimitBytes) {
+                $this->warn('Memory soft ceiling reached ('.self::fmt(memory_get_usage(true)).' / '.self::fmt($memoryCeilingBytes).') — exiting for wrapper restart.');
+
+                return self::SUCCESS;
+            }
         }
 
         return self::SUCCESS;
+    }
+
+    private static function fmt(int $bytes): string
+    {
+        return number_format($bytes / 1024 / 1024, 1).'MB';
+    }
+
+    private static function parseShorthandBytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-1') {
+            return PHP_INT_MAX;
+        }
+        $unit = strtolower(substr($value, -1));
+        $n = (int) $value;
+
+        return match ($unit) {
+            'g' => $n * 1024 * 1024 * 1024,
+            'm' => $n * 1024 * 1024,
+            'k' => $n * 1024,
+            default => $n,
+        };
     }
 }
