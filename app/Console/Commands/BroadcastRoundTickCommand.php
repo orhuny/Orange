@@ -48,6 +48,13 @@ class BroadcastRoundTickCommand extends Command
         $gcEvery = 50;           // ~5s at 100ms cadence
         $warnedCap = 64;
 
+        // Reverb's Guzzle broadcast client leaks slowly inside a long-running
+        // CLI loop. Exit voluntarily at 70 % of the memory ceiling so the
+        // wrapper script (scripts/run-crash-tick.ps1) can restart us before
+        // we hit a hard OOM.
+        $memoryCeilingBytes = self::parseShorthandBytes($effective ?: '512M');
+        $softLimitBytes = (int) ($memoryCeilingBytes * 0.70);
+
         do {
             $round = GameRound::query()
                 ->where('state', RoundState::Running)
@@ -89,6 +96,14 @@ class BroadcastRoundTickCommand extends Command
                 return self::SUCCESS;
             }
 
+            // Soft memory ceiling — broadcast pipeline leaks slowly, exit
+            // before we hit the hard ini limit.
+            if ($tickCount % 100 === 0 && memory_get_usage(true) > $softLimitBytes) {
+                $this->warn('Memory soft ceiling reached ('.self::fmt(memory_get_usage(true)).' / '.self::fmt($memoryCeilingBytes).') — exiting for wrapper restart.');
+
+                return self::SUCCESS;
+            }
+
             usleep($intervalUs);
         } while (! $this->shouldStop());
 
@@ -100,6 +115,23 @@ class BroadcastRoundTickCommand extends Command
         $mb = $bytes / 1024 / 1024;
 
         return number_format($mb, 1).'MB';
+    }
+
+    private static function parseShorthandBytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-1') {
+            return PHP_INT_MAX;
+        }
+        $unit = strtolower(substr($value, -1));
+        $n = (int) $value;
+
+        return match ($unit) {
+            'g' => $n * 1024 * 1024 * 1024,
+            'm' => $n * 1024 * 1024,
+            'k' => $n * 1024,
+            default => $n,
+        };
     }
 
     private function shouldStop(): bool
