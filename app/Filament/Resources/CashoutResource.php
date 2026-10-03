@@ -21,7 +21,9 @@ class CashoutResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
-    protected static ?int $navigationSort = 50;
+    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+
+    protected static ?int $navigationSort = 40;
 
     public static function form(Schema $schema): Schema
     {
@@ -42,7 +44,9 @@ class CashoutResource extends Resource
             ->filters([
                 TernaryFilter::make('is_auto')->label('Auto cashout'),
             ])
-            ->defaultSort('id', 'desc');
+            ->defaultSort('id', 'desc')
+            ->deferLoading()
+            ->persistFiltersInSession();
     }
 
     public static function canCreate(): bool

@@ -24,7 +24,9 @@ class RngSeedResource extends Resource
 
     protected static ?string $navigationLabel = 'RNG seeds';
 
-    protected static ?int $navigationSort = 60;
+    protected static string|\UnitEnum|null $navigationGroup = 'Fairness';
+
+    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {
@@ -64,7 +66,8 @@ class RngSeedResource extends Resource
                         Notification::make()->title('Seed revealed')->success()->send();
                     }),
             ])
-            ->defaultSort('id', 'desc');
+            ->defaultSort('id', 'desc')
+            ->deferLoading();
     }
 
     public static function canCreate(): bool

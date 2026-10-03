@@ -11,6 +11,7 @@ use Database\Factories\BetFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Bet extends Model
 {
@@ -56,5 +57,11 @@ class Bet extends Model
     public function operator(): BelongsTo
     {
         return $this->belongsTo(Operator::class);
+    }
+
+    /** @return HasOne<Cashout, $this> */
+    public function cashout(): HasOne
+    {
+        return $this->hasOne(Cashout::class);
     }
 }

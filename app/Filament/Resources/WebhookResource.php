@@ -24,7 +24,35 @@ class WebhookResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
 
-    protected static ?int $navigationSort = 70;
+    protected static string|\UnitEnum|null $navigationGroup = 'System';
+
+    protected static ?int $navigationSort = 10;
+
+    public static function getNavigationBadge(): ?string
+    {
+        // Cache for 30s — badge runs on every Livewire render (every page
+        // nav, every filter change, every poll). Stale-by-30s is harmless;
+        // the user clicks through for live data.
+        $failing = \Illuminate\Support\Facades\Cache::remember(
+            'admin.nav.webhooks-failing',
+            30,
+            fn (): int => static::getModel()::query()
+                ->whereIn('status', [WebhookStatus::Failed, WebhookStatus::DeadLetter])
+                ->count(),
+        );
+
+        return $failing > 0 ? (string) $failing : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'danger';
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with('operator:id,slug');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -68,7 +96,9 @@ class WebhookResource extends Resource
                         Notification::make()->title('Webhook re-queued')->success()->send();
                     }),
             ])
-            ->defaultSort('id', 'desc');
+            ->defaultSort('id', 'desc')
+            ->deferLoading()
+            ->persistFiltersInSession();
     }
 
     public static function canCreate(): bool

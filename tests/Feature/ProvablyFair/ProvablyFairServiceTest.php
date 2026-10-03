@@ -65,3 +65,43 @@ it('hashSeed returns sha256 hex', function (): void {
         ->toBe(hash('sha256', 'abc'))
         ->toHaveLength(64);
 });
+
+it('derives divisor from a game\'s house_edge', function (): void {
+    $svc = new ProvablyFairService;
+
+    $thirty3 = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 0.97, 'house_edge' => 0.03]);
+    $hundred  = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 0.99, 'house_edge' => 0.01]);
+    $ten      = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 0.90, 'house_edge' => 0.10]);
+
+    expect($svc->divisorForGame($thirty3))->toBe(33);
+    expect($svc->divisorForGame($hundred))->toBe(100);
+    expect($svc->divisorForGame($ten))->toBe(10);
+});
+
+it('rejects an out-of-range house_edge when deriving divisor', function (): void {
+    $svc = new ProvablyFairService;
+    $bad = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 1.0, 'house_edge' => 0.0]);
+
+    $svc->divisorForGame($bad);
+})->throws(InvalidArgumentException::class);
+
+it('a smaller house_edge collapses fewer rounds to 1.00x', function (): void {
+    $svc = new ProvablyFairService;
+
+    // 5k rounds, same seeds, only the divisor changes.
+    $hits = function (int $divisor) use ($svc): int {
+        $count = 0;
+        foreach (range(1, 5000) as $nonce) {
+            if ($svc->crashPoint('edge-compare', 'house', $nonce, $divisor) === 1.00) {
+                $count++;
+            }
+        }
+        return $count;
+    };
+
+    $hits33  = $hits(33);   // expected ≈ 5000/33 ≈ 151
+    $hits100 = $hits(100);  // expected ≈ 5000/100 ≈ 50
+
+    // 100-divisor must produce strictly fewer instant-crashes than 33-divisor.
+    expect($hits100)->toBeLessThan($hits33);
+});

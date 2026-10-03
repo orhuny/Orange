@@ -12,6 +12,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class OperatorWalletClient
@@ -76,6 +77,15 @@ class OperatorWalletClient
                     ->post($url);
 
                 if ($response->successful()) {
+                    Log::channel('operator')->info('wallet.callback.ok', [
+                        'operator_id' => $operator->id,
+                        'type' => $type->value,
+                        'url' => $url,
+                        'attempt' => $attempts,
+                        'status' => $response->status(),
+                        'tx_id' => $idempotencyKey,
+                    ]);
+
                     return [
                         'attempts' => $attempts,
                         'status' => $response->status(),

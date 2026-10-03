@@ -24,15 +24,22 @@ class CashoutService
 
     /**
      * Cash out a single bet at the current server-side multiplier.
-     * Race-safe: the UPDATE WHERE status='placed' ensures at most one caller wins.
+     *
+     * No per-round lock: cashouts on the same round must run in parallel
+     * (100 concurrent cashouts on a hot round would otherwise serialize).
+     * Race safety comes from two atomic gates instead:
+     *
+     *   1. The UPDATE WHERE status='placed' picks exactly one winner if
+     *      two callers race for the same bet.
+     *   2. RoundOrchestrator::crash() flips state + runs settleLosers
+     *      inside a single transaction, so by the time a racing cashout
+     *      sees state=Crashed it also sees its bet as 'lost' — the
+     *      UPDATE returns 0 rows and we throw AlreadyCashedOut.
      */
     public function cashout(Bet $bet, bool $isAuto = false): Cashout
     {
         return DB::transaction(function () use ($bet, $isAuto): Cashout {
-            $round = GameRound::query()
-                ->whereKey($bet->round_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+            $round = GameRound::query()->whereKey($bet->round_id)->firstOrFail();
 
             if ($round->state !== RoundState::Running) {
                 throw RoundNotRunning::for($round->state);
@@ -68,9 +75,11 @@ class CashoutService
                 (int) $bet->id,
             );
 
-            $round->forceFill([
-                'total_payout_amount' => bcadd((string) $round->total_payout_amount, $payout, 8),
-            ])->save();
+            // Atomic increment — no lockForUpdate, no read-modify-write.
+            DB::update(
+                'UPDATE game_rounds SET total_payout_amount = total_payout_amount + ? WHERE id = ?',
+                [$payout, $round->id],
+            );
 
             CashoutCompleted::dispatch($cashout);
 

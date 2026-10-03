@@ -49,9 +49,17 @@ class RunCrashLoopCommand extends Command
             $this->warn("ini_set('memory_limit','{$requested}') was rejected — got '{$effective}'. Use `php -d memory_limit=512M …` or update php.ini.");
         }
 
+        // This loop is the sole producer of rounds for this game, and the
+        // self-restarting wrapper guarantees only one instance runs at a
+        // time. So any non-terminal round belonging to this game at boot is,
+        // by definition, an orphan from a previous (killed) incarnation —
+        // regardless of age. We must settle them immediately: a still-Running
+        // orphan would otherwise be picked up by crash:tick (which selects the
+        // latest Running round) during the next round's betting window and
+        // broadcast a stale, ever-climbing multiplier until its 120s guard.
         $orphans = GameRound::query()
+            ->where('game_id', $game->id)
             ->whereIn('state', [RoundState::Waiting, RoundState::Betting, RoundState::Running, RoundState::Crashed])
-            ->where('created_at', '<', now()->subMinutes(5))
             ->update(['state' => RoundState::Settled, 'settled_at' => now(), 'updated_at' => now()]);
 
         if ($orphans > 0) {

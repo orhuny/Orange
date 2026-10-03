@@ -18,7 +18,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "Wrapping crash:loop — game=${Game} memory=${Memory}" -ForegroundColor Cyan
+Write-Host "Wrapping crash:loop -- game=${Game} memory=${Memory}" -ForegroundColor Cyan
 Write-Host "Ctrl+C to stop the wrapper.`n" -ForegroundColor DarkGray
 
 $restarts = 0
@@ -28,7 +28,7 @@ while ($true) {
     & php artisan crash:loop --game=$Game --memory=$Memory
     $code = $LASTEXITCODE
     if ($code -ne 0) {
-        Write-Host "[$([DateTime]::Now.ToString('HH:mm:ss'))] exited non-zero ($code) — waiting 2s before retry" -ForegroundColor Yellow
+        Write-Host "[$([DateTime]::Now.ToString('HH:mm:ss'))] exited non-zero ($code) -- waiting 2s before retry" -ForegroundColor Yellow
         Start-Sleep -Seconds 2
     } else {
         Start-Sleep -Milliseconds $RestartCooldownMs

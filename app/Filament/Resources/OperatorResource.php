@@ -32,7 +32,30 @@ class OperatorResource extends Resource
 
     protected static ?string $navigationLabel = 'Operators';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Operations';
+
     protected static ?int $navigationSort = 10;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) \Illuminate\Support\Facades\Cache::remember(
+            'admin.nav.operators-active',
+            30,
+            fn (): int => static::getModel()::query()
+                ->where('status', \App\Domain\Operator\Enums\OperatorStatus::Active)
+                ->count(),
+        );
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'success';
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withCount('apiKeys');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -95,7 +118,10 @@ class OperatorResource extends Resource
             ->toolbarActions([
                 BulkActionGroup::make([DeleteBulkAction::make()]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->deferLoading()
+            ->persistFiltersInSession()
+            ->persistSortInSession();
     }
 
     public static function getPages(): array

@@ -108,6 +108,14 @@ class DeliverWebhookJob implements ShouldQueue
             'next_retry_at' => now()->addSeconds($delaySeconds),
         ])->save();
 
+        // sync queue ignores ->delay() and would re-fire immediately,
+        // cascading into a tight retry loop that pins the worker.
+        // Bail out under sync: a real queue worker will pick it up via
+        // next_retry_at scanning.
+        if (config('queue.default') === 'sync') {
+            return;
+        }
+
         self::dispatch($webhook->id)->delay(now()->addSeconds($delaySeconds));
     }
 }

@@ -12,6 +12,7 @@ use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -23,7 +24,14 @@ class GameResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPuzzlePiece;
 
-    protected static ?int $navigationSort = 20;
+    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+
+    protected static ?int $navigationSort = 10;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withCount('rounds');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -31,8 +39,29 @@ class GameResource extends Resource
             TextInput::make('code')->required()->unique(ignoreRecord: true),
             TextInput::make('name')->required(),
             TextInput::make('version')->numeric()->default(1),
-            TextInput::make('rtp_target')->numeric()->step('0.0001'),
-            TextInput::make('house_edge')->numeric()->step('0.0001'),
+            // rtp_target and house_edge are wired bi-directionally — editing
+            // one auto-fills the other so they always sum to 1.0. The model's
+            // saving event still enforces the invariant as a final safety net.
+            TextInput::make('rtp_target')
+                ->numeric()
+                ->step('0.0001')
+                ->minValue(0.0001)->maxValue(0.9999)
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (Set $set, $state): void {
+                    if (is_numeric($state)) {
+                        $set('house_edge', round(1.0 - (float) $state, 4));
+                    }
+                }),
+            TextInput::make('house_edge')
+                ->numeric()
+                ->step('0.0001')
+                ->minValue(0.0001)->maxValue(0.9999)
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (Set $set, $state): void {
+                    if (is_numeric($state)) {
+                        $set('rtp_target', round(1.0 - (float) $state, 4));
+                    }
+                }),
             Select::make('status')->options(['active' => 'Active', 'disabled' => 'Disabled'])->required(),
             KeyValue::make('config'),
         ]);
@@ -51,7 +80,8 @@ class GameResource extends Resource
                 TextColumn::make('rounds_count')->counts('rounds')->label('Rounds'),
             ])
             ->recordActions([EditAction::make()])
-            ->defaultSort('code');
+            ->defaultSort('code')
+            ->deferLoading();
     }
 
     public static function getPages(): array

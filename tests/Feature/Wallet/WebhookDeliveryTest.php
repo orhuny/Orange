@@ -70,9 +70,18 @@ it('DeliverWebhookJob retries on 5xx and DLQs after max attempts', function (): 
 
     $webhook = Webhook::factory()->create();
 
-    // QUEUE_CONNECTION=sync in tests, so the self::dispatch retry runs inline.
+    // First attempt under sync queue must NOT cascade inline — that's the
+    // hot-path bug that pinned the HTTP worker. The retry is left for a
+    // real queue worker (driven externally) to pick up via next_retry_at.
     (new DeliverWebhookJob($webhook->id))->handle();
+    $webhook->refresh();
+    expect($webhook->status)->toBe(WebhookStatus::Failed)
+        ->and($webhook->attempts)->toBe(1)
+        ->and($webhook->next_retry_at)->not->toBeNull();
 
+    // Simulate the worker firing the retry. After the final attempt the
+    // webhook lands in DLQ.
+    (new DeliverWebhookJob($webhook->id))->handle();
     $webhook->refresh();
     expect($webhook->status)->toBe(WebhookStatus::DeadLetter)
         ->and($webhook->attempts)->toBe(2);

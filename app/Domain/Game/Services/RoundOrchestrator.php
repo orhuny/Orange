@@ -61,10 +61,16 @@ final class RoundOrchestrator
 
     public function start(GameRound $round): GameRound
     {
+        // The 1-in-N house edge divisor is derived from the round's game
+        // configuration so the math actually tracks the rtp_target /
+        // house_edge values shown in the admin panel.
+        $divisor = $this->math->divisorForGame($round->game);
+
         $crashPoint = $this->math->crashPoint(
             $round->serverSeed->server_seed,
             $round->client_seed,
             $round->nonce,
+            $divisor,
         );
 
         $started = $this->transition($round, RoundState::Running, [
@@ -79,15 +85,23 @@ final class RoundOrchestrator
 
     public function crash(GameRound $round): GameRound
     {
-        $crashed = $this->transition($round, RoundState::Crashed, [
-            'crashed_at' => now(),
-        ]);
+        // state=Crashed + settleLosers must commit together. CashoutService
+        // dropped its per-round lockForUpdate; the only remaining race-safety
+        // gate is that a cashout racing this crash sees its bet flipped to
+        // 'lost' in the same commit that makes the round Crashed, so its
+        // status='placed' UPDATE returns 0 rows. Split them across two
+        // transactions and that window reopens.
+        return DB::transaction(function () use ($round): GameRound {
+            $crashed = $this->transition($round, RoundState::Crashed, [
+                'crashed_at' => now(),
+            ]);
 
-        $this->cashouts->settleLosers($crashed);
+            $this->cashouts->settleLosers($crashed);
 
-        RoundCrashed::dispatch($crashed);
+            RoundCrashed::dispatch($crashed);
 
-        return $crashed;
+            return $crashed;
+        });
     }
 
     public function settle(GameRound $round): GameRound

@@ -14,6 +14,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class GameRoundResource extends Resource
 {
@@ -23,7 +24,33 @@ class GameRoundResource extends Resource
 
     protected static ?string $navigationLabel = 'Live rounds';
 
-    protected static ?int $navigationSort = 30;
+    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+
+    protected static ?int $navigationSort = 20;
+
+    public static function getNavigationBadge(): ?string
+    {
+        // Short 5s TTL — live rounds count is the most time-sensitive of
+        // the three nav badges (it ticks every round, ~10s cycle), so we
+        // can't be as lazy as webhook/operator badges.
+        return (string) \Illuminate\Support\Facades\Cache::remember(
+            'admin.nav.live-rounds',
+            5,
+            fn (): int => static::getModel()::query()
+                ->whereIn('state', [RoundState::Betting, RoundState::Running])
+                ->count(),
+        );
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'success';
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('game:id,code');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -58,7 +85,9 @@ class GameRoundResource extends Resource
                     ->options(collect(RoundState::cases())->mapWithKeys(fn ($s) => [$s->value => ucfirst($s->value)])),
             ])
             ->defaultSort('id', 'desc')
-            ->poll('5s');
+            ->deferLoading()
+            ->persistFiltersInSession()
+            ->poll('8s');
     }
 
     public static function canCreate(): bool

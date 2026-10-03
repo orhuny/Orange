@@ -24,7 +24,19 @@ class WebhookDispatcher
             'next_retry_at' => now(),
         ]);
 
-        DeliverWebhookJob::dispatch($webhook->id);
+        $dispatch = DeliverWebhookJob::dispatch($webhook->id);
+
+        // On the sync queue (dev / no worker) a webhook POST runs INLINE
+        // inside the parent HTTP request and pins the operator's only PHP
+        // worker for the full HTTP timeout × retry budget. Defer it to the
+        // terminate phase so the bet/cashout response can return first.
+        // Production setups with a real queue worker keep normal semantics.
+        if (! app()->runningInConsole()
+            && app()->bound('request')
+            && config('queue.default') === 'sync'
+        ) {
+            $dispatch->afterResponse();
+        }
 
         return $webhook;
     }

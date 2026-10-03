@@ -19,7 +19,14 @@ class PlayerResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static ?int $navigationSort = 80;
+    protected static string|\UnitEnum|null $navigationGroup = 'Operations';
+
+    protected static ?int $navigationSort = 20;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with('operator:id,slug');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -38,7 +45,9 @@ class PlayerResource extends Resource
                 TextColumn::make('risk_score')->numeric()->placeholder('0'),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
-            ->defaultSort('id', 'desc');
+            ->defaultSort('id', 'desc')
+            ->deferLoading()
+            ->persistFiltersInSession();
     }
 
     public static function canCreate(): bool

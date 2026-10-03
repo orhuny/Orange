@@ -34,5 +34,9 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
             ],
         );
+
+        if (app()->environment(['local', 'testing'])) {
+            $this->call(ConsumerOperatorSeeder::class);
+        }
     }
 }
