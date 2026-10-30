@@ -45,6 +45,11 @@
             'panel' => '#0b0910', 'text' => '#ece6d8', 'muted' => '#9c93ad',
         ],
     ];
+    // Only these skins are offered (picker, CSS, ?theme=, saved choice).
+    // The rest stay defined above so they can be re-enabled by adding
+    // their key here.
+    $enabledThemes = ['burton'];
+    $themes = array_intersect_key($themes, array_flip($enabledThemes));
     $rgb = static fn (string $hex): string => implode(',', sscanf($hex, '#%02x%02x%02x'));
 @endphp
 <!DOCTYPE html>
