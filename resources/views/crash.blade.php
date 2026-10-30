@@ -51,6 +51,25 @@
     $enabledThemes = ['burton'];
     $themes = array_intersect_key($themes, array_flip($enabledThemes));
     $rgb = static fn (string $hex): string => implode(',', sscanf($hex, '#%02x%02x%02x'));
+
+    // Studio intro frames (see config('crash.intro')): every image in the
+    // folder, in natural file-name order, as public URLs.
+    $introFrames = static function (string $dir): array {
+        $files = glob(public_path("images/intro/{$dir}/*.{webp,png,jpg,jpeg}"), GLOB_BRACE) ?: [];
+        natsort($files);
+        return array_values(array_map(fn ($f) => asset("images/intro/{$dir}/" . basename($f)), $files));
+    };
+    $intro = config('crash.intro.enabled', false) ? [
+        'landscape' => $introFrames('landscape'),
+        'portrait' => $introFrames('portrait'),
+        'frameMs' => (int) config('crash.intro.frame_ms', 550),
+        'fadeMs' => (int) config('crash.intro.fade_ms', 400),
+        'holdMs' => (array) config('crash.intro.hold_ms', []),
+        'oncePerSession' => (bool) config('crash.intro.once_per_session', true),
+    ] : null;
+    if ($intro && $intro['landscape'] === [] && $intro['portrait'] === []) {
+        $intro = null;
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -1744,9 +1763,88 @@
             .cashout { padding: 16px 40px; font-size: 14px; }
             .sonar { width: 180px; bottom: 100px; }
         }
+        /* ---------- Studio intro (config crash.intro) ---------- */
+        .intro {
+            position: fixed; inset: 0; z-index: 100;
+            background: #000; cursor: pointer; overflow: hidden;
+            transition: opacity var(--intro-fade, 400ms) ease;
+        }
+        .intro.done { opacity: 0; pointer-events: none; }
+        .intro img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; opacity: 0;
+            transition: opacity var(--intro-fade, 400ms) ease;
+        }
+        .intro img.on { opacity: 1; }
+        .intro-skip {
+            position: absolute; right: 16px; bottom: 16px; z-index: 1;
+            font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55); background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 999px;
+            padding: 8px 14px; cursor: pointer;
+        }
+        .intro-skip:hover { color: #fff; }
     </style>
 </head>
 <body>
+    @if ($intro)
+    <div id="intro" class="intro" hidden aria-hidden="true">
+        <button type="button" class="intro-skip">Skip</button>
+    </div>
+    <script>
+        // Studio intro: preloads the frames, cross-fades through them over the
+        // live game, then fades out. Never blocks the game — any load error,
+        // a reduced-motion preference or a repeat visit just skips it.
+        (function studioIntro(cfg) {
+            const $intro = document.getElementById('intro');
+            const SEEN_KEY = 'orange.intro.seen';
+            const seen = () => { try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch (_) { return false; } };
+            if ((cfg.oncePerSession && seen()) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const portrait = window.innerHeight > window.innerWidth;
+            const urls = (portrait && cfg.portrait.length) ? cfg.portrait : (cfg.landscape.length ? cfg.landscape : cfg.portrait);
+            const imgs = urls.map((src) => { const img = new Image(); img.alt = ''; img.src = src; return img; });
+
+            let finished = false;
+            const timers = [];
+            function finish() {
+                if (finished) return;
+                finished = true;
+                timers.forEach(clearTimeout);
+                try { sessionStorage.setItem(SEEN_KEY, '1'); } catch (_) {}
+                $intro.classList.add('done');
+                setTimeout(() => $intro.remove(), cfg.fadeMs + 50);
+            }
+
+            $intro.style.setProperty('--intro-fade', cfg.fadeMs + 'ms');
+            // In order, before the Skip button, so each new frame fades in on top
+            const $skip = $intro.querySelector('.intro-skip');
+            imgs.forEach((img) => $intro.insertBefore(img, $skip));
+            $intro.hidden = false;
+            $intro.addEventListener('click', finish);
+            window.addEventListener('keydown', finish, { once: true });
+
+            // Cover the game right away; start playing once every frame is
+            // decoded, or give up after 5 s so a slow CDN never holds players.
+            const loaded = Promise.all(imgs.map((img) => img.decode ? img.decode() : Promise.resolve()));
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('intro timeout')), 5000));
+            Promise.race([loaded, timeout]).then(() => {
+                if (finished) return;
+                let at = 0;
+                imgs.forEach((img, i) => {
+                    timers.push(setTimeout(() => {
+                        img.classList.add('on');
+                        if (i > 0) timers.push(setTimeout(() => imgs[i - 1].classList.remove('on'), cfg.fadeMs));
+                    }, at));
+                    at += cfg.holdMs[i + 1] ?? cfg.frameMs;
+                });
+                timers.push(setTimeout(finish, at));
+            }).catch(finish);
+        })(@json($intro));
+    </script>
+    @endif
+
     <button id="theme-btn" class="theme-btn" type="button" title="Change theme" aria-label="Change theme"
             aria-haspopup="true" aria-expanded="false" aria-controls="theme-menu">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
