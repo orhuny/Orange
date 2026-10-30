@@ -59,16 +59,23 @@
         natsort($files);
         return array_values(array_map(fn ($f) => asset("images/intro/{$dir}/" . basename($f)), $files));
     };
-    $intro = config('crash.intro.enabled', false) ? [
-        'landscape' => $introFrames('landscape'),
-        'portrait' => $introFrames('portrait'),
-        'frameMs' => (int) config('crash.intro.frame_ms', 550),
-        'fadeMs' => (int) config('crash.intro.fade_ms', 400),
-        'holdMs' => (array) config('crash.intro.hold_ms', []),
-        'oncePerSession' => (bool) config('crash.intro.once_per_session', true),
-    ] : null;
-    if ($intro && $intro['landscape'] === [] && $intro['portrait'] === []) {
-        $intro = null;
+    $intro = null;
+    if (config('crash.intro.enabled', false)) {
+        $landscape = $introFrames('landscape');
+        $portrait = $introFrames('portrait');
+        $intro = [
+            // Uploaded frames win; otherwise the built-in scene from the game art plays.
+            'mode' => ($landscape || $portrait) ? 'frames' : 'scene',
+            'title' => (string) config('crash.intro.title', 'DeepDive'),
+            'landscape' => $landscape,
+            'portrait' => $portrait,
+            'bgLandscape' => asset('images/bg-gothic-landscape.jpg'),
+            'bgPortrait' => asset('images/bg-gothic-portrait.jpg'),
+            'frameMs' => (int) config('crash.intro.frame_ms', 550),
+            'fadeMs' => (int) config('crash.intro.fade_ms', 400),
+            'holdMs' => (array) config('crash.intro.hold_ms', []),
+            'oncePerSession' => (bool) config('crash.intro.once_per_session', true),
+        ];
     }
 @endphp
 <!DOCTYPE html>
@@ -1763,21 +1770,23 @@
             .cashout { padding: 16px 40px; font-size: 14px; }
             .sonar { width: 180px; bottom: 100px; }
         }
-        /* ---------- Studio intro (config crash.intro) ---------- */
+        /* ---------- Studio intro (config crash.intro) ----------
+           Two modes: "frames" cross-fades the images in public/images/intro/,
+           "scene" (no frames present) animates the game's own artwork. */
         .intro {
             position: fixed; inset: 0; z-index: 100;
             background: #000; cursor: pointer; overflow: hidden;
-            transition: opacity var(--intro-fade, 400ms) ease;
+            transition: opacity var(--intro-fade, 600ms) ease;
         }
         .intro.done { opacity: 0; pointer-events: none; }
-        .intro img {
+        .intro-frame {
             position: absolute; inset: 0; width: 100%; height: 100%;
             object-fit: cover; opacity: 0;
             transition: opacity var(--intro-fade, 400ms) ease;
         }
-        .intro img.on { opacity: 1; }
+        .intro-frame.on { opacity: 1; }
         .intro-skip {
-            position: absolute; right: 16px; bottom: 16px; z-index: 1;
+            position: absolute; right: 16px; bottom: 16px; z-index: 5;
             font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1;
             letter-spacing: 0.12em; text-transform: uppercase;
             color: rgba(255, 255, 255, 0.55); background: rgba(0, 0, 0, 0.35);
@@ -1785,29 +1794,160 @@
             padding: 8px 14px; cursor: pointer;
         }
         .intro-skip:hover { color: #fff; }
+
+        /* Scene mode — every animation waits for .play (set once the art is decoded). */
+        .is-layer { position: absolute; inset: 0; pointer-events: none; }
+        .is-bg {
+            background: url("{{ asset('images/bg-gothic-landscape.jpg') }}") center / cover no-repeat;
+            opacity: 0; transform: scale(1.14); filter: brightness(0.3);
+        }
+        @media (orientation: portrait) {
+            .is-bg { background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}"); }
+        }
+        .intro.play .is-bg { animation: is-bg-in 1.1s ease-out forwards, is-bg-drift 6.4s ease-out forwards; }
+        @keyframes is-bg-in { to { opacity: 1; } }
+        @keyframes is-bg-drift { to { transform: scale(1); filter: brightness(0.72); } }
+
+        .is-vignette { background: radial-gradient(ellipse at 50% 45%, transparent 35%, rgba(0, 0, 0, 0.85) 100%); }
+
+        .is-whale {
+            position: absolute; top: 4%; left: 100%; width: min(40vw, 480px);
+            opacity: 0; filter: blur(2px) brightness(0.35);
+        }
+        .intro.play .is-whale { animation: is-whale 7s linear 0.3s forwards; }
+        @keyframes is-whale {
+            10% { opacity: 0.55; }
+            to { transform: translateX(calc(-100vw - 110%)); opacity: 0.55; }
+        }
+
+        .is-jelly { position: absolute; width: min(7vw, 70px); opacity: 0; filter: brightness(0.6); }
+        .is-jelly-1 { left: 14%; top: 62%; }
+        .is-jelly-2 { left: 81%; top: 48%; width: min(5vw, 52px); }
+        .intro.play .is-jelly-1 { animation: is-jelly 6.4s ease-in-out 0.6s forwards; }
+        .intro.play .is-jelly-2 { animation: is-jelly 6.4s ease-in-out 1.2s forwards; }
+        @keyframes is-jelly {
+            15% { opacity: 0.75; }
+            50% { transform: translateY(-9vh) scaleY(0.92); }
+            to { transform: translateY(-20vh); opacity: 0.75; }
+        }
+
+        .is-fish { position: absolute; left: -12%; width: min(7vw, 80px); opacity: 0.8; filter: brightness(0.65); }
+        .is-fish-1 { top: 70%; }
+        .is-fish-2 { top: 34%; width: min(5vw, 56px); }
+        .intro.play .is-fish-1 { animation: is-fish 4.2s ease-in 1.6s forwards; }
+        .intro.play .is-fish-2 { animation: is-fish 5s ease-in 0.9s forwards; }
+        @keyframes is-fish { to { transform: translate(125vw, -6vh); } }
+
+        /* Submarine: far & dark → glides in → holds under the title → dives away. */
+        .is-sub-path { display: grid; place-items: center; padding-top: 22vh; opacity: 0; }
+        .intro.play .is-sub-path { animation: is-sub-path 6.4s ease-in-out forwards; }
+        @keyframes is-sub-path {
+            0%   { opacity: 0; transform: translate(-48vw, 4vh) scale(0.3); }
+            12%  { opacity: 1; }
+            42%  { transform: translate(0, 0) scale(1); }
+            78%  { opacity: 1; transform: translate(3vw, 1vh) scale(1.03) rotate(-1deg); }
+            100% { opacity: 0; transform: translate(42vw, 62vh) scale(0.7) rotate(30deg); }
+        }
+        .is-sub-bob { position: relative; width: min(46vw, 560px); }
+        @media (orientation: portrait) { .is-sub-bob { width: min(80vw, 560px); } }
+        .intro.play .is-sub-bob { animation: is-bob 2.2s ease-in-out infinite alternate; }
+        @keyframes is-bob { from { transform: translateY(-6px) rotate(-1.2deg); } to { transform: translateY(6px) rotate(1.2deg); } }
+        .is-sub { display: block; width: 100%; height: auto; filter: blur(3px) brightness(0.25); }
+        .intro.play .is-sub { animation: is-sub-clear 2.6s ease-out forwards; }
+        @keyframes is-sub-clear { to { filter: blur(0) brightness(1); } }
+
+        /* Lantern sits outside the sub's filter so it reads as a distant light first. */
+        .is-lantern {
+            position: absolute; left: 75.5%; top: 15%; width: 26%; aspect-ratio: 1;
+            transform: translate(-50%, -50%); border-radius: 50%;
+            background: radial-gradient(circle, rgba(226, 244, 140, 0.95) 0 6%, rgba(214, 236, 120, 0.35) 22%, transparent 68%);
+            mix-blend-mode: screen; opacity: 0;
+        }
+        .intro.play .is-lantern { animation: is-lantern-on 0.9s ease-out 0.4s forwards, is-flicker 1.7s ease-in-out 1.3s infinite; }
+        @keyframes is-lantern-on { to { opacity: 1; } }
+        @keyframes is-flicker { 0%, 100% { opacity: 1; } 45% { opacity: 0.78; } 55% { opacity: 0.95; } }
+
+        .is-bubbles { position: absolute; left: 9%; top: 72%; width: 0; height: 0; }
+        .is-bubbles i {
+            position: absolute; width: var(--s, 8px); height: var(--s, 8px); border-radius: 50%;
+            border: 1.5px solid rgba(236, 230, 216, 0.7); background: rgba(236, 230, 216, 0.08);
+            opacity: 0;
+        }
+        .intro.play .is-bubbles i { animation: is-bubble var(--t, 1.6s) ease-out var(--d, 0s) infinite; }
+        @keyframes is-bubble {
+            0%   { opacity: 0; transform: translate(0, 0) scale(0.4); }
+            15%  { opacity: 0.9; }
+            100% { opacity: 0; transform: translate(var(--x, -60px), -110px) scale(1.2); }
+        }
+
+        .is-title {
+            position: absolute; left: 0; right: 0; top: 17%; margin: 0;
+            text-align: center; white-space: nowrap;
+            font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+            font-weight: 700; font-size: clamp(46px, 11vw, 150px); letter-spacing: 0.03em;
+            color: #ece6d8;
+            -webkit-text-stroke: 1px rgba(11, 9, 16, 0.6);
+            text-shadow: 0 3px 0 #0b0910, 0 0 18px rgba(214, 236, 120, 0.55), 0 0 60px rgba(214, 236, 120, 0.3);
+        }
+        @media (orientation: portrait) { .is-title { top: 24%; } }
+        .is-title span { display: inline-block; opacity: 0; }
+        .intro.play .is-title span { animation: is-letter 0.7s cubic-bezier(.2, .8, .2, 1) calc(2.5s + var(--i) * 85ms) forwards; }
+        @keyframes is-letter {
+            from { opacity: 0; transform: translateY(26px) scale(1.35); filter: blur(10px); }
+            to   { opacity: 1; transform: none; filter: blur(0); }
+        }
+        .intro.play .is-title { animation: is-title-out 0.8s ease-in 5.3s forwards; }
+        @keyframes is-title-out { to { opacity: 0; transform: translateY(-14px); filter: blur(4px); } }
     </style>
 </head>
 <body>
     @if ($intro)
     <div id="intro" class="intro" hidden aria-hidden="true">
+        @if ($intro['mode'] === 'scene')
+        <div class="is-layer is-bg"></div>
+        <img class="is-whale" src="{{ asset('images/whale-gothic.png') }}" alt="">
+        <img class="is-jelly is-jelly-1" src="{{ asset('images/jelly-gothic.png') }}" alt="">
+        <img class="is-jelly is-jelly-2" src="{{ asset('images/jelly-gothic.png') }}" alt="">
+        <img class="is-fish is-fish-1" src="{{ asset('images/fish-gothic.png') }}" alt="">
+        <img class="is-fish is-fish-2" src="{{ asset('images/fish-puffer-gothic.png') }}" alt="">
+        <div class="is-layer is-sub-path">
+            <div class="is-sub-bob">
+                <img class="is-sub" src="{{ asset('images/sub-gothic.png') }}" width="856" height="507" alt="">
+                <div class="is-bubbles">
+                    <i style="--s:9px;  --d:0s;    --t:1.5s; --x:-70px"></i>
+                    <i style="--s:6px;  --d:0.25s; --t:1.3s; --x:-40px"></i>
+                    <i style="--s:12px; --d:0.5s;  --t:1.8s; --x:-95px"></i>
+                    <i style="--s:5px;  --d:0.7s;  --t:1.2s; --x:-30px"></i>
+                    <i style="--s:8px;  --d:0.95s; --t:1.6s; --x:-60px"></i>
+                    <i style="--s:10px; --d:1.2s;  --t:1.7s; --x:-85px"></i>
+                    <i style="--s:6px;  --d:1.4s;  --t:1.4s; --x:-50px"></i>
+                </div>
+                <span class="is-lantern"></span>
+            </div>
+        </div>
+        <h1 class="is-title" aria-label="{{ $intro['title'] }}">@foreach (mb_str_split($intro['title']) as $i => $ch)<span style="--i: {{ $i }}">{{ $ch }}</span>@endforeach</h1>
+        <div class="is-layer is-vignette"></div>
+        @endif
         <button type="button" class="intro-skip">Skip</button>
     </div>
     <script>
-        // Studio intro: preloads the frames, cross-fades through them over the
-        // live game, then fades out. Never blocks the game — any load error,
-        // a reduced-motion preference or a repeat visit just skips it.
+        // Studio intro over the live game: either cross-fades the uploaded frames
+        // or plays the built-in scene made from the game's own artwork. Never
+        // blocks the game — a load error, a reduced-motion preference or a
+        // repeat visit in the same session just skips it.
         (function studioIntro(cfg) {
             const $intro = document.getElementById('intro');
             const SEEN_KEY = 'orange.intro.seen';
+            const SCENE_MS = 5800; // matches the CSS timeline (sub dives away at ~6.4s)
             const seen = () => { try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch (_) { return false; } };
-            if ((cfg.oncePerSession && seen()) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            if ((cfg.oncePerSession && seen()) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                $intro.remove();
+                return;
+            }
 
-            const portrait = window.innerHeight > window.innerWidth;
-            const urls = (portrait && cfg.portrait.length) ? cfg.portrait : (cfg.landscape.length ? cfg.landscape : cfg.portrait);
-            const imgs = urls.map((src) => { const img = new Image(); img.alt = ''; img.src = src; return img; });
-
-            let finished = false;
+            const portrait = window.matchMedia('(orientation: portrait)').matches;
             const timers = [];
+            let finished = false;
             function finish() {
                 if (finished) return;
                 finished = true;
@@ -1818,28 +1958,48 @@
             }
 
             $intro.style.setProperty('--intro-fade', cfg.fadeMs + 'ms');
-            // In order, before the Skip button, so each new frame fades in on top
-            const $skip = $intro.querySelector('.intro-skip');
-            imgs.forEach((img) => $intro.insertBefore(img, $skip));
             $intro.hidden = false;
             $intro.addEventListener('click', finish);
             window.addEventListener('keydown', finish, { once: true });
 
-            // Cover the game right away; start playing once every frame is
-            // decoded, or give up after 5 s so a slow CDN never holds players.
-            const loaded = Promise.all(imgs.map((img) => img.decode ? img.decode() : Promise.resolve()));
+            const decode = (img) => (img.decode ? img.decode() : Promise.resolve());
+            // Give up after 5 s so a slow network never holds players at a black screen.
             const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('intro timeout')), 5000));
-            Promise.race([loaded, timeout]).then(() => {
-                if (finished) return;
-                let at = 0;
-                imgs.forEach((img, i) => {
-                    timers.push(setTimeout(() => {
-                        img.classList.add('on');
-                        if (i > 0) timers.push(setTimeout(() => imgs[i - 1].classList.remove('on'), cfg.fadeMs));
-                    }, at));
-                    at += cfg.holdMs[i + 1] ?? cfg.frameMs;
+
+            if (cfg.mode === 'frames') {
+                const urls = (portrait && cfg.portrait.length) ? cfg.portrait : (cfg.landscape.length ? cfg.landscape : cfg.portrait);
+                const $skip = $intro.querySelector('.intro-skip');
+                const imgs = urls.map((src) => {
+                    const img = new Image();
+                    img.alt = '';
+                    img.className = 'intro-frame';
+                    img.src = src;
+                    $intro.insertBefore(img, $skip); // in order, so each new frame fades in on top
+                    return img;
                 });
-                timers.push(setTimeout(finish, at));
+                Promise.race([Promise.all(imgs.map(decode)), timeout]).then(() => {
+                    if (finished) return;
+                    let at = 0;
+                    imgs.forEach((img, i) => {
+                        timers.push(setTimeout(() => {
+                            img.classList.add('on');
+                            if (i > 0) timers.push(setTimeout(() => imgs[i - 1].classList.remove('on'), cfg.fadeMs));
+                        }, at));
+                        at += cfg.holdMs[i + 1] ?? cfg.frameMs;
+                    });
+                    timers.push(setTimeout(finish, at));
+                }).catch(finish);
+                return;
+            }
+
+            // Scene: wait for the artwork (incl. the CSS background) so nothing pops in mid-animation.
+            const bg = new Image();
+            bg.src = portrait ? cfg.bgPortrait : cfg.bgLandscape;
+            const art = [bg, ...$intro.querySelectorAll('img')];
+            Promise.race([Promise.allSettled(art.map(decode)), timeout]).then(() => {
+                if (finished) return;
+                $intro.classList.add('play');
+                timers.push(setTimeout(finish, SCENE_MS));
             }).catch(finish);
         })(@json($intro));
     </script>

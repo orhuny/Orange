@@ -9,14 +9,16 @@ return [
     'tick_interval_ms' => (int) env('GAME_CRASH_TICK_INTERVAL_MS', 100),
     'house_edge_divisor' => (int) env('GAME_CRASH_HOUSE_EDGE_DIVISOR', 33),
 
-    // Studio intro shown over /crash on launch. Frames are picked up from
-    // public/images/intro/landscape/ (and optionally portrait/ for tall
-    // screens), played in file-name order: 01.webp, 02.webp, ...
-    // No frames in the folder = no intro.
+    // Studio intro shown over /crash on launch.
+    // - No images in public/images/intro/: a built-in scene animates the game's
+    //   own art (submarine, background, creatures) with the title below.
+    // - Images in public/images/intro/landscape/ (and optionally portrait/ for
+    //   tall screens) replace it, cross-faded in file-name order: 01.webp, 02.webp, ...
     'intro' => [
         'enabled' => true,
-        'frame_ms' => 550,          // how long each frame stays on screen
-        'fade_ms' => 400,           // cross-fade between frames
+        'title' => 'DeepDive',
+        'frame_ms' => 550,          // frames mode: how long each frame stays on screen
+        'fade_ms' => 400,           // frames mode: cross-fade; both modes: final fade into the game
         'hold_ms' => [6 => 1300],   // per-frame overrides (1-based), e.g. the title frame
         'once_per_session' => true, // skip on reloads within the same browser session
     ],
