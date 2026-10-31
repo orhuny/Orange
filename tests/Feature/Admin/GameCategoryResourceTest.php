@@ -37,7 +37,7 @@ it('shows categories to viewers but only lets lobby.manage change them', functio
 });
 
 it('keeps operator users out of lobby management', function (): void {
-    expect(AccessControl::OPERATOR_PERMISSIONS)->not->toContain('lobby.view')->not->toContain('lobby.manage');
+    expect(array_values(array_intersect(AccessControl::OPERATOR_PERMISSIONS, ['lobby.view', 'lobby.manage'])))->toBe([]);
     $user = User::factory()->withRole('Operator Admin')->create(['operator_id' => Operator::factory()->create()->id]);
     actingAs($user);
 

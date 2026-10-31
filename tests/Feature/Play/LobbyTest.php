@@ -89,7 +89,7 @@ it('lists the operator\'s playable games by category, with recent and popular', 
         ->and($response->json('recent'))->toBe(['crash', 'dice'])
         ->and($response->json('popular'))->toBe(['crash', 'dice'])
         ->and($response->json('theme.primary'))->toBe('#ff8a00');
-    $tiles = collect($response->json('games'))->keyBy('code');
+    $tiles = array_column((array) $response->json('games'), null, 'code');
     expect($tiles['dice']['frame_url'])->toBe(url('/games/dice'))
         ->and($tiles['crash']['frame_url'])->toBe(url('/crash'))
         ->and($tiles['rocket']['playable'])->toBeFalse()
