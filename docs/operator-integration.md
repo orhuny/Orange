@@ -170,10 +170,14 @@ Anyone can reproduce a round's crash point from the seed reveal. Useful for play
 {
     "server_seed": "...",
     "client_seed": "...",
-    "nonce": 42,
-    "expected_server_seed_hash": "<optional 64-char hex>"
+    "nonce": 1,
+    "expected_server_seed_hash": "<optional 64-char hex>",
+    "house_edge": 0.03
 }
 ```
+
+Pass the game's `house_edge` (`0.03` for the standard crash game). Without it the default edge is
+used, which gives a different crash point for a game configured with another edge.
 
 Returns the computed crash point and the seed hash for cross-check. No auth.
 
@@ -227,7 +231,8 @@ All events fire on both channels above.
 Every round has its own server seed: its SHA-256 hash is published in `round.betting_opened`
 (`server_seed_hash`, with `nonce`) and the seed itself in `round.settled`. A revealed seed never
 decides another round. To verify a round, call `POST /v1/fairness/verify` with that round's
-`server_seed`, the house client seed, its `nonce` and `expected_server_seed_hash`.
+`server_seed`, the house client seed, its `nonce`, `expected_server_seed_hash` and the game's
+`house_edge`.
 
 **Important**: events use a dotted `broadcastAs` name (e.g. `round.tick`), so bind them as such:
 
