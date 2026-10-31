@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
-use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\ProvablyFair\Services\SeedRotator;
 use Illuminate\Console\Command;
@@ -24,7 +24,7 @@ class RunCrashLoopCommand extends Command
 
     protected $description = 'Drive a continuous crash round loop with realistic timing so the /crash demo page can be observed.';
 
-    public function handle(RoundOrchestrator $orchestrator, MultiplierCalculator $calculator, SeedRotator $seeds): int
+    public function handle(RoundOrchestrator $orchestrator, EngineRegistry $engines, SeedRotator $seeds): int
     {
         // Long-running CLI hardening (same recipe as crash:tick).
         $requested = (string) $this->option('memory');
@@ -40,8 +40,10 @@ class RunCrashLoopCommand extends Command
             return self::FAILURE;
         }
 
-        $bettingSeconds = (int) ($this->option('betting') ?? config('crash.betting_seconds', 10));
-        $waitingSeconds = (int) ($this->option('waiting') ?? config('crash.waiting_seconds', 5));
+        $engine = $engines->roundBased($game);
+        $schedule = $engine->schedule($game);
+        $bettingSeconds = (int) ($this->option('betting') ?? $schedule->bettingSeconds);
+        $waitingSeconds = (int) ($this->option('waiting') ?? $schedule->waitingSeconds);
         $maxRounds = (int) $this->option('rounds');
         $i = 0;
 
@@ -94,7 +96,7 @@ class RunCrashLoopCommand extends Command
             // is live — log files are readable by more people than the database.
             $this->line('    → started');
 
-            $duration = $calculator->durationToReach((float) $round->crash_point);
+            $duration = $engine->runningDuration($round);
             usleep((int) ($duration * 1_000_000));
 
             $orchestrator->crash($round->refresh());

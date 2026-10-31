@@ -69,6 +69,15 @@ class Game extends Model
         });
     }
 
+    /**
+     * The engine type that plays this game (config/games.php). The games.type column
+     * arrives with the multi-game schema; until then every game is crash.
+     */
+    public function engineType(): string
+    {
+        return (string) ($this->attributes['type'] ?? 'crash');
+    }
+
     /** @return HasMany<GameRound, $this> */
     public function rounds(): HasMany
     {

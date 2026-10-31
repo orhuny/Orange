@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Game\Services;
 
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Events\BettingOpened;
 use App\Domain\Game\Events\RoundCrashed;
@@ -13,7 +14,6 @@ use App\Domain\Game\Exceptions\InvalidRoundTransition;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\ProvablyFair\Models\RngSeed;
-use App\Domain\ProvablyFair\Services\ProvablyFairService;
 use App\Domain\ProvablyFair\Services\SeedRotator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,7 +22,7 @@ final class RoundOrchestrator
 {
     public function __construct(
         private readonly SeedRotator $seeds,
-        private readonly ProvablyFairService $math,
+        private readonly EngineRegistry $engines,
         private readonly CashoutService $cashouts,
     ) {}
 
@@ -58,22 +58,12 @@ final class RoundOrchestrator
 
     public function start(GameRound $round): GameRound
     {
-        // The 1-in-N house edge divisor is derived from the round's game
-        // configuration so the math actually tracks the rtp_target /
-        // house_edge values shown in the admin panel.
-        $divisor = $this->math->divisorForGame($round->game);
-
-        $crashPoint = $this->math->crashPoint(
-            $round->serverSeed->server_seed,
-            $round->client_seed,
-            $round->nonce,
-            $divisor,
-        );
+        // The game's engine derives the (secret) outcome from the round's seeds.
+        $outcome = $this->engines->roundBased($round->game)->resolveRound($round);
 
         $started = $this->transition($round, RoundState::Running, [
             'started_at' => now(),
-            'crash_point' => $crashPoint,
-        ]);
+        ] + $outcome);
 
         RoundStarted::dispatch($started);
 

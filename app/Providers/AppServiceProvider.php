@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Domain\Game\Engines\Contracts\GameEngine;
+use App\Domain\Game\Engines\Crash\CrashEngine;
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Events\BetPlaced;
 use App\Domain\Game\Events\CashoutCompleted;
 use App\Domain\Game\Events\MultiplierTick;
@@ -12,6 +15,7 @@ use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Wallet\Listeners\WebhookOnGameEvents;
 use App\Models\User;
 use App\Support\AccessControl;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -26,6 +30,15 @@ class AppServiceProvider extends ServiceProvider
             MultiplierCalculator::class,
             fn () => MultiplierCalculator::default(),
         );
+
+        $this->app->singleton(EngineRegistry::class, function (Application $app): EngineRegistry {
+            // Crash as a literal fallback, so a config cache built before config/games.php
+            // existed can't stop the live game.
+            /** @var array<string, class-string<GameEngine>> $engines */
+            $engines = (array) config('games.engines', ['crash' => CrashEngine::class]);
+
+            return new EngineRegistry($app, $engines);
+        });
     }
 
     public function boot(): void
