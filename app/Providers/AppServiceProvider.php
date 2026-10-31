@@ -12,6 +12,7 @@ use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Wallet\Listeners\WebhookOnGameEvents;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +27,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Behind Cloudflare the app itself is reached over plain http, so
+        // asset()/@vite would emit http:// URLs that browsers block on the
+        // https page. An https APP_URL means every generated URL is https.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         Factory::guessFactoryNamesUsing(function (string $modelName): string {
             $shortName = class_basename($modelName);
 
