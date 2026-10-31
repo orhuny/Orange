@@ -17,6 +17,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class WebhookResource extends Resource
 {
@@ -33,7 +35,7 @@ class WebhookResource extends Resource
         // Cache for 30s — badge runs on every Livewire render (every page
         // nav, every filter change, every poll). Stale-by-30s is harmless;
         // the user clicks through for live data.
-        $failing = \Illuminate\Support\Facades\Cache::remember(
+        $failing = Cache::remember(
             'admin.nav.webhooks-failing',
             30,
             fn (): int => static::getModel()::query()
@@ -49,7 +51,7 @@ class WebhookResource extends Resource
         return 'danger';
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with('operator:id,slug');
     }

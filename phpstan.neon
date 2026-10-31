@@ -1,5 +1,7 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    # Findings that predate CI running PHPStan 2 cleanly; new code must not add to it.
+    - phpstan-baseline.neon
 
 parameters:
     paths:
@@ -10,6 +12,6 @@ parameters:
     level: 6
     excludePaths:
         - app/Filament/**/Pages/**
-    checkMissingIterableValueType: false
     ignoreErrors:
-        - '#PHPDoc tag @use#'
+        # PHPStan 2 replacement for the removed checkMissingIterableValueType: false
+        - identifier: missingType.iterableValue

@@ -1,0 +1,397 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Cannot call method diffInMicroseconds\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Console/Commands/BroadcastRoundTickCommand.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Console/Commands/CashoutDemoBetCommand.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Console/Commands/CashoutDemoBetCommand.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Console/Commands/PlaceDemoBetCommand.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Console/Commands/PlaceDemoBetCommand.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Events/BettingOpened.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Events/RoundCrashed.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Events/RoundSettled.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Events/RoundStarted.php
+
+		-
+			message: '#^Cannot call method acceptsBets\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Services/BetPlacementService.php
+
+		-
+			message: '#^Parameter \#1 \$state of static method App\\Domain\\Game\\Exceptions\\BettingClosed\:\:for\(\) expects App\\Domain\\Game\\Enums\\RoundState, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Game/Services/BetPlacementService.php
+
+		-
+			message: '#^Parameter \#1 \$state of static method App\\Domain\\Game\\Exceptions\\RoundNotRunning\:\:for\(\) expects App\\Domain\\Game\\Enums\\RoundState, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Game/Services/CashoutService.php
+
+		-
+			message: '#^Property App\\Domain\\Game\\Services\\CashoutService\:\:\$calculator is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Domain/Game/Services/CashoutService.php
+
+		-
+			message: '#^Property App\\Domain\\Game\\Services\\CashoutService\:\:\$wallet is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Domain/Game/Services/CashoutService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and App\\Domain\\Game\\Enums\\RoundState\:\:Running will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domain/Game/Services/CashoutService.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Domain/Game/Services/CashoutService.php
+
+		-
+			message: '#^Cannot call method diffInMicroseconds\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Services/MultiplierCalculator.php
+
+		-
+			message: '#^Cannot call method canTransitionTo\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Game/Services/RoundOrchestrator.php
+
+		-
+			message: '#^Parameter \#1 \$current of static method App\\Domain\\Game\\Exceptions\\InvalidRoundTransition\:\:from\(\) expects App\\Domain\\Game\\Enums\\RoundState, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Game/Services/RoundOrchestrator.php
+
+		-
+			message: '#^Cannot call method canCallApi\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Operator/Models/Operator.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Operator/Models/OperatorApiKey.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Domain/Wallet/Jobs/DeliverWebhookJob.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Wallet\\Enums\\WebhookStatus\:\:DeadLetter will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Domain/Wallet/Jobs/DeliverWebhookJob.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Wallet\\Enums\\WebhookStatus\:\:Delivered will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Domain/Wallet/Jobs/DeliverWebhookJob.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: app/Domain/Wallet/Listeners/WebhookOnGameEvents.php
+
+		-
+			message: '#^Dead catch \- Illuminate\\Http\\Client\\ConnectionException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: app/Domain/Wallet/Services/OperatorWalletClient.php
+
+		-
+			message: '#^Dead catch \- Illuminate\\Http\\Client\\RequestException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: app/Domain/Wallet/Services/OperatorWalletClient.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Lost will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Filament/Exports/BetExporter.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Won will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Filament/Exports/BetExporter.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>payout_amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Exports/BetExporter.php
+
+		-
+			message: '#^Match arm comparison between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Lost is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Filament/Resources/BetResource.php
+
+		-
+			message: '#^Match arm comparison between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Won is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Filament/Resources/BetResource.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Lost will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Filament/Resources/BetResource.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Won will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Filament/Resources/BetResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>payout_amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Resources/BetResource.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and App\\Domain\\Operator\\Enums\\OperatorStatus\:\:Active will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Filament/Resources/OperatorResource.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Operator\\Enums\\OperatorStatus\:\:Active will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Filament/Resources/OperatorResource.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and App\\Domain\\Wallet\\Enums\\WebhookStatus\:\:Delivered will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Filament/Resources/WebhookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Domain\\Game\\Models\\GameRound\:\:\$bucket\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Widgets/TodayRoundsChart.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/Bets/CashoutController.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/Bets/CashoutController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\Api\\Bets\\CashoutController\:\:\$service is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Http/Controllers/Api/Bets/CashoutController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Placed will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/Bets/CashoutController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Http/Controllers/Api/Bets/CashoutController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/OperatorApi/BetController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/AfqOperatorSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: database/seeders/ConsumerOperatorSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: database/seeders/OrangeAppOperatorSeeder.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Admin/AdminPanelSmokeTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:get\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: tests/Feature/Admin/AdminPanelSmokeTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Game/CashoutEndpointTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:withHeaders\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: tests/Feature/Game/CashoutEndpointTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:withHeaders\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Feature/OperatorApi/BetPlacementTest.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: tests/Feature/OperatorApi/BetPlacementTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<int\<0, max\>\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Feature/OperatorApi/BetPlacementTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/OperatorApi/HmacAuthTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:withHeaders\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: tests/Feature/OperatorApi/HmacAuthTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:withHeaders\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: tests/Feature/OperatorApi/IdempotencyTest.php
+
+		-
+			message: '#^Cannot call method equalTo\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/ProvablyFair/SeedRotatorTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function expect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Feature/ProvablyFair/SeedRotatorTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Feature/ProvablyFair/VerifyEndpointTest.php
+
+		-
+			message: '#^Offset ''body'' does not exist on string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Feature/Wallet/WalletCallbackTest.php
+
+		-
+			message: '#^Offset ''bet_id'' does not exist on string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Feature/Wallet/WebhookDeliveryTest.php
+
+		-
+			message: '#^Offset ''cashout_id'' does not exist on string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Feature/Wallet/WebhookDeliveryTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<mixed\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 2
+			path: tests/Feature/Wallet/WebhookDeliveryTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/ExampleTest.php

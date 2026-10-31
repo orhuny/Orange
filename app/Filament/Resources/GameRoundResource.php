@@ -15,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class GameRoundResource extends Resource
 {
@@ -33,7 +34,7 @@ class GameRoundResource extends Resource
         // Short 5s TTL — live rounds count is the most time-sensitive of
         // the three nav badges (it ticks every round, ~10s cycle), so we
         // can't be as lazy as webhook/operator badges.
-        return (string) \Illuminate\Support\Facades\Cache::remember(
+        return (string) Cache::remember(
             'admin.nav.live-rounds',
             5,
             fn (): int => static::getModel()::query()

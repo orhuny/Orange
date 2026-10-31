@@ -42,6 +42,7 @@ class BetExporter extends Exporter
                     if ($record->status === BetStatus::Won) {
                         return '+'.number_format((float) bcsub($payout, $stake, 8), 2, '.', '');
                     }
+
                     return null;
                 }),
             ExportColumn::make('external_tx_id')->label('Wallet tx id'),

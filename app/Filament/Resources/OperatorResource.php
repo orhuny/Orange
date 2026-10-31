@@ -23,6 +23,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class OperatorResource extends Resource
 {
@@ -38,11 +40,11 @@ class OperatorResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) \Illuminate\Support\Facades\Cache::remember(
+        return (string) Cache::remember(
             'admin.nav.operators-active',
             30,
             fn (): int => static::getModel()::query()
-                ->where('status', \App\Domain\Operator\Enums\OperatorStatus::Active)
+                ->where('status', OperatorStatus::Active)
                 ->count(),
         );
     }
@@ -52,7 +54,7 @@ class OperatorResource extends Resource
         return 'success';
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->withCount('apiKeys');
     }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Game\Models\Game;
 use App\Domain\ProvablyFair\Services\ProvablyFairService;
 
 it('hmac is deterministic for the same inputs', function (): void {
@@ -69,9 +70,9 @@ it('hashSeed returns sha256 hex', function (): void {
 it('derives divisor from a game\'s house_edge', function (): void {
     $svc = new ProvablyFairService;
 
-    $thirty3 = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 0.97, 'house_edge' => 0.03]);
-    $hundred  = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 0.99, 'house_edge' => 0.01]);
-    $ten      = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 0.90, 'house_edge' => 0.10]);
+    $thirty3 = Game::factory()->make(['rtp_target' => 0.97, 'house_edge' => 0.03]);
+    $hundred = Game::factory()->make(['rtp_target' => 0.99, 'house_edge' => 0.01]);
+    $ten = Game::factory()->make(['rtp_target' => 0.90, 'house_edge' => 0.10]);
 
     expect($svc->divisorForGame($thirty3))->toBe(33);
     expect($svc->divisorForGame($hundred))->toBe(100);
@@ -80,7 +81,7 @@ it('derives divisor from a game\'s house_edge', function (): void {
 
 it('rejects an out-of-range house_edge when deriving divisor', function (): void {
     $svc = new ProvablyFairService;
-    $bad = App\Domain\Game\Models\Game::factory()->make(['rtp_target' => 1.0, 'house_edge' => 0.0]);
+    $bad = Game::factory()->make(['rtp_target' => 1.0, 'house_edge' => 0.0]);
 
     $svc->divisorForGame($bad);
 })->throws(InvalidArgumentException::class);
@@ -96,10 +97,11 @@ it('a smaller house_edge collapses fewer rounds to 1.00x', function (): void {
                 $count++;
             }
         }
+
         return $count;
     };
 
-    $hits33  = $hits(33);   // expected ≈ 5000/33 ≈ 151
+    $hits33 = $hits(33);   // expected ≈ 5000/33 ≈ 151
     $hits100 = $hits(100);  // expected ≈ 5000/100 ≈ 50
 
     // 100-divisor must produce strictly fewer instant-crashes than 33-divisor.

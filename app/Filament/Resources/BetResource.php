@@ -88,6 +88,7 @@ class BetResource extends Resource
                         if ($record->status === BetStatus::Won) {
                             return '+'.number_format((float) bcsub($payout, $stake, 8), 2);
                         }
+
                         return null;
                     })
                     ->color(fn (Bet $record) => match ($record->status) {
@@ -119,13 +120,18 @@ class BetResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from']  ?? null, fn ($q, $d) => $q->whereDate('placed_at', '>=', $d))
+                            ->when($data['from'] ?? null, fn ($q, $d) => $q->whereDate('placed_at', '>=', $d))
                             ->when($data['until'] ?? null, fn ($q, $d) => $q->whereDate('placed_at', '<=', $d));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($from  = $data['from']  ?? null) $indicators[] = "From {$from}";
-                        if ($until = $data['until'] ?? null) $indicators[] = "Until {$until}";
+                        if ($from = $data['from'] ?? null) {
+                            $indicators[] = "From {$from}";
+                        }
+                        if ($until = $data['until'] ?? null) {
+                            $indicators[] = "Until {$until}";
+                        }
+
                         return $indicators;
                     }),
             ])
