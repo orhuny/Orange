@@ -103,6 +103,7 @@ class WalletService
             'operator_response' => null,
             'idempotency_key' => $idempotencyKey,
         ]);
+        $tx->setRelation('player', $player);
 
         // Capture the params we need for the actual HTTP callback. Defer the
         // call to after the response is flushed so we don't pin the HTTP
@@ -110,16 +111,7 @@ class WalletService
         // single-process — a synchronous callback could deadlock with the
         // operator's own single-process server while the bet is still in
         // flight).
-        $payload = [
-            'operator_id' => $operator->id,
-            'tx_id' => (int) $tx->id,
-            'type' => $type,
-            'amount' => $amount,
-            'currency' => $currency,
-            'player_external_id' => $player->external_player_id,
-            'idempotency_key' => $idempotencyKey,
-            'reference' => ['type' => $type->value, 'bet_id' => $betId],
-        ];
+        $payload = $this->payloadFor($tx);
 
         // Always go through the queue. With a real worker the outbound
         // HTTP call runs out-of-band so nothing in this process blocks on
@@ -136,6 +128,56 @@ class WalletService
         DispatchWalletCallbackJob::dispatch($payload);
 
         return $tx->fresh() ?? $tx;
+    }
+
+    /**
+     * The callback payload for a transaction, built only here so that the first send
+     * (record) and every wallet:reconcile retry carry the same tx_id, amount and
+     * reference: the operator deduplicates on tx_id and must see the same request.
+     *
+     * @return array<string, mixed>
+     */
+    public function payloadFor(WalletTransaction $tx): array
+    {
+        /** @var WalletTransactionType $type */
+        $type = $tx->getAttribute('type');
+
+        return [
+            'operator_id' => $tx->operator_id,
+            'tx_id' => (int) $tx->id,
+            'type' => $type,
+            'amount' => $this->callbackAmount($tx),
+            'currency' => $tx->currency,
+            'player_external_id' => $tx->player->external_player_id,
+            'idempotency_key' => $tx->idempotency_key,
+            'reference' => ['type' => $type->value, 'bet_id' => $tx->bet_id === null ? null : (int) $tx->bet_id],
+        ];
+    }
+
+    /**
+     * Sends the callback for an existing transaction again, in this process. Used by
+     * wallet:reconcile, which must not depend on the queue whose job may have been lost.
+     */
+    public function resend(WalletTransaction $tx): void
+    {
+        $this->dispatchCallback($this->payloadFor($tx));
+    }
+
+    /**
+     * A debit goes out with the amount exactly as the bet request spelt it ("1.00"; the
+     * afq contract pins the body) and is only ever sent once, from record(). Credits and
+     * rollbacks go out at the column's 8-dp scale, which is what their callers already
+     * pass, so a retry rebuilt from the database is byte-identical to the first send.
+     */
+    private function callbackAmount(WalletTransaction $tx): string
+    {
+        $raw = $tx->getAttributes()['amount'] ?? null;
+
+        if ($tx->getAttribute('type') === WalletTransactionType::Debit && is_string($raw)) {
+            return $raw;
+        }
+
+        return (string) $tx->amount;
     }
 
     /**

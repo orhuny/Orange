@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Game\Engines\EngineRegistry;
+use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Enums\RoundState;
+use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\ProvablyFair\Services\SeedRotator;
+use App\Domain\Wallet\Services\WalletService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +27,7 @@ class RunCrashLoopCommand extends Command
 
     protected $description = 'Drive a continuous crash round loop with realistic timing so the /crash demo page can be observed.';
 
-    public function handle(RoundOrchestrator $orchestrator, EngineRegistry $engines, SeedRotator $seeds): int
+    public function handle(RoundOrchestrator $orchestrator, EngineRegistry $engines, SeedRotator $seeds, WalletService $wallet): int
     {
         // Long-running CLI hardening (same recipe as crash:tick).
         $requested = (string) $this->option('memory');
@@ -60,13 +63,33 @@ class RunCrashLoopCommand extends Command
         // orphan would otherwise be picked up by crash:tick (which selects the
         // latest Running round) during the next round's betting window and
         // broadcast a stale, ever-climbing multiplier until its 120s guard.
-        $orphans = GameRound::query()
+        $openStates = [RoundState::Waiting, RoundState::Betting, RoundState::Running, RoundState::Crashed];
+        /** @var list<int> $orphanIds */
+        $orphanIds = GameRound::query()
             ->where('game_id', $game->id)
-            ->whereIn('state', [RoundState::Waiting, RoundState::Betting, RoundState::Running, RoundState::Crashed])
+            ->whereIn('state', $openStates)
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+
+        // Bets still `placed` on an orphan never get a result, so their stake is
+        // refunded. First while the rounds are still open, so a run killed half-way
+        // leaves them orphaned and the next run finishes the job; then again once
+        // they are settled, for a bet that landed on a still-betting round in between.
+        $rolledBack = $this->rollBackPlacedBets($orphanIds, $wallet);
+
+        $orphans = $orphanIds === [] ? 0 : GameRound::query()
+            ->whereKey($orphanIds)
+            ->whereIn('state', $openStates)
             ->update(['state' => RoundState::Settled, 'settled_at' => now(), 'updated_at' => now()]);
+
+        $rolledBack += $this->rollBackPlacedBets($orphanIds, $wallet);
 
         if ($orphans > 0) {
             $this->warn("cleaned up {$orphans} orphan round(s) left over from a previous run");
+        }
+        if ($rolledBack > 0) {
+            $this->warn("rolled back {$rolledBack} bet(s) left placed on orphan rounds");
         }
 
         // Seeds of rounds that are now all finished (the orphans above, or the seed
@@ -118,6 +141,53 @@ class RunCrashLoopCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Refunds the stake of every bet still `placed` on the given rounds.
+     *
+     * The status flip is the gate: a cashout racing for the same bet flips it
+     * from `placed` too, so exactly one of them wins and a stake is never both
+     * paid out and refunded. The `rollback:{bet_id}` key makes a repeat a no-op.
+     *
+     * @param  list<int>  $roundIds
+     */
+    private function rollBackPlacedBets(array $roundIds, WalletService $wallet): int
+    {
+        if ($roundIds === []) {
+            return 0;
+        }
+
+        // lazyById pages by id, so flipping the status it filters on is safe.
+        $bets = Bet::query()
+            ->with(['operator', 'player'])
+            ->whereIn('round_id', $roundIds)
+            ->where('status', BetStatus::Placed->value)
+            ->lazyById();
+
+        $rolledBack = 0;
+        foreach ($bets as $bet) {
+            $flipped = DB::table('bets')
+                ->where('id', $bet->id)
+                ->where('status', BetStatus::Placed->value)
+                ->update(['status' => BetStatus::RolledBack->value, 'settled_at' => now(), 'updated_at' => now()]);
+
+            if ($flipped === 0) {
+                continue;
+            }
+
+            $wallet->rollback(
+                $bet->operator,
+                $bet->player,
+                (string) $bet->amount,
+                $bet->currency,
+                "rollback:{$bet->id}",
+                (int) $bet->id,
+            );
+            $rolledBack++;
+        }
+
+        return $rolledBack;
     }
 
     private static function fmt(int $bytes): string

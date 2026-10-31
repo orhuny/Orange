@@ -38,6 +38,8 @@ class WalletTransaction extends Model
             'operator_callback_status' => WalletCallbackStatus::class,
             'operator_response' => 'array',
             'amount' => 'decimal:8',
+            'reconcile_attempts' => 'integer',
+            'next_reconcile_at' => 'datetime',
         ];
     }
 
