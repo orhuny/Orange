@@ -289,9 +289,9 @@
         :root[data-theme="burton"] .sub-body   { display: none; }
         :root[data-theme="burton"] .sub-gothic { display: inline; }
         /* Tall lantern mast: sit a little lower before the dive so it clears
-           the recent-crashes bar. */
+           the recent-crashes bar and the status pill under it (short screens). */
         :root[data-theme="burton"] .waiting .sub-wrap,
-        :root[data-theme="burton"] .betting .sub-wrap { top: 35%; }
+        :root[data-theme="burton"] .betting .sub-wrap { top: max(35%, 310px); }
         :root[data-theme="burton"] .sub-wake,
         :root[data-theme="burton"] .sub-wake-core { filter: grayscale(0.8); }
         :root[data-theme="burton"] .sub-bubbles { fill: rgba(236,230,216,0.6); }
@@ -958,7 +958,7 @@
         .state {
             --dot: var(--hud);
             display: inline-flex; align-items: center; gap: 11px;
-            margin: 0; padding: 8px 20px 8px 15px;
+            margin: 8px 0 0; padding: 8px 20px 8px 15px;
             font-size: 14px; font-weight: 700; letter-spacing: 0.24em;
             font-variant-numeric: tabular-nums;
             color: var(--hud-bright);
@@ -2822,11 +2822,12 @@
         <div class="history-wrap" aria-label="Recent crashes">
             <div class="history-label">Recent crashes</div>
             <div id="history" class="history"></div>
+            {{-- Round status sits under the rail, clear of the diving sub. --}}
+            <div id="state" class="state">Awaiting next dive…</div>
         </div>
 
         <!-- State + multiplier with cockpit gauges flanking the readout -->
         <div class="center">
-            <div id="state" class="state">Awaiting next dive…</div>
             <div class="center-row">
                 <div class="gauge gauge-pressure" title="Pressure" data-level="ok">
                     <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
