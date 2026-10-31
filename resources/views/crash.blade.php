@@ -813,6 +813,87 @@
             transition: width 0.2s linear, background 0.3s ease;
         }
 
+        /* ---------- Depth meter (left edge) ----------
+           Glass tube from surface to the Challenger Deep; --p (0..1, set from JS)
+           drives the needle, the travelled-depth fill and the readout chip. */
+        .depth-meter {
+            --p: 0; --dc: var(--hud-bright); --dc-rgb: var(--hud-rgb);
+            position: absolute; left: 22px; top: 150px;
+            height: clamp(200px, 46vh, 520px); width: 14px;
+            pointer-events: none;
+            z-index: 9;
+        }
+        .depth-track {
+            position: absolute; inset: 0;
+            border-radius: 999px;
+            background: linear-gradient(180deg,
+                rgba(150,220,215,0.55) 0%, rgba(60,110,140,0.5) 18%,
+                rgba(40,40,80,0.55) 45%, rgba(25,15,40,0.7) 72%, rgba(90,12,24,0.8) 100%);
+            border: 1px solid rgba(var(--hud-rgb),0.4);
+            box-shadow: inset 2px 0 3px rgba(255,255,255,0.18), 0 4px 18px rgba(0,0,0,0.5);
+        }
+        .depth-fill {
+            position: absolute; left: 3px; right: 3px; top: 3px;
+            height: calc((100% - 6px) * var(--p));
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(var(--dc-rgb),0.25), rgba(var(--dc-rgb),0.85));
+            box-shadow: 0 0 10px rgba(var(--dc-rgb),0.6);
+        }
+        .depth-tick {
+            position: absolute; left: 100%; top: var(--at);
+            display: flex; align-items: center; gap: 4px;
+            transform: translateY(-50%);
+            font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+            color: var(--text); opacity: 0.8; white-space: nowrap;
+            text-shadow: 0 1px 2px #000, 0 0 6px #000;
+        }
+        .depth-meter::before {
+            content: "DEPTH"; position: absolute; left: -4px; bottom: calc(100% + 8px);
+            font-size: 9px; font-weight: 800; letter-spacing: 0.24em;
+            color: var(--text-muted); text-shadow: 0 1px 2px #000;
+        }
+        .depth-tick::before { content: ""; width: 6px; height: 1px; background: rgba(var(--hud-rgb),0.6); }
+        .depth-needle {
+            position: absolute; left: -6px; top: calc(var(--p) * 100%);
+            display: flex; align-items: center;
+            transform: translateY(-50%);
+        }
+        .depth-needle::before {
+            content: ""; width: 26px; height: 3px; border-radius: 2px;
+            background: var(--dc); box-shadow: 0 0 8px var(--dc), 0 0 2px #000;
+        }
+        .depth-chip {
+            margin-left: 6px; padding: 5px 10px 5px 9px;
+            background: rgba(var(--panel-rgb),0.88);
+            border: 1px solid rgba(var(--dc-rgb),0.6);
+            border-radius: 4px 10px 10px 4px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.5), 0 0 12px rgba(var(--dc-rgb),0.25);
+            white-space: nowrap; line-height: 1.1;
+        }
+        .depth-chip b {
+            display: block;
+            font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums;
+            color: var(--dc);
+        }
+        .depth-chip small {
+            display: block; margin-top: 2px;
+            font-size: 8px; font-weight: 700; letter-spacing: 0.18em;
+            color: var(--text-muted);
+        }
+        :root[data-theme="burton"] .depth-chip b { font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; font-size: 17px; }
+        .critical .depth-meter { --dc: var(--warn); --dc-rgb: 239,68,68; }
+        .critical:not(.crashed) .depth-chip { animation: depth-alarm 0.6s ease-in-out infinite alternate; }
+        @keyframes depth-alarm { to { box-shadow: 0 4px 14px rgba(0,0,0,0.5), 0 0 22px rgba(239,68,68,0.7); } }
+        @media (max-width: 720px) {
+            .depth-meter { left: 10px; top: 140px; width: 8px; height: clamp(160px, 34vh, 320px); }
+            .depth-tick { display: none; }
+            .depth-needle::before { width: 18px; }
+            .depth-chip { padding: 3px 7px; }
+            .depth-chip b { font-size: 12px; }
+            :root[data-theme="burton"] .depth-chip b { font-size: 13px; }
+            .depth-chip small { font-size: 7px; letter-spacing: 0.12em; }
+        }
+
         /* ---------- Recent crashes history ---------- */
         .history-wrap {
             position: absolute;
@@ -1588,20 +1669,26 @@
                 justify-content: stretch;
             }
 
-            /* Compact stepper inputs so [stake][auto][PLACE BET][AUTO] all fit
-               on row 2 even at 360px viewport width. */
-            body.embedded .op-input { font-size: 12px; padding: 4px 4px; }
-            body.embedded .op-input[data-kind="stake"] { width: 42px; }
-            body.embedded .op-input[data-kind="auto"]  { width: 42px; }
-            body.embedded .op-stepper-auto .op-input   { width: 42px; }
-            body.embedded .op-step  { padding: 0 6px; font-size: 13px; }
+            /* Steppers share whatever row 2 has left after AUTO + PLACE BET, so
+               the stake and the "auto ×" placeholder stay readable from 360px up. */
+            body.embedded .op-stepper { flex: 1 1 0; min-width: 0; }
+            body.embedded .op-stepper-auto { flex-grow: 1.5; } /* has the extra × button */
+            body.embedded .op-stepper .op-input,
+            body.embedded .op-stepper-auto .op-input { flex: 1 1 auto; width: 0; min-width: 34px; }
+            body.embedded .op-input { font-size: 12px; padding: 4px 2px; text-align: center; }
+            body.embedded .op-input::placeholder { font-size: 11px; letter-spacing: 0; }
+            body.embedded .op-step  { padding: 0 5px; font-size: 13px; }
             body.embedded .op-clear { padding: 0 6px; font-size: 11px; }
 
             /* Tight bet row — stays on one line in place mode. */
             body.embedded .op-bet-row { gap: 5px; flex-wrap: nowrap; overflow: hidden; }
             body.embedded .op-btn { font-size: 10px; padding: 0 8px; height: 30px; min-width: 0; }
             body.embedded .op-action .op-bet-btn { height: 30px; font-size: 10px; min-width: 0; padding: 0 10px; }
-            body.embedded .op-action { flex: 1 1 auto; min-width: 0; }
+            body.embedded .op-action { flex: 0 0 auto; min-width: 0; }
+            body.embedded .operator-panel[data-mode="cashout"] .op-action { flex: 1 1 auto; }
+            /* Cash Out stretches over this spot in cashout mode anyway — don't let
+               its wider label size the slot while PLACE BET is showing. */
+            body.embedded .operator-panel[data-mode="place"] .op-action .op-cashout-btn { display: none; }
             body.embedded .operator-panel[data-mode="cashout"] .op-stepper { display: none; }
             body.embedded .op-autobet-btn  {
                 flex: 0 0 auto;
@@ -2817,6 +2904,16 @@
         <!-- Strobe sits above the scene but below the UI -->
         <div class="strobe"></div>
 
+        <!-- Depth meter: surface → Challenger Deep; ticks every 2 km on a linear depth axis -->
+        <div class="depth-meter" id="depth-meter" aria-hidden="true">
+            <div class="depth-track"></div>
+            <div class="depth-fill"></div>
+            @foreach ([0, 2, 4, 6, 8, 10] as $km)
+            <span class="depth-tick" style="--at: {{ round($km * 1000 / 10994 * 100, 2) }}%">{{ $km === 0 ? '0 m' : $km.' km' }}</span>
+            @endforeach
+            <div class="depth-needle"><div class="depth-chip"><b id="depth-value">0 m</b><small id="depth-zone">SURFACE</small></div></div>
+        </div>
+
         <!-- Recent crashes -->
         <div class="history-wrap" aria-label="Recent crashes">
             <div class="history-label">Recent crashes</div>
@@ -3093,8 +3190,29 @@
             for (const s of state) $stage.classList.add(s);
         }
 
+        // Depth meter: log scale so the needle travels visibly on the common
+        // low-x rounds — 2x ≈ 2.4 km, 5x ≈ 5.5 km, 25x hits the Challenger Deep.
+        const $depthMeter = document.getElementById('depth-meter');
+        const $depthVal = document.getElementById('depth-value');
+        const $depthZone = document.getElementById('depth-zone');
+        const MAX_DEPTH_M = 10994;
+        const depthFmt = new Intl.NumberFormat('en-US');
+        function setDepth(m) {
+            const p = Math.min(1, Math.max(0, Math.log(m) / Math.log(25)));
+            const metres = Math.round(p * MAX_DEPTH_M);
+            $depthMeter.style.setProperty('--p', p.toFixed(4));
+            $depthVal.textContent = depthFmt.format(metres) + ' m';
+            $depthZone.textContent = metres === 0 ? 'SURFACE'
+                : metres < 200 ? 'SUNLIGHT ZONE'
+                : metres < 1000 ? 'TWILIGHT ZONE'
+                : metres < 4000 ? 'MIDNIGHT ZONE'
+                : metres < 6000 ? 'ABYSSAL ZONE'
+                : 'HADAL ZONE';
+        }
+
         function updateMultiplierUI(m) {
             $mult.textContent = m.toFixed(2) + 'x';
+            setDepth(m);
             // scale 1.00x → 200m / 0%, 25.00x → 1500m / red zone
             const norm = Math.min(1, Math.max(0, (m - 1) / 24));
             const pressure = Math.round(200 + norm * 1300);
@@ -3158,6 +3276,7 @@
 
         function resetIdleVisuals() {
             stopTween(1);
+            setDepth(1);
             rebuildDebris(); // fresh vectors for the next crash, built while nothing is animating
             $mult.textContent = '1.00x';
             $pressVal.textContent = '0';
@@ -3209,6 +3328,7 @@
                         setStage(['crashed', 'critical']);
                         if (Number.isFinite(cp)) {
                             $mult.textContent = cp.toFixed(2) + 'x';
+                            setDepth(cp);
                             $state.textContent = `IMPLODED @ ${cp.toFixed(2)}x`;
                             log(`💥 imploded @ ${cp.toFixed(2)}x`);
                             pushHistory(cp);
