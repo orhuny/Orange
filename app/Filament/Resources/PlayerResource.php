@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Domain\Operator\Models\Player;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\PlayerResource\Pages;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -45,6 +46,9 @@ class PlayerResource extends Resource
                 TextColumn::make('status')->badge(),
                 TextColumn::make('risk_score')->numeric()->placeholder('0'),
                 TextColumn::make('created_at')->dateTime()->sortable(),
+            ])
+            ->filters([
+                DateRangeFilter::make('created_at', 'Registered'),
             ])
             ->defaultSort('id', 'desc')
             ->deferLoading()

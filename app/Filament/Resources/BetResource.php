@@ -7,15 +7,14 @@ namespace App\Filament\Resources;
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Models\Bet;
 use App\Filament\Exports\BetExporter;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\BetResource\Pages;
 use BackedEnum;
 use Filament\Actions\ExportAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -112,28 +111,7 @@ class BetResource extends Resource
                     ->relationship('player', 'external_player_id')
                     ->searchable(),     // not preloaded — player tables can be huge
 
-                Filter::make('placed_at')
-                    ->label('Placed at')
-                    ->schema([
-                        DatePicker::make('from')->label('From'),
-                        DatePicker::make('until')->label('Until'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['from'] ?? null, fn ($q, $d) => $q->whereDate('placed_at', '>=', $d))
-                            ->when($data['until'] ?? null, fn ($q, $d) => $q->whereDate('placed_at', '<=', $d));
-                    })
-                    ->indicateUsing(function (array $data): array {
-                        $indicators = [];
-                        if ($from = $data['from'] ?? null) {
-                            $indicators[] = "From {$from}";
-                        }
-                        if ($until = $data['until'] ?? null) {
-                            $indicators[] = "Until {$until}";
-                        }
-
-                        return $indicators;
-                    }),
+                DateRangeFilter::make('placed_at', 'Placed'),
             ])
             ->headerActions([
                 ExportAction::make()

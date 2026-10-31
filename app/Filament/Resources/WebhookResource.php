@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Domain\Wallet\Enums\WebhookStatus;
 use App\Domain\Wallet\Jobs\DeliverWebhookJob;
 use App\Domain\Wallet\Models\Webhook;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\WebhookResource\Pages;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -85,6 +86,7 @@ class WebhookResource extends Resource
             ->filters([
                 SelectFilter::make('status')
                     ->options(collect(WebhookStatus::cases())->mapWithKeys(fn ($s) => [$s->value => ucfirst($s->value)])),
+                DateRangeFilter::make('created_at', 'Created'),
             ])
             ->recordActions([
                 Action::make('redeliver')

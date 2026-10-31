@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Models\GameRound;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\GameRoundResource\Pages;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -84,6 +85,7 @@ class GameRoundResource extends Resource
             ->filters([
                 SelectFilter::make('state')
                     ->options(collect(RoundState::cases())->mapWithKeys(fn ($s) => [$s->value => ucfirst($s->value)])),
+                DateRangeFilter::make('created_at', 'Round'),
             ])
             ->defaultSort('id', 'desc')
             ->deferLoading()

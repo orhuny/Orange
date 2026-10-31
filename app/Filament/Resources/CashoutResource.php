@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Domain\Game\Models\Cashout;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\CashoutResource\Pages;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -43,6 +44,7 @@ class CashoutResource extends Resource
             ])
             ->filters([
                 TernaryFilter::make('is_auto')->label('Auto cashout'),
+                DateRangeFilter::make('cashed_out_at', 'Cashed out'),
             ])
             ->defaultSort('id', 'desc')
             ->deferLoading()

@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\Operator\Enums\OperatorStatus;
 use App\Domain\Operator\Models\Operator;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\OperatorResource\Pages;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -95,6 +96,7 @@ class OperatorResource extends Resource
             ->filters([
                 SelectFilter::make('status')
                     ->options(collect(OperatorStatus::cases())->mapWithKeys(fn ($s) => [$s->value => ucfirst($s->value)])),
+                DateRangeFilter::make('created_at', 'Created'),
             ])
             ->recordActions([
                 EditAction::make(),

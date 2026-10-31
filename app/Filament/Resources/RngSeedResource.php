@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\ProvablyFair\Models\RngSeed;
 use App\Domain\ProvablyFair\Services\SeedRotator;
+use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\RngSeedResource\Pages;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -43,6 +44,9 @@ class RngSeedResource extends Resource
                 TextColumn::make('rotated_at')->dateTime('Y-m-d H:i:s')->placeholder('—'),
                 TextColumn::make('revealed_at')->dateTime('Y-m-d H:i:s')->placeholder('—'),
                 TextColumn::make('created_at')->dateTime()->sortable(),
+            ])
+            ->filters([
+                DateRangeFilter::make('created_at', 'Created'),
             ])
             ->headerActions([
                 Action::make('rotateNow')
