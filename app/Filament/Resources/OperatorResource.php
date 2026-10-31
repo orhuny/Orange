@@ -18,9 +18,12 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontFamily;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -68,6 +71,23 @@ class OperatorResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            // Read-only credentials on edit. The secret is masked server-side, so
+            // only its first/last 4 characters ever reach the browser.
+            Section::make('API credentials')
+                ->schema([
+                    TextEntry::make('id')
+                        ->label('Operator ID')
+                        ->fontFamily(FontFamily::Mono)
+                        ->copyable(),
+                    TextEntry::make('secret_key')
+                        ->label('Secret key')
+                        ->state(fn (Operator $record): string => static::maskSecret((string) $record->secret_key))
+                        ->fontFamily(FontFamily::Mono)
+                        ->helperText('Only the first and last 4 characters are shown.'),
+                ])
+                ->columns(2)
+                ->columnSpanFull()
+                ->hiddenOn('create'),
             TextInput::make('name')->required()->maxLength(255),
             TextInput::make('slug')->required()->unique(ignoreRecord: true)->maxLength(255),
             Select::make('status')
@@ -133,6 +153,15 @@ class OperatorResource extends Resource
             ->deferLoading()
             ->persistFiltersInSession()
             ->persistSortInSession();
+    }
+
+    public static function maskSecret(string $secret): string
+    {
+        if (strlen($secret) <= 8) {
+            return str_repeat('•', 8);
+        }
+
+        return substr($secret, 0, 4).str_repeat('•', 12).substr($secret, -4);
     }
 
     public static function getPages(): array
