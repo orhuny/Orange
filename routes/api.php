@@ -22,6 +22,7 @@ Route::prefix('play-api')
     ->middleware([AuthenticatePlaySession::class, 'throttle:120,1'])
     ->group(function (): void {
         Route::get('/session', [PlayController::class, 'session']);
+        Route::get('/lobby', [PlayController::class, 'lobby']);
         Route::post('/games/{code}/bets', [PlayController::class, 'bet'])->where('code', '[a-z0-9_-]+');
         Route::post('/bets/{bet}/cashout', [PlayController::class, 'cashout'])->whereNumber('bet');
         Route::get('/seeds', [PlayController::class, 'seeds']);

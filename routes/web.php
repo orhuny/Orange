@@ -4,6 +4,7 @@ use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Operator\Models\Operator;
+use App\Http\Controllers\LobbyPageController;
 use App\Http\Controllers\PlayPageController;
 use App\Http\Middleware\AllowGameEmbed;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,9 @@ Route::get('/games/dice', function () {
         'allowedOrigins' => array_values(array_unique(array_merge((array) config('embed.allowed_origins', []), Operator::allEmbedOrigins()))),
     ]);
 })->middleware(AllowGameEmbed::class);
+
+// The lobby a lobby launch token opens; games open inside it.
+Route::get('/lobby', LobbyPageController::class)->middleware(AllowGameEmbed::class);
 
 // Direct play: the page a launch token opens (see LaunchController). Hosts the game frame.
 Route::get('/play/{code}', PlayPageController::class)

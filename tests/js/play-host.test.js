@@ -141,6 +141,32 @@ describe('startPlayHost', () => {
         expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ success: false, bet_id: 9, error: 'round_crashed' });
     });
 
+    it('lets a lobby open games, bet on the open one, and come back', async () => {
+        const back = vi.fn();
+        const host = startPlayHost({
+            gameCode: null, frameUrl: null, bearer: 'ps_lobby', storageKey: 'orange.lobby',
+            outerOrigins: [], playApi: 'https://orange.example/play-api', frame, onExpired: expired, onBackToLobby: back,
+        });
+        expect(frame.src).toBe('');
+
+        host.open('dice', 'https://orange.example/games/dice');
+        expect(frame.src).toBe('https://orange.example/games/dice');
+        expect(host.gameCode).toBe('dice');
+
+        fetchMock.mockReturnValueOnce(json(201, { bet_id: 1, status: 'lost', outcome: { roll: '90.00', win: false } }));
+        await intent('place_bet', { amount: '1.00', params: { target: '50', direction: 'under' } });
+        expect(fetchMock.mock.calls[0][0]).toBe('https://orange.example/play-api/games/dice/bets');
+
+        const event = new MessageEvent('message', { data: { type: 'back_to_lobby', payload: {} }, origin: window.location.origin });
+        Object.defineProperty(event, 'source', { value: frame.contentWindow });
+        window.dispatchEvent(event);
+        expect(back).toHaveBeenCalled();
+
+        host.close();
+        expect(host.gameCode).toBeNull();
+        expect(frame.src).toBe('about:blank');
+    });
+
     it('ends the page when the session is no longer accepted', async () => {
         fetchMock.mockReturnValueOnce(json(401, { error: 'session_expired' }));
         start();

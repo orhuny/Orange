@@ -8,11 +8,14 @@
 import { createGameBridge, createHostBridge } from './bridge.js';
 
 /**
- * @param {{ gameCode: string, frameUrl: string, bearer: string|null, storageKey: string,
+ * @param {{ gameCode: string|null, frameUrl: string|null, bearer: string|null, storageKey: string,
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
- *           onExpired: () => void }} config
+ *           onExpired: () => void, onBackToLobby?: () => void }} config
+ *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
 export function startPlayHost(config) {
+    let gameCode = config.gameCode;
+
     let token = config.bearer;
     try {
         // The launch token works once: keep the session for reloads of this tab.
@@ -84,7 +87,10 @@ export function startPlayHost(config) {
                     break;
                 }
                 case 'place_bet': {
-                    const r = await api(`/games/${encodeURIComponent(config.gameCode)}/bets`, {
+                    if (!gameCode) {
+                        return;
+                    }
+                    const r = await api(`/games/${encodeURIComponent(gameCode)}/bets`, {
                         method: 'POST',
                         idempotent: true,
                         body: {
@@ -139,10 +145,14 @@ export function startPlayHost(config) {
                     }
                     break;
                 }
+                case 'back_to_lobby':
+                    // In a lobby we go back ourselves; the operator page is told either way.
+                    config.onBackToLobby?.();
+                    outer.send(type, payload);
+                    break;
                 case 'enter_fullscreen':
                 case 'exit_fullscreen':
                 case 'launch_game':
-                case 'back_to_lobby':
                     outer.send(type, payload);
                     break;
             }
@@ -150,7 +160,27 @@ export function startPlayHost(config) {
     });
 
     outer.ready();
-    config.frame.src = config.frameUrl;
+    if (config.frameUrl) {
+        config.frame.src = config.frameUrl;
+    }
 
-    return { outer, inner, api };
+    return {
+        outer,
+        inner,
+        api,
+        /** Lobby: load a game into the frame; its bets go to that game from now on. */
+        open(code, frameUrl) {
+            gameCode = code;
+            config.frame.src = frameUrl;
+            outer.send('launch_game', { code });
+        },
+        /** Lobby: unload the game. */
+        close() {
+            gameCode = null;
+            config.frame.src = 'about:blank';
+        },
+        get gameCode() {
+            return gameCode;
+        },
+    };
 }

@@ -23,6 +23,7 @@ use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\BetPlacementService;
 use App\Domain\Game\Services\CashoutService;
 use App\Domain\Game\Services\InstantPlayService;
+use App\Domain\Game\Services\LobbyService;
 use App\Domain\Launch\Models\PlaySession;
 use App\Domain\ProvablyFair\Exceptions\SeedInUse;
 use App\Domain\ProvablyFair\Services\PlayerSeedService;
@@ -47,7 +48,19 @@ class PlayController
         private readonly CashoutService $cashouts,
         private readonly InstantPlayService $instantBets,
         private readonly PlayerSeedService $seeds,
+        private readonly LobbyService $lobbies,
     ) {}
+
+    /** GET /play-api/lobby — the lobby's tiles, categories, recent and popular games, and theme. */
+    public function lobby(Request $request): JsonResponse
+    {
+        $session = $this->playSession($request);
+        if (! $session->lobby) {
+            return response()->json(['error' => 'not_a_lobby_session'], 403);
+        }
+
+        return response()->json($this->lobbies->forSession($session) + ['theme' => $session->operator->lobbyTheme()]);
+    }
 
     /** GET /play-api/session */
     public function session(Request $request): JsonResponse

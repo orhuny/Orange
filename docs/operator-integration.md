@@ -552,6 +552,27 @@ What you need:
 
 Reloading the page keeps the session. A launch token can't be reused.
 
+### The lobby: `/lobby`
+
+`POST /v1/lobby/launch` returns a `lobby_url`; open it in your iframe.
+- **Contents:** every game enabled for you, as tiles grouped by Orange's categories, with
+  search, "Recent" (this player's last games) and "Popular" (your players' most played games
+  over the last week). Games in maintenance are shown greyed out.
+- **Playing:** a tile opens the game in the same iframe, with a "← Lobby" bar. Bets are direct
+  play, as described above.
+- **Bridge messages to your page:** `launch_game` `{ code }` when a game opens, and
+  `back_to_lobby` when the player returns.
+
+Look and embedding are set on your operator configuration (flat keys):
+
+| Key | Value |
+|---|---|
+| `embed_origins` | Your origins, comma-separated, e.g. `https://casino.example, https://m.casino.example` |
+| `lobby_logo_url` | An `https://` image URL shown in the lobby header |
+| `lobby_primary_color` / `lobby_accent_color` / `lobby_background_color` | `#rrggbb` colours |
+
+Anything that isn't an `https://` URL or a `#rrggbb` colour is ignored, and the default is used.
+
 ### Dice (`code: dice`, instant)
 
 Roll 0.00–99.99 and bet that the roll lands under or over a target.

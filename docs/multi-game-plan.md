@@ -693,7 +693,14 @@ Viewer. `orange:sync-access` creates the missing permissions; edited roles are l
      over all 10,000 rolls, and `DiceSecrecyTest`.
 
    Original scope: Dice end to end.
-7. Lobby + categories.
+7. ✅ Lobby + categories (as built):
+   - `/lobby?token=` is a host page with a tile grid; games open in the same frame through
+     the play-host (`open` / `close`).
+   - `/play-api/lobby` returns tiles by category, recent (player), popular (operator, 7 days,
+     cached) and the theme.
+   - The operator theme and embed origins are flat config keys, validated.
+   - `GameCategoryResource` adds CRUD and drag reordering, with new `lobby.view` /
+     `lobby.manage` permissions (platform only), synced by migration.
 8. Admin panel: Games resource, pivot managers, per-game reports/dashboard, new permissions and
    scoping tests, `docs/adding-a-game.md`.
 9. **afq switches to the lobby.** These changes are in afq's repos, and Orange's side must

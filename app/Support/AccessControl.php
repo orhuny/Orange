@@ -62,6 +62,10 @@ final class AccessControl
             'webhooks.view' => 'View webhooks',
             'webhooks.redeliver' => 'Re-deliver failed webhooks',
         ],
+        'Lobby' => [
+            'lobby.view' => 'View lobby categories',
+            'lobby.manage' => 'Create, edit and reorder lobby categories',
+        ],
         'RNG seeds' => [
             'rng_seeds.view' => 'View RNG seeds',
             'rng_seeds.manage' => 'Reveal RNG seeds',

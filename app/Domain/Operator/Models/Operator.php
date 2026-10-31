@@ -64,10 +64,34 @@ class Operator extends Model
     public function embedOrigins(): array
     {
         $config = $this->getAttribute('config');
-        $origins = is_array($config) ? (array) ($config['embed_origins'] ?? []) : [];
+        $origins = is_array($config) ? ($config['embed_origins'] ?? []) : [];
+        // Edited as a flat key/value pair in the panel: a comma-separated string, or a list.
+        $origins = is_string($origins) ? explode(',', $origins) : (array) $origins;
 
-        return array_values(array_filter($origins, fn (mixed $o): bool => is_string($o)
+        return array_values(array_filter(array_map(fn (mixed $o): mixed => is_string($o) ? trim($o) : $o, $origins), fn (mixed $o): bool => is_string($o)
             && preg_match('#^https?://[a-z0-9.-]+(:\d{1,5})?$#i', $o) === 1));
+    }
+
+    /**
+     * The operator's lobby look, from config (lobby_logo_url, lobby_*_color). Only an
+     * https logo URL and #rrggbb colours are passed on; anything else falls back.
+     *
+     * @return array{logo_url: string|null, primary: string, accent: string, background: string}
+     */
+    public function lobbyTheme(): array
+    {
+        $config = $this->getAttribute('config');
+        $config = is_array($config) ? $config : [];
+        $color = fn (string $key, string $default): string => is_string($config[$key] ?? null)
+            && preg_match('/^#[0-9a-f]{6}$/i', $config[$key]) === 1 ? $config[$key] : $default;
+        $logo = $config['lobby_logo_url'] ?? null;
+
+        return [
+            'logo_url' => is_string($logo) && filter_var($logo, FILTER_VALIDATE_URL) && str_starts_with($logo, 'https://') ? $logo : null,
+            'primary' => $color('lobby_primary_color', '#ff8a00'),
+            'accent' => $color('lobby_accent_color', '#22c55e'),
+            'background' => $color('lobby_background_color', '#04121f'),
+        ];
     }
 
     /**
