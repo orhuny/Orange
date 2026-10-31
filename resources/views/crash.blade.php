@@ -1889,7 +1889,9 @@
         }
 
         /* ---------- Log ---------- */
+        /* Debug-only activity feed: hidden for players, shown with ?debug=1. */
         .log {
+            display: none;
             position: absolute; right: 12px; bottom: 12px;
             width: 220px; max-height: 110px; overflow: hidden;
             font-size: 9px; line-height: 1.5; color: var(--hud); opacity: 0.45;
@@ -1897,6 +1899,7 @@
             text-align: right;
         }
         .log div { padding: 1px 0; }
+        body.debug .log { display: block; }
 
         /* ---------- Mobile tighten ---------- */
         @media (max-width: 500px) {
@@ -2976,6 +2979,7 @@
         const $mult = document.getElementById('multiplier');
         const $state = document.getElementById('state');
         const $log = document.getElementById('log');
+        if (new URLSearchParams(location.search).has('debug')) document.body.classList.add('debug');
         const $pressArc = document.getElementById('pressureArc');
         const $pressVal = document.getElementById('pressureValue');
         const $hullFill = document.getElementById('hullFill');
