@@ -957,9 +957,9 @@
         /* Round status pill; the dot follows the stage (gold betting, live green, red crash). */
         .state {
             --dot: var(--hud);
-            display: inline-flex; align-items: center; gap: 9px;
-            margin: 0; padding: 6px 16px 6px 12px;
-            font-size: 12px; font-weight: 700; letter-spacing: 0.24em;
+            display: inline-flex; align-items: center; gap: 11px;
+            margin: 0; padding: 8px 20px 8px 15px;
+            font-size: 14px; font-weight: 700; letter-spacing: 0.24em;
             font-variant-numeric: tabular-nums;
             color: var(--hud-bright);
             text-transform: uppercase;
@@ -970,7 +970,7 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.6);
         }
         .state::before {
-            content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%;
+            content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%;
             background: var(--dot); box-shadow: 0 0 8px var(--dot);
         }
         .betting .state { --dot: var(--gold); }
