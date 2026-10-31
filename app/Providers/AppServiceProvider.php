@@ -50,7 +50,22 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(RoundCrashed::class, [WebhookOnGameEvents::class, 'onRoundCrashed']);
         Event::listen(RoundSettled::class, [WebhookOnGameEvents::class, 'onRoundSettled']);
 
-        // Super Admins pass every permission check in the admin panel.
-        Gate::before(fn (User $user): ?bool => AccessControl::isSuperAdmin($user) ? true : null);
+        // The one admin-panel permission check (spatie's own gate hook is disabled in
+        // config/permission.php). Order matters: operator users can never exceed the
+        // operator permission set whatever role they hold; Super Admins pass
+        // everything; everyone else needs the permission through a role.
+        Gate::before(function (User $user, string $ability): ?bool {
+            if (! array_key_exists($ability, AccessControl::flat())) {
+                return null;
+            }
+            if ($user->isOperatorUser() && ! in_array($ability, AccessControl::OPERATOR_PERMISSIONS, true)) {
+                return false;
+            }
+            if (AccessControl::isSuperAdmin($user)) {
+                return true;
+            }
+
+            return $user->checkPermissionTo($ability);
+        });
     }
 }

@@ -10,6 +10,7 @@ use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Exports\BetExporter;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\BetResource\Pages;
+use App\Support\AccessControl;
 use BackedEnum;
 use Filament\Actions\ExportAction;
 use Filament\Resources\Resource;
@@ -36,7 +37,8 @@ class BetResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['round:id,round_uuid', 'operator:id,slug', 'player:id,external_player_id', 'cashout']);
+        return AccessControl::scopeToOperator(parent::getEloquentQuery())
+            ->with(['round:id,round_uuid', 'operator:id,slug', 'player:id,external_player_id', 'cashout']);
     }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
@@ -109,11 +111,12 @@ class BetResource extends Resource
 
                 SelectFilter::make('operator')
                     ->relationship('operator', 'slug')
+                    ->visible(fn (): bool => AccessControl::operatorId() === null)
                     ->searchable()
                     ->preload(),
 
                 SelectFilter::make('player')
-                    ->relationship('player', 'external_player_id')
+                    ->relationship('player', 'external_player_id', fn (Builder $query) => AccessControl::scopeToOperator($query))
                     ->searchable(),     // not preloaded — player tables can be huge
 
                 DateRangeFilter::make('placed_at', 'Placed'),

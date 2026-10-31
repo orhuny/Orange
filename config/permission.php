@@ -105,7 +105,10 @@ return [
      * Set this to false if you want to implement custom logic for checking permissions.
      */
 
-    'register_permission_check_method' => true,
+    // Off: App\Providers\AppServiceProvider registers the single Gate::before that
+    // checks admin permissions, so the operator-user ceiling can't be bypassed by
+    // spatie's own gate hook answering first.
+    'register_permission_check_method' => false,
 
     /*
      * When set to true, Laravel\Octane\Events\OperationTerminated event listener will be registered

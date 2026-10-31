@@ -10,6 +10,7 @@ use App\Domain\Game\Models\Cashout;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Operator\Enums\OperatorStatus;
 use App\Domain\Operator\Models\Operator;
+use App\Support\AccessControl;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
@@ -31,6 +32,9 @@ class GlobalKpiWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
+        // Operator users get their own operator's bet/payout figures (cached per operator).
+        $operatorId = AccessControl::operatorId();
+
         // The 6 underlying queries are deterministic for any given second
         // and cheap to share across viewers. A 10s cache cuts DB load by
         // an order of magnitude when multiple admins watch the dashboard.
@@ -40,7 +44,7 @@ class GlobalKpiWidget extends StatsOverviewWidget
             'totalPayout' => $totalPayout,
             'activeRounds' => $activeRounds,
             'activeOperators' => $activeOperators,
-        ] = Cache::remember('admin.kpi-widget', 10, function (): array {
+        ] = Cache::remember('admin.kpi-widget:'.($operatorId ?? 'all'), 10, function (): array {
             $today = Carbon::today();
 
             return [
@@ -48,10 +52,10 @@ class GlobalKpiWidget extends StatsOverviewWidget
                     ->where('created_at', '>=', $today)
                     ->whereIn('state', [RoundState::Settled, RoundState::Crashed])
                     ->count(),
-                'totalBet' => (string) Bet::query()
+                'totalBet' => (string) AccessControl::scopeToOperator(Bet::query())
                     ->where('placed_at', '>=', $today)
                     ->sum('amount'),
-                'totalPayout' => (string) Cashout::query()
+                'totalPayout' => (string) AccessControl::scopeToOperator(Cashout::query(), 'bet.operator_id')
                     ->where('cashed_out_at', '>=', $today)
                     ->sum('payout_amount'),
                 'activeRounds' => GameRound::query()
@@ -68,10 +72,11 @@ class GlobalKpiWidget extends StatsOverviewWidget
             ? round(((float) $totalPayout / (float) $totalBet) * 100, 2)
             : 0.0;
 
-        return [
-            Stat::make('Active operators', $activeOperators)
+        return array_values(array_filter([
+            // Operator users only see their own figures — the operator count is platform-wide.
+            $operatorId === null ? Stat::make('Active operators', $activeOperators)
                 ->icon('heroicon-o-building-office-2')
-                ->color('emerald'),
+                ->color('emerald') : null,
 
             Stat::make('Live rounds', $activeRounds)
                 ->description('betting + running right now')
@@ -94,7 +99,7 @@ class GlobalKpiWidget extends StatsOverviewWidget
                 ->descriptionIcon($rtp >= 95 ? 'heroicon-o-arrow-trending-down' : 'heroicon-o-arrow-trending-up')
                 ->icon('heroicon-o-presentation-chart-line')
                 ->color(bccomp($ggr, '0', 2) >= 0 ? 'success' : 'danger'),
-        ];
+        ]));
     }
 
     private function fmt(string $n): string

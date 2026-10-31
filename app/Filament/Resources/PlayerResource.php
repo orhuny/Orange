@@ -8,6 +8,7 @@ use App\Domain\Operator\Models\Player;
 use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\PlayerResource\Pages;
+use App\Support\AccessControl;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -32,7 +33,7 @@ class PlayerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('operator:id,slug');
+        return AccessControl::scopeToOperator(parent::getEloquentQuery())->with('operator:id,slug');
     }
 
     public static function form(Schema $schema): Schema

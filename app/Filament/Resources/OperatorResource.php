@@ -9,12 +9,14 @@ use App\Domain\Operator\Models\Operator;
 use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\OperatorResource\Pages;
+use App\Support\AccessControl;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -49,6 +51,10 @@ class OperatorResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
+        if (AccessControl::operatorId() !== null) {
+            return null; // operator users only ever see their own operator
+        }
+
         return (string) Cache::remember(
             'admin.nav.operators-active',
             30,
@@ -65,7 +71,7 @@ class OperatorResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withCount('apiKeys');
+        return AccessControl::scopeToOperator(parent::getEloquentQuery(), 'id')->withCount('apiKeys');
     }
 
     public static function form(Schema $schema): Schema
@@ -124,6 +130,7 @@ class OperatorResource extends Resource
                 DateRangeFilter::make('created_at', 'Created'),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 Action::make('suspend')
                     ->authorize(fn (): bool => (bool) auth()->user()?->can('operators.manage'))
@@ -169,6 +176,7 @@ class OperatorResource extends Resource
         return [
             'index' => Pages\ListOperators::route('/'),
             'create' => Pages\CreateOperator::route('/create'),
+            'view' => Pages\ViewOperator::route('/{record}'),
             'edit' => Pages\EditOperator::route('/{record}/edit'),
         ];
     }

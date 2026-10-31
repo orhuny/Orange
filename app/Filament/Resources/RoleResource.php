@@ -11,8 +11,11 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -64,11 +67,24 @@ class RoleResource extends Resource
         return $schema->components([
             TextInput::make('name')->required()->maxLength(255)->unique(ignoreRecord: true),
             Hidden::make('guard_name')->default('web'),
+            // Fixed after creation: users are matched to roles by scope.
+            Select::make('scope')
+                ->options([
+                    AccessControl::SCOPE_PLATFORM => 'Platform — our staff, all operators',
+                    AccessControl::SCOPE_OPERATOR => 'Operator — an operator\'s staff, their own data only',
+                ])
+                ->default(AccessControl::SCOPE_PLATFORM)
+                ->required()
+                ->live()
+                ->afterStateUpdated(fn (Set $set) => $set('permissions', []))
+                ->disabledOn('edit'),
             CheckboxList::make('permissions')
                 ->relationship(
                     'permissions',
                     'name',
-                    modifyQueryUsing: fn (Builder $query) => $query->whereIn('name', array_keys($labels))->orderBy('name'),
+                    modifyQueryUsing: fn (Builder $query, Get $get) => $query
+                        ->whereIn('name', AccessControl::permissionsForScope((string) $get('scope')))
+                        ->orderBy('name'),
                 )
                 ->getOptionLabelFromRecordUsing(fn (Permission $record): string => $labels[$record->name] ?? $record->name)
                 ->bulkToggleable()
@@ -82,6 +98,10 @@ class RoleResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->badge()->searchable()->sortable(),
+                TextColumn::make('scope')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
+                    ->color(fn (string $state): string => $state === AccessControl::SCOPE_OPERATOR ? 'info' : 'gray'),
                 TextColumn::make('users_count')->counts('users')->label('Users'),
                 TextColumn::make('permissions_count')
                     ->counts('permissions')

@@ -8,6 +8,7 @@ use App\Domain\Game\Models\Cashout;
 use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\CashoutResource\Pages;
+use App\Support\AccessControl;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CashoutResource extends Resource
 {
@@ -30,6 +32,11 @@ class CashoutResource extends Resource
     protected static string|\UnitEnum|null $navigationGroup = 'Game';
 
     protected static ?int $navigationSort = 40;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return AccessControl::scopeToOperator(parent::getEloquentQuery(), 'bet.operator_id');
+    }
 
     public static function form(Schema $schema): Schema
     {

@@ -10,6 +10,7 @@ use App\Domain\Wallet\Models\Webhook;
 use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\WebhookResource\Pages;
+use App\Support\AccessControl;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -42,9 +43,9 @@ class WebhookResource extends Resource
         // nav, every filter change, every poll). Stale-by-30s is harmless;
         // the user clicks through for live data.
         $failing = Cache::remember(
-            'admin.nav.webhooks-failing',
+            'admin.nav.webhooks-failing:'.(AccessControl::operatorId() ?? 'all'),
             30,
-            fn (): int => static::getModel()::query()
+            fn (): int => AccessControl::scopeToOperator(static::getModel()::query())
                 ->whereIn('status', [WebhookStatus::Failed, WebhookStatus::DeadLetter])
                 ->count(),
         );
@@ -59,7 +60,7 @@ class WebhookResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('operator:id,slug');
+        return AccessControl::scopeToOperator(parent::getEloquentQuery())->with('operator:id,slug');
     }
 
     public static function form(Schema $schema): Schema
