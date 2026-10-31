@@ -1482,9 +1482,14 @@
            look broken) and the Place Bet button. Auto-bet toggle stays
            visible so the player can flip it off without waiting for the
            next window. */
+        /* Steppers keep their space (just hidden) so nothing to their right
+           shifts; Place Bet / Cash Out swap in place inside .op-action. */
         body.embedded .operator-panel[data-mode="cashout"] .op-stepper,
-        body.embedded .operator-panel[data-mode="cashout"] .op-bet-btn { display: none; }
-        body.embedded .operator-panel[data-mode="place"]   .op-cashout-btn { display: none; }
+        body.embedded .operator-panel[data-mode="cashout"] .op-bet-btn,
+        body.embedded .operator-panel[data-mode="place"]   .op-cashout-btn { visibility: hidden; }
+        body.embedded .op-action { display: grid; }
+        body.embedded .op-action > .op-btn { grid-area: 1 / 1; width: 100%; }
+        body.embedded .op-action .op-bet-btn { height: 34px; font-size: 12px; min-width: 150px; }
 
         /* Hide legacy cashout button + nudge the in-game submarine HUD up. */
         body.embedded .cashout-wrap { display: none; }
@@ -1593,7 +1598,9 @@
             /* Tight bet row — stays on one line in place mode. */
             body.embedded .op-bet-row { gap: 5px; flex-wrap: nowrap; overflow: hidden; }
             body.embedded .op-btn { font-size: 10px; padding: 0 8px; height: 30px; min-width: 0; }
-            body.embedded .op-bet-btn      { padding: 0 10px; flex: 0 1 auto; }
+            body.embedded .op-action .op-bet-btn { height: 30px; font-size: 10px; min-width: 0; padding: 0 10px; }
+            body.embedded .op-action { flex: 1 1 auto; min-width: 0; }
+            body.embedded .operator-panel[data-mode="cashout"] .op-stepper { display: none; }
             body.embedded .op-autobet-btn  {
                 flex: 0 0 auto;
                 padding: 0 8px; height: 30px;
@@ -1632,7 +1639,8 @@
             body.embedded .op-step                         { font-size: 17px; padding: 0 12px; }
             body.embedded .op-clear                        { font-size: 14px; padding: 0 11px; }
             body.embedded .op-btn                          { font-size: 13px; padding: 0 18px; height: 36px; }
-            body.embedded .op-cashout-btn                  { font-size: 14px; height: 40px; min-width: 180px; }
+            body.embedded .op-cashout-btn,
+            body.embedded .op-action .op-bet-btn           { font-size: 14px; height: 40px; min-width: 180px; }
             body.embedded .op-cashout-btn .op-cashout-x    { font-size: 12px; }
             body.embedded .op-status                       { font-size: 11px; max-width: 260px; }
             body.embedded .op-last                         { padding: 5px 12px; }
@@ -2908,7 +2916,6 @@
                     <button id="op-auto-up"   class="op-step" type="button" aria-label="Increase auto cashout">+</button>
                     <button id="op-auto-clear" class="op-clear" type="button" aria-label="Clear auto cashout" title="Clear">×</button>
                 </div>
-                <button id="op-bet" class="op-btn op-bet-btn" disabled>Place Bet</button>
                 <button id="op-autobet" class="op-btn op-autobet-btn" type="button"
                         data-active="false" aria-pressed="false"
                         title="When ON, automatically place a bet every round with the current stake + auto-cashout.">
@@ -2916,10 +2923,15 @@
                     <span class="op-autobet-label-short">AUTO</span>
                     <span class="op-autobet-dot" aria-hidden="true"></span>
                 </button>
-                <button id="op-cashout" class="op-btn op-cashout-btn" disabled>
-                    Cash Out
-                    <span class="op-cashout-x" id="op-cashout-x"></span>
-                </button>
+                {{-- Place Bet and Cash Out share one slot so the button the player
+                     needs is always under the cursor when the round flips. --}}
+                <div class="op-action">
+                    <button id="op-bet" class="op-btn op-bet-btn" disabled>Place Bet</button>
+                    <button id="op-cashout" class="op-btn op-cashout-btn" disabled>
+                        Cash Out
+                        <span class="op-cashout-x" id="op-cashout-x"></span>
+                    </button>
+                </div>
             </div>
 
             <div class="op-spacer"></div>
