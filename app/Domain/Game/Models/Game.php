@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Game\Models;
 
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\GameAccess;
 use Database\Factories\GameFactory;
 use DomainException;
@@ -78,6 +79,13 @@ class Game extends Model
                 throw new DomainException("house_edge must be in (0, 1); got {$edge}.");
             }
 
+            // The engine owns its settings: normalise them, or refuse invalid ones.
+            $type = $game->getAttribute('type');
+            $engines = app(EngineRegistry::class);
+            if (is_string($type) && $engines->has($type)) {
+                $game->setAttribute('config', $engines->for($type)->validateConfig($game, (array) $game->getAttribute('config')));
+            }
+
             if (abs(($rtp + $edge) - 1.0) > self::RTP_INVARIANT_TOLERANCE) {
                 throw new DomainException(
                     "rtp_target + house_edge must equal 1.0; got {$rtp} + {$edge} = "
@@ -109,6 +117,12 @@ class Game extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(GameCategory::class, 'category_id');
+    }
+
+    /** @return HasMany<Bet, $this> */
+    public function bets(): HasMany
+    {
+        return $this->hasMany(Bet::class);
     }
 
     /** @return HasMany<GameLimit, $this> */

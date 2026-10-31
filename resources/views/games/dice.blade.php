@@ -73,9 +73,9 @@
 <script type="module">
     import { createGameBridge } from @json(asset('js/orange/bridge.js'));
 
-    const RTP = @json($rtp);
-    const MIN_CHANCE = @json($minChance);
-    const MAX_CHANCE = @json($maxChance);
+    const RTP = @json($rtp ?? '0.9900');
+    const MIN_CHANCE = @json($config['min_chance'] ?? '0.01');
+    const MAX_CHANCE = @json($config['max_chance'] ?? '98.00');
     // Operators embed this page directly (relay play); Orange's host pages do from our own origin.
     const allowedOrigins = [...@json($allowedOrigins), window.location.origin];
 

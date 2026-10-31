@@ -701,7 +701,23 @@ Viewer. `orange:sync-access` creates the missing permissions; edited roles are l
    - The operator theme and embed origins are flat config keys, validated.
    - `GameCategoryResource` adds CRUD and drag reordering, with new `lobby.view` /
      `lobby.manage` permissions (platform only), synced by migration.
-8. Admin panel: Games resource, pivot managers, per-game reports/dashboard, new permissions and
+8. ✅ Admin panel (as built):
+   - **Games:** type-specific engine settings (`config/games.php` → `admin_forms`), validated by
+     the engine (also on `Game::saving`); catalogue fields; a read-only view page; per-currency
+     limits; operators (enable, play mode, tighten-only limits via `OperatorLimitsEditor`).
+   - **Operator users:** see only the games their operator may offer
+     (`AccessControl::scopeGamesToOperator`), and tighten their own limits (`My limits`).
+   - **Reports:** game filters on Bets and Rounds; bets show settlement from the bet and the
+     outcome only once resolved.
+   - **Dashboard:** game and date filters; `GameKpiTable` shows stake, payout, GGR and RTP vs
+     target per game, scoped to the operator.
+   - **Player seeds:** read-only, platform staff only; the server seed only once revealed.
+   - **Permissions:** `games.view` and `game_limits.tighten` for operators; `game_access.manage`
+     and `player_seeds.view` for platform staff. Existing starter roles get them by migration.
+   - Game pages are served by one `GET /games/{type}`.
+   - `docs/adding-a-game.md` is written.
+
+   Original scope: Games resource, pivot managers, per-game reports/dashboard, new permissions and
    scoping tests, `docs/adding-a-game.md`.
 9. **afq switches to the lobby.** These changes are in afq's repos, and Orange's side must
    already be live.

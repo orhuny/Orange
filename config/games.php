@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Domain\Game\Engines\Crash\CrashEngine;
 use App\Domain\Game\Engines\Dice\DiceEngine;
+use App\Filament\GameEngines\CrashConfigForm;
+use App\Filament\GameEngines\DiceConfigForm;
 
 return [
     /*
@@ -31,6 +33,12 @@ return [
     'frontends' => [
         'crash' => '/crash',
         'dice' => '/games/dice',
+    ],
+
+    // The admin form for each engine's settings (games.config), shown for games of that type.
+    'admin_forms' => [
+        'crash' => CrashConfigForm::class,
+        'dice' => DiceConfigForm::class,
     ],
 
     'launch' => [

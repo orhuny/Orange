@@ -74,10 +74,12 @@ it('never lets an operator user past operator permissions, even with a platform 
     [$mine] = twoOperators();
     actingAs(operatorUser($mine, 'Admin'));
 
-    foreach (['/admin/games', '/admin/rng-seeds', '/admin/roles', '/admin/operators/create'] as $url) {
+    // Operator users may list their own enabled games (games.view) but never change games.
+    foreach (['/admin/games/create', '/admin/rng-seeds', '/admin/roles', '/admin/operators/create'] as $url) {
         get($url)->assertForbidden();
     }
     get('/admin/bets')->assertOk();
+    get('/admin/games')->assertOk();
 });
 
 it('lets an operator admin manage only their own operator\'s users', function (): void {

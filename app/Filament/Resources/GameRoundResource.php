@@ -129,6 +129,9 @@ class GameRoundResource extends Resource
                 TextColumn::make('created_at')->dateTime('Y-m-d H:i')->sortable()->toggleable(),
             ])
             ->filters([
+                SelectFilter::make('game')
+                    ->relationship('game', 'code', fn (Builder $query) => AccessControl::scopeGamesToOperator($query))
+                    ->preload(),
                 SelectFilter::make('state')
                     ->options(collect(RoundState::cases())->mapWithKeys(fn ($s) => [$s->value => ucfirst($s->value)])),
                 DateRangeFilter::make('created_at', 'Round'),

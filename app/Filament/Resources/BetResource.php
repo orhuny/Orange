@@ -38,7 +38,7 @@ class BetResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return AccessControl::scopeToOperator(parent::getEloquentQuery())
-            ->with(['round:id,round_uuid', 'operator:id,slug', 'player:id,external_player_id', 'cashout']);
+            ->with(['game:id,code', 'round:id,round_uuid', 'operator:id,slug', 'player:id,external_player_id', 'cashout']);
     }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
@@ -57,7 +57,8 @@ class BetResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('round.round_uuid')->limit(8)->fontFamily('mono')->label('Round'),
+                TextColumn::make('game.code')->label('Game')->badge(),
+                TextColumn::make('round.round_uuid')->limit(8)->fontFamily('mono')->label('Round')->placeholder('—'),
                 TextColumn::make('operator.slug')->searchable(),
                 TextColumn::make('player.external_player_id')->label('Player')->searchable(),
                 TextColumn::make('amount')->numeric(decimalPlaces: 2),
@@ -71,22 +72,33 @@ class BetResource extends Resource
                         BetStatus::Lost => 'danger',
                         BetStatus::Refunded => 'warning',
                         BetStatus::RolledBack => 'gray',
+                        BetStatus::Pending => 'warning',
+                        BetStatus::Rejected => 'gray',
                         default => 'gray',
                     }),
-                TextColumn::make('cashout.multiplier')
-                    ->label('Cashed @')
+                // Settlement as recorded on the bet (every game); crash bets settled before
+                // the multi-game schema fall back to their cashout.
+                TextColumn::make('multiplier')
+                    ->label('Multiplier')
+                    ->state(fn (Bet $record): ?string => $record->multiplier !== null ? (string) $record->multiplier : $record->cashout?->multiplier)
                     ->numeric(decimalPlaces: 2)
                     ->suffix('x')
                     ->placeholder('—'),
-                TextColumn::make('cashout.payout_amount')
+                TextColumn::make('payout_amount')
                     ->label('Payout')
+                    ->state(fn (Bet $record): ?string => $record->payout_amount !== null ? (string) $record->payout_amount : $record->cashout?->payout_amount)
                     ->numeric(decimalPlaces: 2)
                     ->color('success')
                     ->placeholder('—'),
+                // Only resolved bets have an outcome; nothing is shown before (it isn't stored yet either).
+                TextColumn::make('outcome')
+                    ->state(fn (Bet $record): ?string => self::outcomeSummary($record))
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('net')
                     ->label('Net')
                     ->state(function (Bet $record): ?string {
-                        $payout = (string) ($record->cashout?->payout_amount ?? '0');
+                        $payout = (string) ($record->payout_amount ?? $record->cashout?->payout_amount ?? '0');
                         $stake = (string) $record->amount;
                         if ($record->status === BetStatus::Lost) {
                             return '-'.number_format((float) $stake, 2);
@@ -108,6 +120,10 @@ class BetResource extends Resource
             ->filters([
                 SelectFilter::make('status')
                     ->options(collect(BetStatus::cases())->mapWithKeys(fn ($s) => [$s->value => ucfirst($s->value)])),
+
+                SelectFilter::make('game')
+                    ->relationship('game', 'code', fn (Builder $query) => AccessControl::scopeGamesToOperator($query))
+                    ->preload(),
 
                 SelectFilter::make('operator')
                     ->relationship('operator', 'slug')
@@ -132,6 +148,21 @@ class BetResource extends Resource
             ->deferLoading()
             ->persistFiltersInSession()
             ->persistSortInSession();
+    }
+
+    /** A one-line view of a resolved bet's outcome, e.g. "roll 44.30 · under 50.00". */
+    private static function outcomeSummary(Bet $record): ?string
+    {
+        $outcome = $record->getAttribute('outcome');
+        if (! is_array($outcome) || ! in_array($record->getAttribute('status'), [BetStatus::Won, BetStatus::Lost], true)) {
+            return null;
+        }
+
+        if (isset($outcome['roll'])) {
+            return "roll {$outcome['roll']} · {$outcome['direction']} {$outcome['target']}";
+        }
+
+        return collect($outcome)->filter(fn (mixed $v): bool => is_scalar($v))->map(fn (mixed $v, string $k): string => "{$k} {$v}")->implode(' · ');
     }
 
     public static function canCreate(): bool

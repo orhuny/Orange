@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Domain\Game\Models\Game;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
@@ -42,8 +43,10 @@ final class AccessControl
             'operators.manage' => 'Create, edit, suspend and delete operators',
         ],
         'Games' => [
-            'games.view' => 'View games',
-            'games.manage' => 'Create and edit games',
+            'games.view' => 'View games (operator users: only their enabled games)',
+            'games.manage' => 'Create and edit games, their engine settings and per-currency limits',
+            'game_access.manage' => 'Enable games for operators and set their play mode and limits',
+            'game_limits.tighten' => "Tighten an operator's own per-game, per-currency limits",
         ],
         'Game rounds' => [
             'rounds.view' => 'View game rounds',
@@ -68,6 +71,7 @@ final class AccessControl
         ],
         'RNG seeds' => [
             'rng_seeds.view' => 'View RNG seeds',
+            'player_seeds.view' => "View players' instant-game seed pairs (server seeds only once revealed)",
             'rng_seeds.manage' => 'Reveal RNG seeds',
         ],
         'Access control' => [
@@ -80,6 +84,8 @@ final class AccessControl
     public const OPERATOR_PERMISSIONS = [
         'dashboard.view',
         'operators.view',
+        'games.view',
+        'game_limits.tighten',
         'rounds.view',
         'bets.view',
         'bets.export',
@@ -105,7 +111,7 @@ final class AccessControl
             'Support' => $platform(['dashboard.view', 'operators.view', 'rounds.view', 'bets.view', 'cashouts.view', 'players.view', 'webhooks.view', 'webhooks.redeliver']),
             'Viewer' => $platform($views),
             'Operator Admin' => $operator(self::OPERATOR_PERMISSIONS),
-            'Operator Viewer' => $operator(['dashboard.view', 'operators.view', 'rounds.view', 'bets.view', 'bets.export', 'cashouts.view', 'players.view', 'webhooks.view']),
+            'Operator Viewer' => $operator(['dashboard.view', 'operators.view', 'games.view', 'rounds.view', 'bets.view', 'bets.export', 'cashouts.view', 'players.view', 'webhooks.view']),
         ];
     }
 
@@ -168,6 +174,32 @@ final class AccessControl
         $user = auth()->user();
 
         return $user instanceof User ? $user->operator_id : null;
+    }
+
+    /**
+     * Limits a games query to the games the signed-in operator user's operator may offer:
+     * listed (active or in maintenance) and open to it — access=all unless switched off
+     * for it, access=listed only when enabled for it. Platform users see every game.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    public static function scopeGamesToOperator(Builder $query): Builder
+    {
+        $operatorId = self::operatorId();
+        if ($operatorId === null) {
+            return $query;
+        }
+
+        return $query
+            ->whereIn($query->qualifyColumn('status'), ['active', 'maintenance'])
+            ->where(fn (Builder $q) => $q
+                ->where(fn (Builder $q) => $q->where('access', 'all')
+                    ->whereDoesntHave('operatorGames', fn (Builder $q) => $q->where('operator_id', $operatorId)->where('enabled', false)))
+                ->orWhere(fn (Builder $q) => $q->where('access', 'listed')
+                    ->whereHas('operatorGames', fn (Builder $q) => $q->where('operator_id', $operatorId)->where('enabled', true))));
     }
 
     /**
