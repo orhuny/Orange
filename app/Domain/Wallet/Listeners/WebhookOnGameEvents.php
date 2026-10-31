@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Wallet\Listeners;
 
 use App\Domain\Game\Events\BetPlaced;
+use App\Domain\Game\Events\BetSettled;
 use App\Domain\Game\Events\CashoutCompleted;
 use App\Domain\Game\Events\RoundCrashed;
 use App\Domain\Game\Events\RoundSettled;
@@ -49,6 +50,24 @@ class WebhookOnGameEvents
                 'cashed_out_at' => $cashout->cashed_out_at?->toIso8601String(),
             ],
         );
+    }
+
+    public function onBetSettled(BetSettled $event): void
+    {
+        $bet = $event->bet;
+
+        $this->dispatcher->dispatch($bet->operator, WebhookEvent::BetSettled, [
+            'bet_id' => $bet->id,
+            'game' => $bet->game?->code,
+            'player_external_id' => $bet->player?->external_player_id,
+            'status' => $bet->getAttribute('status')?->value,
+            'amount' => (string) $bet->amount,
+            'currency' => $bet->currency,
+            'multiplier' => (string) $bet->multiplier,
+            'payout_amount' => (string) $bet->payout_amount,
+            'outcome' => $bet->getAttribute('outcome'),
+            'settled_at' => $bet->getAttribute('settled_at')?->toIso8601String(),
+        ]);
     }
 
     public function onRoundCrashed(RoundCrashed $event): void

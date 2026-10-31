@@ -90,7 +90,9 @@ export function startPlayHost(config) {
                         body: {
                             amount: String(payload.amount ?? ''),
                             round_uuid: payload.round_uuid ?? null,
-                            params: { auto_cashout_at: payload.auto_cashout_at ?? null },
+                            // Instant games send their own params (dice: target, direction);
+                            // crash sends auto_cashout_at at the top level, as it always has.
+                            params: payload.params ?? { auto_cashout_at: payload.auto_cashout_at ?? null },
                         },
                     });
                     if (r.ok) {
@@ -98,10 +100,16 @@ export function startPlayHost(config) {
                         inner.send('bet_placed_result', {
                             success: true,
                             bet_id: r.data.bet_id,
-                            round_uuid: r.data.round_uuid,
+                            round_uuid: r.data.round_uuid ?? null,
                             amount: r.data.amount,
-                            auto_cashout_at: r.data.auto_cashout_at,
+                            auto_cashout_at: r.data.auto_cashout_at ?? null,
                             player_balance: balance,
+                            // Instant games resolve at once: their result comes with the bet.
+                            status: r.data.status,
+                            outcome: r.data.outcome ?? null,
+                            multiplier: r.data.multiplier ?? null,
+                            payout_amount: r.data.payout_amount ?? null,
+                            fairness: r.data.fairness ?? null,
                         });
                     } else {
                         inner.send('bet_placed_result', {

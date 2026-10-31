@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\OperatorApi;
 
+use App\Domain\Game\Engines\Contracts\InstantEngine;
 use App\Domain\Game\Engines\Contracts\RoundBasedEngine;
 use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\RoundState;
@@ -11,10 +12,12 @@ use App\Domain\Game\Exceptions\BettingClosed;
 use App\Domain\Game\Exceptions\CurrencyNotSupported;
 use App\Domain\Game\Exceptions\GameNotAvailable;
 use App\Domain\Game\Exceptions\InvalidBetParams;
+use App\Domain\Game\Exceptions\StakeNotTaken;
 use App\Domain\Game\Exceptions\StakeOutsideLimits;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\BetPlacementService;
+use App\Domain\Game\Services\InstantPlayService;
 use App\Domain\Operator\Models\Operator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +32,7 @@ class GameBetController
     public function __construct(
         private readonly EngineRegistry $engines,
         private readonly BetPlacementService $roundBets,
+        private readonly InstantPlayService $instantBets,
     ) {}
 
     public function __invoke(Request $request, string $code): JsonResponse
@@ -54,9 +58,19 @@ class GameBetController
         try {
             return match (true) {
                 $engine instanceof RoundBasedEngine => $this->roundBet($request, $operator, $game, $engine, $validated),
+                $engine instanceof InstantEngine => response()->json(InstantBetResponse::toArray($this->instantBets->play(
+                    $engine,
+                    $operator,
+                    $game,
+                    (string) $validated['player_external_id'],
+                    (string) $validated['amount'],
+                    strtoupper((string) $validated['currency']),
+                    (string) $request->header('Idempotency-Key'),
+                    (array) ($validated['params'] ?? []),
+                ), $game), 201),
                 default => response()->json(['error' => 'unsupported_game_type'], 422),
             };
-        } catch (BettingClosed|GameNotAvailable|CurrencyNotSupported|StakeOutsideLimits|InvalidBetParams $e) {
+        } catch (BettingClosed|GameNotAvailable|CurrencyNotSupported|StakeOutsideLimits|InvalidBetParams|StakeNotTaken $e) {
             return GameErrors::render($e) ?? throw $e;
         }
     }

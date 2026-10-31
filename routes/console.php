@@ -16,3 +16,9 @@ Schedule::command('wallet:reconcile')
     ->everyMinute()
     ->withoutOverlapping(10)
     ->runInBackground();
+
+// Instant bets a dying process left pending: settled if the stake was taken, else rolled back.
+Schedule::command('games:settle-stale-bets')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->runInBackground();

@@ -14,7 +14,7 @@ it('resolves every existing game to the crash engine', function (): void {
     expect($game->engineType())->toBe('crash')
         ->and($registry->forGame($game))->toBeInstanceOf(CrashEngine::class)
         ->and($registry->roundBased($game))->toBeInstanceOf(CrashEngine::class)
-        ->and($registry->types())->toBe(['crash']);
+        ->and($registry->types())->toBe(['crash', 'dice']);
 });
 
 it('returns one engine instance per type', function (): void {
@@ -24,12 +24,12 @@ it('returns one engine instance per type', function (): void {
 });
 
 it('refuses an unknown game type', function (): void {
-    expect(app(EngineRegistry::class)->has('dice'))->toBeFalse()
-        ->and(fn () => app(EngineRegistry::class)->for('dice'))->toThrow(UnknownGameType::class);
+    expect(app(EngineRegistry::class)->has('roulette'))->toBeFalse()
+        ->and(fn () => app(EngineRegistry::class)->for('roulette'))->toThrow(UnknownGameType::class);
 });
 
 it('refuses a config entry that maps a type to another type\'s engine', function (): void {
-    $registry = new EngineRegistry(app(), ['dice' => CrashEngine::class]);
+    $registry = new EngineRegistry(app(), ['roulette' => CrashEngine::class]);
 
-    expect(fn () => $registry->for('dice'))->toThrow(LogicException::class);
+    expect(fn () => $registry->for('roulette'))->toThrow(LogicException::class);
 });

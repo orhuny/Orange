@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\OperatorApi\BetController;
 use App\Http\Controllers\Api\OperatorApi\GameBetController;
 use App\Http\Controllers\Api\OperatorApi\GameCatalogueController;
 use App\Http\Controllers\Api\OperatorApi\LaunchController;
+use App\Http\Controllers\Api\OperatorApi\PlayerSeedController;
 use App\Http\Controllers\PlayApi\PlayController;
 use App\Http\Middleware\AuthenticatePlaySession;
 use App\Http\Middleware\EnforceIdempotency;
@@ -23,6 +24,8 @@ Route::prefix('play-api')
         Route::get('/session', [PlayController::class, 'session']);
         Route::post('/games/{code}/bets', [PlayController::class, 'bet'])->where('code', '[a-z0-9_-]+');
         Route::post('/bets/{bet}/cashout', [PlayController::class, 'cashout'])->whereNumber('bet');
+        Route::get('/seeds', [PlayController::class, 'seeds']);
+        Route::post('/seeds/rotate', [PlayController::class, 'rotateSeeds']);
     });
 
 Route::prefix('v1')->group(function (): void {
@@ -52,5 +55,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/games/{code}/launch', [LaunchController::class, 'game'])->where('code', '[a-z0-9_-]+');
             Route::post('/games/{code}/bets', GameBetController::class)->where('code', '[a-z0-9_-]+');
             Route::post('/lobby/launch', [LaunchController::class, 'lobby']);
+            Route::get('/players/{externalId}/seeds', [PlayerSeedController::class, 'show']);
+            Route::post('/players/{externalId}/seeds/rotate', [PlayerSeedController::class, 'rotate']);
         });
 });

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Game\Engines\Crash\CrashEngine;
+use App\Domain\Game\Engines\Dice\DiceEngine;
 
 return [
     /*
@@ -17,6 +18,7 @@ return [
 
     'engines' => [
         'crash' => CrashEngine::class,
+        'dice' => DiceEngine::class,
     ],
 
     /*
@@ -28,6 +30,7 @@ return [
     // The page each engine type plays in, embedded by Orange's host pages (/play, /lobby).
     'frontends' => [
         'crash' => '/crash',
+        'dice' => '/games/dice',
     ],
 
     'launch' => [

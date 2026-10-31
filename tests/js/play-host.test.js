@@ -97,7 +97,25 @@ describe('startPlayHost', () => {
         expect(JSON.parse(init.body)).toEqual({ amount: '2.00', round_uuid: 'r-1', params: { auto_cashout_at: 2 } });
         expect(frame.contentWindow.posted.at(-1).data).toEqual({
             type: 'bet_placed_result',
-            payload: { success: true, bet_id: 9, round_uuid: 'r-1', amount: '2.00000000', auto_cashout_at: '2.00', player_balance: '96.00' },
+            payload: {
+                success: true, bet_id: 9, round_uuid: 'r-1', amount: '2.00000000', auto_cashout_at: '2.00', player_balance: '96.00',
+                status: undefined, outcome: null, multiplier: null, payout_amount: null, fairness: null,
+            },
+        });
+    });
+
+    it('passes an instant game\'s own params through and returns its result', async () => {
+        const result = { bet_id: 3, status: 'won', amount: '1.00000000', multiplier: '1.9800', payout_amount: '1.98000000',
+            outcome: { roll: '23.45', win: true }, fairness: { server_seed_hash: 'h', client_seed: 'c', nonce: 4 } };
+        fetchMock.mockReturnValueOnce(json(201, result));
+        start();
+
+        await intent('place_bet', { amount: '1.00', params: { target: '49.50', direction: 'under' } });
+
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body).params).toEqual({ target: '49.50', direction: 'under' });
+        expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({
+            success: true, status: 'won', outcome: { roll: '23.45', win: true }, multiplier: '1.9800', payout_amount: '1.98000000',
+            fairness: { server_seed_hash: 'h', client_seed: 'c', nonce: 4 },
         });
     });
 

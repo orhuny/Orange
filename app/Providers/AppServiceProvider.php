@@ -6,6 +6,7 @@ use App\Domain\Game\Engines\Contracts\GameEngine;
 use App\Domain\Game\Engines\Crash\CrashEngine;
 use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Events\BetPlaced;
+use App\Domain\Game\Events\BetSettled;
 use App\Domain\Game\Events\CashoutCompleted;
 use App\Domain\Game\Events\MultiplierTick;
 use App\Domain\Game\Events\RoundCrashed;
@@ -62,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(CashoutCompleted::class, [WebhookOnGameEvents::class, 'onCashoutCompleted']);
         Event::listen(RoundCrashed::class, [WebhookOnGameEvents::class, 'onRoundCrashed']);
         Event::listen(RoundSettled::class, [WebhookOnGameEvents::class, 'onRoundSettled']);
+        Event::listen(BetSettled::class, [WebhookOnGameEvents::class, 'onBetSettled']);
 
         // The one admin-panel permission check (spatie's own gate hook is disabled in
         // config/permission.php). Order matters: operator users can never exceed the

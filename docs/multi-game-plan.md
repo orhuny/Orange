@@ -680,7 +680,19 @@ Viewer. `orange:sync-access` creates the missing permissions; edited roles are l
 
    Original scope: bridge module, `/play/{code}`, `/play-api`, per-operator CSP, `game.{code}`,
    multi-round ticker.
-6. Dice end to end.
+6. ✅ Dice end to end (as built):
+   - `RandomStream` and `player_seeds`: one active pair per player, rotation refused while a
+     bet on the pair is pending.
+   - The `InstantEngine` contract, `DiceEngine` and `DiceVerifier`.
+   - `InstantPlayService`: a pending bet, then a synchronous debit; the outcome is computed
+     only after the stake is confirmed; wins credited as `payout:{bet_id}`, capped at max win.
+   - `games:settle-stale-bets` every minute.
+   - The `bet.settled` webhook; seed endpoints in both APIs; the `/games/dice` page on the
+     shared bridge.
+   - Golden vectors from an independent implementation, an exhaustive win-probability check
+     over all 10,000 rolls, and `DiceSecrecyTest`.
+
+   Original scope: Dice end to end.
 7. Lobby + categories.
 8. Admin panel: Games resource, pivot managers, per-game reports/dashboard, new permissions and
    scoping tests, `docs/adding-a-game.md`.

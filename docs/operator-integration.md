@@ -552,6 +552,56 @@ What you need:
 
 Reloading the page keeps the session. A launch token can't be reused.
 
+### Dice (`code: dice`, instant)
+
+Roll 0.00–99.99 and bet that the roll lands under or over a target.
+- **Win chance:** T% for "under T", (100 − T)% for "over T". The game's range applies (by
+  default 0.01%–98%).
+- **Multiplier:** `floor4(rtp × 100 / chance)`, e.g. 1.9800 at 50%.
+
+The bet resolves in the same call:
+
+```json
+// POST /v1/games/dice/bets
+{ "player_external_id": "12*3456", "amount": "2.00", "currency": "EUR",
+  "params": { "target": "50.00", "direction": "under" } }
+// 201
+{ "bet_id": 9123, "game": "dice", "status": "won", "amount": "2.00000000", "currency": "EUR",
+  "multiplier": "1.9800", "payout_amount": "3.96000000",
+  "outcome": { "roll": "44.30", "target": "50.00", "direction": "under", "win": true, "payout_multiplier": "1.9800" },
+  "fairness": { "server_seed_hash": "…", "client_seed": "…", "nonce": 1 },
+  "wallet_tx_id": "88121" }
+```
+
+Money flow:
+1. The stake is debited **synchronously** (`tx_id = bet:{Idempotency-Key}`), and the roll
+   happens only after your wallet accepts. If you took the stake yourself first, answer the
+   same `tx_id` idempotently, as afq already does for crash.
+2. A win is credited with `tx_id = payout:{bet_id}`, capped at the max win.
+3. A 4xx from your wallet means `402 wallet_rejected`, with your error code in `reason`; no
+   roll. No answer means `503 wallet_unavailable`; the stake is rolled back with
+   `rollback:{bet_id}`.
+4. A `bet.settled` webhook follows every resolved bet:
+   `{ bet_id, game, player_external_id, status, amount, currency, multiplier, payout_amount, outcome, settled_at }`.
+
+**Fairness and seeds.** Each player has one seed pair for all instant games. Every bet uses the
+next nonce, and the server seed stays secret (only its SHA-256 is shown) until the player
+rotates the pair:
+- `GET /v1/players/{external_id}/seeds` returns `{ server_seed_hash, client_seed, nonce }`.
+- `POST /v1/players/{external_id}/seeds/rotate` takes an optional `{ "client_seed": "…" }`.
+  It returns `previous` (with the revealed `server_seed`) and `current`. While a bet on the
+  pair is still settling, it answers `409 bets_in_progress`.
+
+Verify a bet with
+`GET /v1/fairness/dice/verify?server_seed=…&client_seed=…&nonce=…&target=…&direction=…`.
+The algorithm is spelled out at `GET /v1/fairness/dice`.
+
+**Embedding the page yourself (relay play).** Embed `/games/dice`. The page posts
+`place_bet` with `{ amount, params: { target, direction } }`. Call
+`POST /v1/games/dice/bets`, then answer `bet_placed_result` with `success: true` plus the
+response's `status`, `outcome`, `multiplier`, `payout_amount`, `fairness` and the player's new
+balance (`player_balance`). With direct play (`/play/dice`), Orange does all of this for you.
+
 ### Max win
 
 When a game has limits for the bet's currency, a payout never exceeds the effective `max_win`.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\PlayApi;
 
+use App\Domain\Game\Engines\Contracts\InstantEngine;
 use App\Domain\Game\Engines\Contracts\RoundBasedEngine;
 use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\BetStatus;
@@ -21,10 +22,15 @@ use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\BetPlacementService;
 use App\Domain\Game\Services\CashoutService;
+use App\Domain\Game\Services\InstantPlayService;
 use App\Domain\Launch\Models\PlaySession;
+use App\Domain\ProvablyFair\Exceptions\SeedInUse;
+use App\Domain\ProvablyFair\Services\PlayerSeedService;
 use App\Domain\Wallet\Enums\WalletCallbackStatus;
 use App\Domain\Wallet\Models\WalletTransaction;
 use App\Http\Controllers\Api\OperatorApi\GameErrors;
+use App\Http\Controllers\Api\OperatorApi\InstantBetResponse;
+use App\Http\Controllers\Api\OperatorApi\SeedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,6 +45,8 @@ class PlayController
         private readonly EngineRegistry $engines,
         private readonly BetPlacementService $roundBets,
         private readonly CashoutService $cashouts,
+        private readonly InstantPlayService $instantBets,
+        private readonly PlayerSeedService $seeds,
     ) {}
 
     /** GET /play-api/session */
@@ -79,6 +87,23 @@ class PlayController
         $engine = $this->engines->forGame($game);
 
         try {
+            if ($engine instanceof InstantEngine) {
+                $bet = $this->instantBets->play(
+                    $engine,
+                    $session->operator,
+                    $game,
+                    $session->player->external_player_id,
+                    (string) $validated['amount'],
+                    $session->currency,
+                    "ps-{$key}",
+                    (array) ($validated['params'] ?? []),
+                );
+
+                return response()->json(InstantBetResponse::toArray($bet, $game) + [
+                    'player_balance' => $this->lastKnownBalance($session),
+                ], 201);
+            }
+
             if (! $engine instanceof RoundBasedEngine) {
                 return response()->json(['error' => 'unsupported_game_type'], 422);
             }
@@ -145,6 +170,26 @@ class PlayController
             'payout_amount' => (string) $cashout->payout_amount,
             'is_auto' => $cashout->is_auto,
         ]);
+    }
+
+    /** GET /play-api/seeds — the player's active seed pair (server seed hashed). */
+    public function seeds(Request $request): JsonResponse
+    {
+        return response()->json(SeedResponse::active($this->seeds->active($this->playSession($request)->player)));
+    }
+
+    /** POST /play-api/seeds/rotate — reveal the active pair and start a new one. */
+    public function rotateSeeds(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['client_seed' => ['nullable', 'string', 'min:1', 'max:64']]);
+
+        try {
+            [$previous, $current] = $this->seeds->rotate($this->playSession($request)->player, $validated['client_seed'] ?? null);
+        } catch (SeedInUse $e) {
+            return response()->json(['error' => 'bets_in_progress', 'message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(SeedResponse::rotated($previous, $current));
     }
 
     private function playSession(Request $request): PlaySession

@@ -7,6 +7,7 @@ namespace App\Domain\Game\Models;
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Operator\Models\Operator;
 use App\Domain\Operator\Models\Player;
+use App\Domain\ProvablyFair\Models\PlayerSeed;
 use Database\Factories\BetFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,8 @@ class Bet extends Model
     protected $fillable = [
         'game_id',
         'round_id',
+        'player_seed_id',
+        'nonce',
         'player_id',
         'operator_id',
         'amount',
@@ -45,6 +48,7 @@ class Bet extends Model
             'status' => BetStatus::class,
             'amount' => 'decimal:8',
             'auto_cashout_at' => 'decimal:2',
+            'nonce' => 'integer',
             'params' => 'array',
             'outcome' => 'array',
             'multiplier' => 'decimal:4',
@@ -63,6 +67,12 @@ class Bet extends Model
                 throw new LogicException("Bet #{$bet->id} already has an outcome.");
             }
         });
+    }
+
+    /** @return BelongsTo<PlayerSeed, $this> */
+    public function playerSeed(): BelongsTo
+    {
+        return $this->belongsTo(PlayerSeed::class);
     }
 
     /** @return BelongsTo<Game, $this> */
