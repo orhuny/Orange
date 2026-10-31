@@ -80,7 +80,7 @@ class WebhookOnGameEvents
                 $this->dispatcher->dispatch($operator, WebhookEvent::RoundSettled, [
                     'round_uuid' => $round->round_uuid,
                     'crash_point' => (float) $round->crash_point,
-                    'server_seed' => $round->serverSeed?->server_seed,
+                    'server_seed' => $round->revealedServerSeed(),
                     'settled_at' => $round->settled_at?->toIso8601String(),
                 ]);
             }

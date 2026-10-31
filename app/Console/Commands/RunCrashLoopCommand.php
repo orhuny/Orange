@@ -9,6 +9,7 @@ use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Game\Services\RoundOrchestrator;
+use App\Domain\ProvablyFair\Services\SeedRotator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +24,7 @@ class RunCrashLoopCommand extends Command
 
     protected $description = 'Drive a continuous crash round loop with realistic timing so the /crash demo page can be observed.';
 
-    public function handle(RoundOrchestrator $orchestrator, MultiplierCalculator $calculator): int
+    public function handle(RoundOrchestrator $orchestrator, MultiplierCalculator $calculator, SeedRotator $seeds): int
     {
         // Long-running CLI hardening (same recipe as crash:tick).
         $requested = (string) $this->option('memory');
@@ -64,6 +65,13 @@ class RunCrashLoopCommand extends Command
 
         if ($orphans > 0) {
             $this->warn("cleaned up {$orphans} orphan round(s) left over from a previous run");
+        }
+
+        // Seeds of rounds that are now all finished (the orphans above, or the seed
+        // that was shared across rounds before seeds became per-round) are retired.
+        $retired = $seeds->retireFinished();
+        if ($retired > 0) {
+            $this->warn("retired {$retired} seed(s) whose rounds have all finished");
         }
 
         // Voluntary exit at 70 % of the ceiling so the wrapper script can

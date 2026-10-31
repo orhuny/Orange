@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use RuntimeException;
 
 class RngSeedResource extends Resource
 {
@@ -53,18 +54,8 @@ class RngSeedResource extends Resource
             ->filters([
                 DateRangeFilter::make('created_at', 'Created'),
             ])
-            ->headerActions([
-                Action::make('rotateNow')
-                    ->authorize(fn (): bool => (bool) auth()->user()?->can('rng_seeds.manage'))
-                    ->label('Rotate active seed')
-                    ->icon(Heroicon::OutlinedArrowPath)
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->action(function (): void {
-                        app(SeedRotator::class)->rotate();
-                        Notification::make()->title('Seed rotated')->success()->send();
-                    }),
-            ])
+            // No "rotate" action: every round gets its own seed, retired and revealed
+            // when the round settles, so there is no shared active seed to rotate.
             ->recordActions([
                 Action::make('reveal')
                     ->authorize(fn (): bool => (bool) auth()->user()?->can('rng_seeds.manage'))
@@ -73,7 +64,13 @@ class RngSeedResource extends Resource
                     ->visible(fn (RngSeed $r) => $r->rotated_at !== null && $r->revealed_at === null)
                     ->requiresConfirmation()
                     ->action(function (RngSeed $record): void {
-                        app(SeedRotator::class)->reveal($record);
+                        try {
+                            app(SeedRotator::class)->reveal($record);
+                        } catch (RuntimeException $e) {
+                            Notification::make()->title('Seed not revealed')->body($e->getMessage())->danger()->send();
+
+                            return;
+                        }
                         Notification::make()->title('Seed revealed')->success()->send();
                     }),
             ])

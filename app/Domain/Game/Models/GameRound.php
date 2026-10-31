@@ -60,6 +60,17 @@ class GameRound extends Model
         return in_array($this->getAttribute('state'), self::CRASH_POINT_PUBLIC_STATES, true) ? $this->crash_point : null;
     }
 
+    /**
+     * The round's server seed, but only once it has been revealed: a seed that a
+     * live round still depends on must never leave the server.
+     */
+    public function revealedServerSeed(): ?string
+    {
+        $seed = $this->serverSeed;
+
+        return $seed instanceof RngSeed && $seed->isRevealed() ? $seed->server_seed : null;
+    }
+
     /** @return BelongsTo<Game, $this> */
     public function game(): BelongsTo
     {

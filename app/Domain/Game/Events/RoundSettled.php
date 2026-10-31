@@ -37,7 +37,7 @@ class RoundSettled implements ShouldBroadcastNow
         return [
             'round_uuid' => $this->round->round_uuid,
             'settled_at' => $this->round->settled_at?->toIso8601String(),
-            'server_seed' => $this->round->serverSeed?->server_seed,
+            'server_seed' => $this->round->revealedServerSeed(),
             'crash_point' => (float) $this->round->crash_point,
             'next_round_in_seconds' => (int) config('crash.waiting_seconds', 5),
         ];

@@ -28,14 +28,11 @@ final class RoundOrchestrator
 
     public function create(Game $game, ?string $clientSeed = null): GameRound
     {
+        // Every round gets its own server seed. The seed is revealed when the round
+        // settles, and the client seed is a public house constant — so a seed shared
+        // with later rounds would let anyone compute their crash points in advance.
         return DB::transaction(function () use ($game, $clientSeed): GameRound {
-            $seed = RngSeed::query()
-                ->whereKey($this->seeds->current()->id)
-                ->lockForUpdate()
-                ->first();
-
-            $nonce = $seed->used_round_count + 1;
-            $seed->forceFill(['used_round_count' => $nonce])->save();
+            $seed = $this->seeds->mintForRound();
 
             return GameRound::create([
                 'game_id' => $game->id,
@@ -43,7 +40,7 @@ final class RoundOrchestrator
                 'state' => RoundState::Waiting,
                 'server_seed_id' => $seed->id,
                 'client_seed' => $clientSeed ?? config('provably_fair.house_client_seed'),
-                'nonce' => $nonce,
+                'nonce' => $seed->used_round_count,
             ]);
         });
     }
@@ -110,12 +107,10 @@ final class RoundOrchestrator
             'settled_at' => now(),
         ]);
 
+        // Retire (and reveal) the round's seed before RoundSettled publishes it.
         $seed = $settled->serverSeed()->first();
         if ($seed instanceof RngSeed) {
-            $threshold = (int) config('provably_fair.seed_rotation_rounds', 1000);
-            if ($threshold > 0 && $seed->used_round_count >= $threshold && $seed->isActive()) {
-                $this->seeds->rotate();
-            }
+            $settled->setRelation('serverSeed', $this->seeds->retire($seed));
         }
 
         RoundSettled::dispatch($settled);

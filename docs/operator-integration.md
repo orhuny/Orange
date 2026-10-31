@@ -224,6 +224,11 @@ All events fire on both channels above.
 | `round.crashed` | `{ round_uuid, crash_point }` | Round just imploded |
 | `round.settled` | `{ round_uuid, server_seed, next_round_in_seconds }` | Seed revealed, round closed |
 
+Every round has its own server seed: its SHA-256 hash is published in `round.betting_opened`
+(`server_seed_hash`, with `nonce`) and the seed itself in `round.settled`. A revealed seed never
+decides another round. To verify a round, call `POST /v1/fairness/verify` with that round's
+`server_seed`, the house client seed, its `nonce` and `expected_server_seed_hash`.
+
 **Important**: events use a dotted `broadcastAs` name (e.g. `round.tick`), so bind them as such:
 
 ```js

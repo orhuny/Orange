@@ -14,7 +14,7 @@ function orchestrator(): RoundOrchestrator
     return app(RoundOrchestrator::class);
 }
 
-it('creates a waiting round bound to the active seed with an incrementing nonce', function (): void {
+it('creates a waiting round bound to a seed of its own', function (): void {
     $game = Game::factory()->create();
     $orch = orchestrator();
 
@@ -23,12 +23,13 @@ it('creates a waiting round bound to the active seed with an incrementing nonce'
 
     expect($first->state)->toBe(RoundState::Waiting)
         ->and($first->round_uuid)->toHaveLength(36)
-        ->and($first->server_seed_id)->toBe($second->server_seed_id)
+        ->and($first->server_seed_id)->not->toBe($second->server_seed_id)
         ->and($first->nonce)->toBe(1)
-        ->and($second->nonce)->toBe(2);
+        ->and($second->nonce)->toBe(1);
 
     $seed = RngSeed::find($first->server_seed_id);
-    expect($seed->used_round_count)->toBe(2);
+    expect($seed->used_round_count)->toBe(1)
+        ->and($seed->isActive())->toBeTrue();
 });
 
 it('drives a round through the full happy-path lifecycle', function (): void {
@@ -81,18 +82,17 @@ it('crash_point matches independent ProvablyFairService computation', function (
     expect($round->crash_point)->toBe($expected);
 });
 
-it('rotates the seed when the rotation threshold is hit on settle', function (): void {
-    config()->set('provably_fair.seed_rotation_rounds', 1);
+it('retires and reveals the round\'s seed on settle', function (): void {
     $game = Game::factory()->create();
     $orch = orchestrator();
 
     $round = $orch->create($game);
-    $originalSeedId = $round->server_seed_id;
-    $round = $orch->settle($orch->crash($orch->start($orch->openBetting($round))));
+    $round = $orch->crash($orch->start($orch->openBetting($round)));
+    expect(RngSeed::find($round->server_seed_id)->isActive())->toBeTrue();
 
-    $newRound = $orch->create($game);
-    expect($newRound->server_seed_id)->not->toBe($originalSeedId);
+    $orch->settle($round);
 
-    $original = RngSeed::find($originalSeedId);
-    expect($original->isActive())->toBeFalse();
+    $seed = RngSeed::find($round->server_seed_id);
+    expect($seed->isActive())->toBeFalse()
+        ->and($seed->isRevealed())->toBeTrue();
 });

@@ -29,12 +29,13 @@ it('dispatches and processes via the queue', function (): void {
     Queue::assertPushed(RunCrashRoundJob::class, fn (RunCrashRoundJob $job) => $job->game->is($game));
 });
 
-it('produces independent rounds with monotonically increasing nonces under the same seed', function (): void {
+it('produces independent rounds, each with its own seed revealed on settle', function (): void {
     $game = Game::factory()->create();
 
     $r1 = (new RunCrashRoundJob($game))->handle(app(RoundOrchestrator::class));
     $r2 = (new RunCrashRoundJob($game))->handle(app(RoundOrchestrator::class));
 
-    expect($r1->server_seed_id)->toBe($r2->server_seed_id)
-        ->and($r2->nonce)->toBeGreaterThan($r1->nonce);
+    expect($r1->server_seed_id)->not->toBe($r2->server_seed_id)
+        ->and($r1->serverSeed->isRevealed())->toBeTrue()
+        ->and($r2->serverSeed->isRevealed())->toBeTrue();
 });

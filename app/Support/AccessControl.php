@@ -64,7 +64,7 @@ final class AccessControl
         ],
         'RNG seeds' => [
             'rng_seeds.view' => 'View RNG seeds',
-            'rng_seeds.manage' => 'Rotate and reveal RNG seeds',
+            'rng_seeds.manage' => 'Reveal RNG seeds',
         ],
         'Access control' => [
             'users.manage' => 'Create, edit and deactivate users',
