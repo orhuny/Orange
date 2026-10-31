@@ -63,6 +63,10 @@ existing defects that affect the design.
 keeping the `round.settled` payload shape. D2 (scoping) and D3–D5 (money) are fixed in Phase 3,
 D6 in Phase 4.
 
+| # | Severity | Defect | Where |
+|---|---|---|---|
+| D7 | Low | The signature doesn't cover `Idempotency-Key`, and a cashout has an empty body. Two *different* cashout calls on one bet in the same second (for example afq's manual click racing its auto-cashout) therefore carry identical signatures, and the second gets 401 `replay_detected` instead of 409 `already_settled`. afq handles it as a failed cashout. Fix in Phase 4: include the idempotency key in the replay-cache key, so a replay is a repeat of the same request, not of the same signature. Signatures don't change. | `VerifyOperatorSignature` |
+
 ---
 
 ## 1. Target architecture
