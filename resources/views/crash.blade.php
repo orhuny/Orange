@@ -86,6 +86,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deep Dive — Orange Crash</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Implosion sprite must be decoded before the first crash, not fetched during it. --}}
+    <link rel="preload" as="image" href="{{ asset('images/sub-explosion.webp') }}">
     {{-- Apply the theme before first paint so the page never flashes the
          default palette. Priority: player's saved choice → ?theme= (operator
          default on the embed URL) → first entry of $themes. --}}
@@ -1726,7 +1728,16 @@
             z-index: 48;
         }
         .crashed .crash-flash {
-            animation: crash-flash 0.9s ease-out forwards;
+            animation: crash-flash 0.9s ease-out var(--boom-at) forwards;
+        }
+        /* The gothic sprite has its own burst glow — keep the screen flash a quick punch. */
+        :root[data-theme="burton"] .crashed .crash-flash {
+            animation: crash-flash-soft 0.45s ease-out var(--boom-at) forwards;
+        }
+        @keyframes crash-flash-soft {
+            0%   { opacity: 0; }
+            12%  { opacity: 0.55; }
+            100% { opacity: 0; }
         }
         @keyframes crash-flash {
             0%   { opacity: 0; }
@@ -1750,7 +1761,7 @@
             box-shadow: 0 0 60px white, inset 0 0 60px white;
         }
         .crashed .shockwave {
-            animation: shockwave 1.1s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+            animation: shockwave 1.1s cubic-bezier(0.2, 0.8, 0.4, 1) var(--boom-at) forwards;
         }
         @keyframes shockwave {
             0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; border-width: 6px; }
@@ -1775,7 +1786,7 @@
             box-shadow: 0 0 8px rgba(251,191,36,0.7);
         }
         .crashed .frag {
-            animation: frag-fly 1.4s cubic-bezier(0.15, 0.85, 0.4, 1) forwards;
+            animation: frag-fly 1.4s cubic-bezier(0.15, 0.85, 0.4, 1) calc(var(--boom-at) + var(--d, 0s)) forwards;
         }
         @keyframes frag-fly {
             0%   { opacity: 0; transform: translate(-50%, -50%) rotate(0); }
@@ -1794,7 +1805,7 @@
             z-index: 52;
         }
         .crashed .crash-cracks {
-            animation: cracks-in 1.6s ease-out forwards;
+            animation: cracks-in 1.6s ease-out var(--boom-at) forwards;
         }
         @keyframes cracks-in {
             0%   { opacity: 0; transform: scale(0.4); }
@@ -1829,9 +1840,9 @@
             -webkit-text-stroke: 1px rgba(60,0,0,0.6);
             text-shadow: 0 3px 0 #450a0a, 0 0 24px rgba(239,68,68,0.9), 0 0 60px rgba(239,68,68,0.55);
         }
-        .crashed .crash-banner { animation: banner-in 1.7s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
-        .crashed .crash-banner span { animation: banner-glitch 0.35s steps(1) 0.08s; }
-        .crashed .crash-banner b { animation: banner-line 0.45s ease-out 0.12s forwards; }
+        .crashed .crash-banner { animation: banner-in 1.7s cubic-bezier(0.2, 0.9, 0.3, 1) var(--boom-at) forwards; }
+        .crashed .crash-banner span { animation: banner-glitch 0.35s steps(1) calc(var(--boom-at) + 0.08s); }
+        .crashed .crash-banner b { animation: banner-line 0.45s ease-out calc(var(--boom-at) + 0.12s) forwards; }
         @keyframes banner-in {
             0%   { opacity: 0; transform: translate(-50%, 0) scale(1.7); }
             10%  { opacity: 1; transform: translate(-50%, 0) scale(0.96); }
@@ -1848,7 +1859,7 @@
         @keyframes banner-line { to { transform: scaleX(1); } }
 
         /* (6) Stage shake — strong then settle */
-        .crashed .stage { animation: stage-rumble 0.9s linear; }
+        .crashed .stage { animation: stage-rumble 0.9s linear var(--boom-at); }
         @keyframes stage-rumble {
             0%   { transform: translate(0,0); }
             10%  { transform: translate(-8px, 6px) rotate(-0.4deg); }
@@ -1860,40 +1871,36 @@
             100% { transform: translate(0,0); }
         }
 
-        /* (7) Submarine: a punch on impact, then sinks away while (gothic skin)
-           the hull tears in two along a jagged seam and the halves tumble apart.
-           Half offsets are in the sub's own (nose-down tilted) frame, so they
-           read as back → left, front → right on screen. */
-        .crashed .sub-wrap {
-            animation: sub-collapse 1.6s cubic-bezier(0.3, 0.1, 0.5, 1) forwards;
-        }
+        /* (7) Submarine. Gothic skin: a 7-frame sprite (cracks → burst → hull torn
+           in two → sinking halves) plays over the sub, tilted with it via the
+           shared .sub-svg rotation. The screen flash, shockwave, debris and banner
+           wait for the burst frame (--boom-at) so the sub visibly cracks first.
+           `translate` (not transform) so the embed offset on .sub-wrap is kept. */
+        :root { --boom-at: 0s; }
+        :root[data-theme="burton"] { --boom-at: 0.17s; }
+        .crashed .sub-wrap { animation: sub-collapse 1.7s ease-in forwards; }
         @keyframes sub-collapse {
-            0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            8%   { transform: translate(-50%, -50%) scale(1.07); }
-            70%  { opacity: 1; }
-            100% { transform: translate(-50%, -38%) scale(0.92); opacity: 0; }
+            0%, 55% { translate: 0 0; opacity: 1; }
+            100%    { translate: 0 6vh; opacity: 0; }
         }
-        .sub-half { transition: none; }
-        .crashed .sub-half-back  { animation: half-back 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) forwards; }
-        .crashed .sub-half-front { animation: half-front 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) forwards; }
-        @keyframes half-back {
-            0%   { transform: none; }
-            10%  { transform: translate(-6px, 2px) rotate(-4deg); }
-            100% { transform: translate(-72px, 44px) rotate(-42deg); }
+        .sub-boom { display: none; position: absolute; inset: 0; pointer-events: none; }
+        /* Frame cell placed so frame 1's sub sits exactly on the in-game art. */
+        .sub-boom span {
+            position: absolute; left: -8.15%; top: -48.8%; width: 106%; height: 214.5%;
+            background: url("{{ asset('images/sub-explosion.webp') }}") 0 0 / 700% 100% no-repeat;
+            opacity: 0;
         }
-        @keyframes half-front {
-            0%   { transform: none; }
-            10%  { transform: translate(6px, -2px) rotate(5deg); }
-            100% { transform: translate(84px, -28px) rotate(48deg); }
-        }
-        .sub-half-back  { transform-origin: 112px 40px; }
-        .sub-half-front { transform-origin: 114px 40px; }
-        .sub-rupture { opacity: 0; transform-origin: 113px 38px; }
-        .crashed .sub-rupture { animation: rupture 0.9s ease-out forwards; }
-        @keyframes rupture {
-            0%   { opacity: 0; transform: scale(0.4, 0.6); }
-            12%  { opacity: 1; transform: scale(1.3, 1.1); }
-            100% { opacity: 0; transform: scale(2.2, 1.4); }
+        :root[data-theme="burton"] .sub-boom { display: block; }
+        :root[data-theme="burton"] .crashed .sub-gothic { opacity: 0; }
+        :root[data-theme="burton"] .crashed .sub-boom span { opacity: 1; animation: sub-boom 1.25s step-end forwards; }
+        @keyframes sub-boom {
+            0%        { background-position-x: 0%; }
+            5%        { background-position-x: 16.667%; }
+            10%       { background-position-x: 33.333%; }
+            14%       { background-position-x: 50%; }      /* burst — matches --boom-at */
+            28%       { background-position-x: 66.667%; }
+            44%       { background-position-x: 83.333%; }
+            62%, 100% { background-position-x: 100%; }
         }
 
         /* ---------- Log ---------- */
@@ -2798,28 +2805,12 @@
                                 <stop offset="100%" stop-color="#f5e08a" stop-opacity="0"/>
                             </radialGradient>
                         </defs>
-                        {{-- Drawn as two halves meeting on a jagged seam; on a crash they tear apart. --}}
-                        <defs>
-                            <clipPath id="subCutBack"><path d="M-12 -40 H119 L111 -12 L121 8 L108 30 L117 52 L105 76 L114 112 H-12 Z"/></clipPath>
-                            <clipPath id="subCutFront"><path d="M118.4 -40 H245 V112 H113.4 L104.4 76 L116.4 52 L107.4 30 L120.4 8 L110.4 -12 Z"/></clipPath>
-                            <radialGradient id="subRuptureGlow">
-                                <stop offset="0%"   stop-color="#fff7d6" stop-opacity="1"/>
-                                <stop offset="35%"  stop-color="#fbbf24" stop-opacity="0.8"/>
-                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
-                            </radialGradient>
-                        </defs>
-                        <g class="sub-half sub-half-back" clip-path="url(#subCutBack)">
-                            <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
-                        </g>
-                        <g class="sub-half sub-half-front">
-                            <g clip-path="url(#subCutFront)">
-                                <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
-                            </g>
-                            <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
-                        </g>
-                        <ellipse class="sub-rupture" cx="113" cy="38" rx="16" ry="58" fill="url(#subRuptureGlow)"/>
+                        <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
+                        <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
                     </g>
                 </svg>
+                {{-- Gothic implosion sprite; shares .sub-svg so it tilts exactly like the sub. --}}
+                <div class="sub-svg sub-boom" aria-hidden="true"><span></span></div>
             </div>
         </div>
 
@@ -3058,7 +3049,7 @@
                 const dist = 280 + Math.random() * 320;
                 f.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
                 f.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
-                f.style.animationDelay = (Math.random() * 0.18) + 's';
+                f.style.setProperty('--d', (Math.random() * 0.18) + 's');
                 f.style.width = f.style.height = (3 + Math.random() * 8) + 'px';
                 debrisHost.appendChild(f);
             }
