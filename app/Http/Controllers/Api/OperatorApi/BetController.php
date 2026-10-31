@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\OperatorApi;
 
 use App\Domain\Game\Exceptions\BettingClosed;
+use App\Domain\Game\Exceptions\CurrencyNotSupported;
+use App\Domain\Game\Exceptions\GameNotAvailable;
+use App\Domain\Game\Exceptions\StakeOutsideLimits;
 use App\Domain\Game\Services\BetPlacementService;
 use App\Domain\Operator\Models\Operator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -23,7 +26,8 @@ class BetController
         $validated = $request->validate([
             'player_external_id' => ['required', 'string', 'min:1', 'max:128'],
             'round_uuid' => ['required', 'uuid'],
-            'amount' => ['required', 'numeric', 'gt:0'],
+            // Plain decimal only: exponents, signs or padding would reach bcmath and fail with a 500.
+            'amount' => ['required', 'numeric', 'gt:0', 'regex:/^\d{1,10}(\.\d+)?$/'],
             'currency' => ['required', 'string', 'size:3'],
             'auto_cashout_at' => ['nullable', 'numeric', 'gte:1.01'],
         ]);
@@ -42,6 +46,12 @@ class BetController
             return response()->json(['error' => 'unknown_round'], 404);
         } catch (BettingClosed $e) {
             return response()->json(['error' => 'betting_closed', 'message' => $e->getMessage()], 409);
+        } catch (GameNotAvailable $e) {
+            return response()->json(['error' => $e->reason, 'message' => $e->getMessage()], $e->reason === 'game_not_enabled' ? 403 : 409);
+        } catch (CurrencyNotSupported $e) {
+            return response()->json(['error' => 'currency_not_supported', 'message' => $e->getMessage()], 422);
+        } catch (StakeOutsideLimits $e) {
+            return response()->json(['error' => $e->reason, 'message' => $e->getMessage(), 'limit' => $e->limit], 422);
         }
 
         return response()->json([

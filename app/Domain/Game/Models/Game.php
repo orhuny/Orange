@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Game\Models;
 
+use App\Domain\Game\Enums\GameAccess;
 use Database\Factories\GameFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 class Game extends Model
 {
@@ -24,12 +27,25 @@ class Game extends Model
 
     protected $fillable = [
         'code',
+        'type',
+        'slug',
+        'category_id',
         'name',
+        'thumbnail',
         'version',
         'rtp_target',
         'house_edge',
         'config',
         'status',
+        'sort_order',
+        'access',
+    ];
+
+    /** Same defaults as the columns, so a new model knows its type before it is saved. */
+    protected $attributes = [
+        'type' => 'crash',
+        'access' => 'listed',
+        'sort_order' => 0,
     ];
 
     protected function casts(): array
@@ -39,6 +55,8 @@ class Game extends Model
             'house_edge' => 'float',
             'config' => 'array',
             'version' => 'integer',
+            'sort_order' => 'integer',
+            'access' => GameAccess::class,
         ];
     }
 
@@ -69,13 +87,40 @@ class Game extends Model
         });
     }
 
-    /**
-     * The engine type that plays this game (config/games.php). The games.type column
-     * arrives with the multi-game schema; until then every game is crash.
-     */
+    /** The engine type that plays this game (games.type → config/games.php). */
     public function engineType(): string
     {
-        return (string) ($this->attributes['type'] ?? 'crash');
+        $type = $this->getAttribute('type');
+
+        // Never guess: a game loaded without its type column must not silently play as crash.
+        if (! is_string($type) || $type === '') {
+            throw new LogicException("Game [{$this->getAttribute('code')}] was loaded without its type.");
+        }
+
+        return $type;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->getAttribute('status') === 'active';
+    }
+
+    /** @return BelongsTo<GameCategory, $this> */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(GameCategory::class, 'category_id');
+    }
+
+    /** @return HasMany<GameLimit, $this> */
+    public function limits(): HasMany
+    {
+        return $this->hasMany(GameLimit::class);
+    }
+
+    /** @return HasMany<OperatorGame, $this> */
+    public function operatorGames(): HasMany
+    {
+        return $this->hasMany(OperatorGame::class);
     }
 
     /** @return HasMany<GameRound, $this> */

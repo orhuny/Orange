@@ -237,8 +237,13 @@ id, operator_id uuid FK, game_id FK, enabled bool default true,
 sort_order int nullable, settings jsonb nullable  -- launch settings: play_mode, lobby visibility, default language
 unique(operator_id, game_id), timestamps
 ```
-**Backfill:** one `enabled=true` row for every existing operator × existing game, so afq,
-OrangeConsumer and OrangeApp keep crash. Operators created later get **no** games until enabled.
+**Access (as built; replaces the planned pivot backfill):** `games.access` decides who may play.
+- `all`: every operator, unless an `operator_game` row disables it for one.
+- `listed`: only operators with an enabled row; this is the default for new games.
+
+Crash is backfilled to `all`. afq, OrangeConsumer, OrangeApp and operators created later keep
+playing it with no rows at all, and `/v1/bets` behaves as before. Backfilling a row per operator
+would have locked out every operator created afterwards.
 
 ### 3.2a Per-currency limits (decision: every currency has its own limits)
 ```
@@ -278,6 +283,8 @@ operator_game_limits: id, operator_game_id FK, currency char(3), min_bet, max_be
 + multiplier     decimal(14,4) nullable
 + payout_amount  decimal(18,8) nullable
 + settled_at     timestamptz nullable
++ max_payout     decimal(18,8) nullable -- effective max win fixed at placement (null = uncapped);
+                                        -- caps the payout and lets auto-cashout fire at max win in SQL
 ```
 - **Backfill** (in chunks of 10k by id, `UPDATE bets SET game_id = r.game_id FROM game_rounds r WHERE …`).
   For crash bets with a cashout, also set `multiplier`, `payout_amount` and `settled_at` from

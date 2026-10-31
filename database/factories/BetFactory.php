@@ -25,6 +25,7 @@ class BetFactory extends Factory
 
         return [
             'round_id' => GameRound::factory(),
+            'game_id' => fn (array $attributes) => GameRound::query()->whereKey($attributes['round_id'])->value('game_id'),
             'player_id' => Player::factory()->state(['operator_id' => $operator->id]),
             'operator_id' => $operator->id,
             'amount' => '1.00000000',

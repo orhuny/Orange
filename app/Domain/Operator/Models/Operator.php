@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operator\Models;
 
+use App\Domain\Game\Models\OperatorGame;
 use App\Domain\Operator\Enums\OperatorStatus;
 use Database\Factories\OperatorFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -39,6 +40,12 @@ class Operator extends Model
             'ip_whitelist' => 'array',
             'config' => 'array',
         ];
+    }
+
+    /** @return HasMany<OperatorGame, $this> */
+    public function operatorGames(): HasMany
+    {
+        return $this->hasMany(OperatorGame::class);
     }
 
     /** @return HasMany<OperatorApiKey, $this> */

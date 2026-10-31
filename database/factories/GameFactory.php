@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Domain\Game\Enums\GameAccess;
 use App\Domain\Game\Models\Game;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,8 +17,14 @@ class GameFactory extends Factory
 
     public function definition(): array
     {
+        $code = 'crash-'.$this->faker->unique()->numberBetween(1000, 9999);
+
+        // The crash game as it exists in production: open to every operator, no limit rows.
         return [
-            'code' => 'crash-'.$this->faker->unique()->numberBetween(1000, 9999),
+            'code' => $code,
+            'type' => 'crash',
+            'slug' => $code,
+            'access' => GameAccess::All,
             'name' => 'Crash '.$this->faker->word(),
             'version' => 1,
             'rtp_target' => 0.97,

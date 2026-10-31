@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use LogicException;
 
 class Bet extends Model
 {
@@ -19,6 +20,7 @@ class Bet extends Model
     use HasFactory;
 
     protected $fillable = [
+        'game_id',
         'round_id',
         'player_id',
         'operator_id',
@@ -26,7 +28,13 @@ class Bet extends Model
         'currency',
         'status',
         'auto_cashout_at',
+        'params',
+        'outcome',
+        'multiplier',
+        'payout_amount',
+        'max_payout',
         'placed_at',
+        'settled_at',
         'idempotency_key',
         'external_tx_id',
     ];
@@ -37,8 +45,30 @@ class Bet extends Model
             'status' => BetStatus::class,
             'amount' => 'decimal:8',
             'auto_cashout_at' => 'decimal:2',
+            'params' => 'array',
+            'outcome' => 'array',
+            'multiplier' => 'decimal:4',
+            'payout_amount' => 'decimal:8',
+            'max_payout' => 'decimal:8',
             'placed_at' => 'datetime',
+            'settled_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // The outcome is written once, when the bet resolves; it is never rewritten.
+        static::updating(function (Bet $bet): void {
+            if ($bet->isDirty('outcome') && $bet->getRawOriginal('outcome') !== null) {
+                throw new LogicException("Bet #{$bet->id} already has an outcome.");
+            }
+        });
+    }
+
+    /** @return BelongsTo<Game, $this> */
+    public function game(): BelongsTo
+    {
+        return $this->belongsTo(Game::class);
     }
 
     /** @return BelongsTo<GameRound, $this> */

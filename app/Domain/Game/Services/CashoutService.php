@@ -47,16 +47,26 @@ class CashoutService
 
             $multiplier = $this->calculator->forRound($round);
 
+            // Capped at the max win fixed when the bet was placed.
+            $payout = bcmul((string) $bet->amount, number_format($multiplier, 8, '.', ''), 8);
+            if ($bet->max_payout !== null && bccomp($payout, (string) $bet->max_payout, 8) > 0) {
+                $payout = bcadd((string) $bet->max_payout, '0', 8);
+            }
+
             $affected = DB::table('bets')
                 ->where('id', $bet->id)
                 ->where('status', BetStatus::Placed->value)
-                ->update(['status' => BetStatus::Won->value, 'updated_at' => now()]);
+                ->update([
+                    'status' => BetStatus::Won->value,
+                    'multiplier' => number_format($multiplier, 4, '.', ''),
+                    'payout_amount' => $payout,
+                    'settled_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
             if ($affected === 0) {
                 throw AlreadyCashedOut::for((int) $bet->id);
             }
-
-            $payout = bcmul((string) $bet->amount, number_format($multiplier, 8, '.', ''), 8);
 
             $cashout = Cashout::create([
                 'bet_id' => $bet->id,
@@ -96,6 +106,12 @@ class CashoutService
         return DB::table('bets')
             ->where('round_id', $round->id)
             ->where('status', BetStatus::Placed->value)
-            ->update(['status' => BetStatus::Lost->value, 'updated_at' => now()]);
+            ->update([
+                'status' => BetStatus::Lost->value,
+                'multiplier' => '0',
+                'payout_amount' => '0',
+                'settled_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }

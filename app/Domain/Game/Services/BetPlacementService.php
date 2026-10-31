@@ -7,6 +7,10 @@ namespace App\Domain\Game\Services;
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Events\BetPlaced;
 use App\Domain\Game\Exceptions\BettingClosed;
+use App\Domain\Game\Exceptions\CurrencyNotSupported;
+use App\Domain\Game\Exceptions\GameNotAvailable;
+use App\Domain\Game\Exceptions\StakeOutsideLimits;
+use App\Domain\Game\Limits\GameLimits;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Operator\Models\Operator;
@@ -16,8 +20,17 @@ use Illuminate\Support\Facades\DB;
 
 class BetPlacementService
 {
-    public function __construct(private readonly WalletService $wallet) {}
+    public function __construct(
+        private readonly WalletService $wallet,
+        private readonly GameLimits $limits,
+    ) {}
 
+    /**
+     * @throws BettingClosed
+     * @throws GameNotAvailable
+     * @throws CurrencyNotSupported
+     * @throws StakeOutsideLimits
+     */
     public function place(
         Operator $operator,
         string $externalPlayerId,
@@ -54,6 +67,11 @@ class BetPlacementService
                 throw BettingClosed::for($round->state);
             }
 
+            // Enablement and per-currency limits, checked before anything is written so a
+            // rejected bet leaves no bet and no debit behind (afq refunds on any 4xx).
+            $limits = $this->limits->for($round->game, $operator, $currency);
+            $this->limits->assertStake($limits, $amount);
+
             $player = Player::query()->firstOrCreate(
                 [
                     'operator_id' => $operator->id,
@@ -66,6 +84,7 @@ class BetPlacementService
             );
 
             $bet = Bet::create([
+                'game_id' => $round->game_id,
                 'round_id' => $round->id,
                 'player_id' => $player->id,
                 'operator_id' => $operator->id,
@@ -73,6 +92,7 @@ class BetPlacementService
                 'currency' => $currency,
                 'status' => BetStatus::Placed,
                 'auto_cashout_at' => $autoCashoutAt,
+                'max_payout' => $limits->maxWin,
                 'placed_at' => now(),
                 'idempotency_key' => $idempotencyKey,
             ]);

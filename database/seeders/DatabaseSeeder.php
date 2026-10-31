@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Game\Models\Game;
+use App\Domain\Game\Models\GameCategory;
 use App\Models\User;
 use App\Support\AccessControl;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -30,6 +31,10 @@ class DatabaseSeeder extends Seeder
         Game::updateOrCreate(
             ['code' => 'crash'],
             [
+                'type' => 'crash',
+                'slug' => 'crash',
+                'access' => 'all',
+                'category_id' => GameCategory::query()->where('slug', 'crash')->value('id'),
                 'name' => 'Orange Crash',
                 'version' => 1,
                 'rtp_target' => 0.97,
