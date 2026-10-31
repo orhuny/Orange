@@ -950,32 +950,65 @@
         }
         @keyframes pulse { 50% { transform: scale(1.04); } }
         @keyframes shatter {
-            0%   { transform: scale(1); filter: blur(0); opacity: 1; }
-            40%  { transform: scale(1.15); filter: blur(2px); }
-            100% { transform: scale(0.6); filter: blur(8px); opacity: 0.4; }
+            0%   { transform: scale(1); opacity: 1; }
+            30%  { transform: scale(1.15); }
+            100% { transform: scale(0.8); opacity: 0.45; }
         }
+        /* Round status pill; the dot follows the stage (gold betting, live green, red crash). */
         .state {
-            margin: 0;
-            font-size: 13px; letter-spacing: 0.3em;
-            color: var(--hud); opacity: 0.85;
+            --dot: var(--hud);
+            display: inline-flex; align-items: center; gap: 9px;
+            margin: 0; padding: 6px 16px 6px 12px;
+            font-size: 12px; font-weight: 700; letter-spacing: 0.24em;
+            font-variant-numeric: tabular-nums;
+            color: var(--hud-bright);
             text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(var(--hud-rgb),0.4), 0 1px 3px rgba(0,0,0,0.45);
+            background: rgba(var(--panel-rgb),0.6);
+            border: 1px solid rgba(var(--hud-rgb),0.25);
+            border-radius: 999px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
         }
+        .state::before {
+            content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--dot); box-shadow: 0 0 8px var(--dot);
+        }
+        .betting .state { --dot: var(--gold); }
+        .running .state { --dot: var(--good); }
+        .running .state::before { animation: state-live 1s ease-in-out infinite; }
+        .critical .state, .crashed .state { --dot: var(--warn); border-color: rgba(239,68,68,0.45); }
+        @keyframes state-live { 50% { opacity: 0.35; transform: scale(0.7); } }
 
         /* ---------- Warnings (only critical) ---------- */
         .warnings {
             position: absolute; top: 30%; left: 50%;
             transform: translate(-50%, 0);
-            display: flex; flex-direction: column; gap: 6px;
-            text-align: center;
-            font-size: 11px; letter-spacing: 0.18em;
-            color: var(--warn); font-weight: 700;
-            opacity: 0;
-            text-shadow: 0 0 12px var(--warn);
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+            width: max-content; max-width: calc(100vw - 32px);
+            pointer-events: none;
             z-index: 9;
         }
-        .critical .warnings { opacity: 1; animation: blink 0.6s linear infinite; }
-        @keyframes blink { 50% { opacity: 0.35; } }
+        .warnings > div {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 14px 6px 8px;
+            font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+            color: #fecaca;
+            background: linear-gradient(180deg, rgba(127,29,29,0.75), rgba(69,10,10,0.8));
+            border: 1px solid rgba(239,68,68,0.7);
+            border-radius: 6px;
+            box-shadow: 0 0 18px rgba(239,68,68,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+            opacity: 0; transform: translateY(-8px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .warnings i {
+            display: grid; place-items: center; width: 18px; height: 18px;
+            font-style: normal; font-size: 12px; font-weight: 900; color: #1a0505;
+            background: var(--warn); border-radius: 4px;
+            animation: warn-blink 0.6s steps(1) infinite;
+        }
+        .critical:not(.crashed) .warnings > div { opacity: 1; transform: none; }
+        .critical:not(.crashed) .warnings > div + div { transition-delay: 0.12s; }
+        @keyframes warn-blink { 50% { background: #fecaca; } }
 
         /* ---------- Cash out ---------- */
         .cashout-wrap {
@@ -1750,7 +1783,6 @@
             position: absolute; inset: 0;
             opacity: 0;
             pointer-events: none;
-            mix-blend-mode: screen;
             z-index: 52;
         }
         .crashed .crash-cracks {
@@ -1763,53 +1795,97 @@
             100% { opacity: 0; }
         }
 
-        /* (5) HULL BREACH banner */
+        /* (5) HULL BREACH banner — slams in with a short glitch, holds, fades. */
         .crash-banner {
-            position: absolute; left: 50%; top: 36%;
-            transform: translate(-50%, 0) scale(0.5);
+            position: absolute; left: 50%; top: 34%;
+            display: flex; align-items: center; gap: clamp(10px, 2vw, 22px);
+            transform: translate(-50%, 0);
             opacity: 0;
-            font-size: clamp(20px, 5vw, 38px);
-            font-weight: 800; letter-spacing: 0.32em;
-            color: var(--warn);
-            text-shadow: 0 0 20px var(--warn), 0 0 40px var(--warn);
-            text-transform: uppercase;
             pointer-events: none;
             white-space: nowrap;
             z-index: 53;
         }
-        .crashed .crash-banner {
-            animation: banner-slam 1.6s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        .crash-banner b {
+            width: clamp(28px, 8vw, 110px); height: 3px;
+            background: repeating-linear-gradient(-45deg, var(--warn) 0 6px, transparent 6px 10px);
+            transform: scaleX(0);
         }
-        @keyframes banner-slam {
-            0%   { opacity: 0; transform: translate(-50%, 0) scale(0.5); letter-spacing: 0.6em; }
-            12%  { opacity: 1; transform: translate(-50%, 0) scale(1.1); letter-spacing: 0.32em; }
-            22%  { transform: translate(-50%, 0) scale(1); }
-            70%  { opacity: 1; }
-            100% { opacity: 0; transform: translate(-50%, -8px) scale(0.95); }
+        .crash-banner b:first-child { transform-origin: right; }
+        .crash-banner b:last-child  { transform-origin: left; }
+        .crash-banner span {
+            display: inline-block;
+            font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+            font-size: clamp(30px, 7vw, 72px); font-weight: 800; line-height: 1;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: #ffe4e4;
+            -webkit-text-stroke: 1px rgba(60,0,0,0.6);
+            text-shadow: 0 3px 0 #450a0a, 0 0 24px rgba(239,68,68,0.9), 0 0 60px rgba(239,68,68,0.55);
         }
+        .crashed .crash-banner { animation: banner-in 1.7s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+        .crashed .crash-banner span { animation: banner-glitch 0.35s steps(1) 0.08s; }
+        .crashed .crash-banner b { animation: banner-line 0.45s ease-out 0.12s forwards; }
+        @keyframes banner-in {
+            0%   { opacity: 0; transform: translate(-50%, 0) scale(1.7); }
+            10%  { opacity: 1; transform: translate(-50%, 0) scale(0.96); }
+            18%  { transform: translate(-50%, 0) scale(1); }
+            75%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -10px) scale(1); }
+        }
+        @keyframes banner-glitch {
+            0%  { transform: translate(-4px, 0); text-shadow: 4px 0 0 rgba(34,211,238,0.8), -4px 0 0 rgba(239,68,68,0.9); }
+            25% { transform: translate(3px, 1px); text-shadow: -3px 0 0 rgba(34,211,238,0.8), 3px 0 0 rgba(239,68,68,0.9); }
+            50% { transform: translate(-2px, -1px); }
+            75% { transform: none; text-shadow: 2px 0 0 rgba(34,211,238,0.6), -2px 0 0 rgba(239,68,68,0.7); }
+        }
+        @keyframes banner-line { to { transform: scaleX(1); } }
 
         /* (6) Stage shake — strong then settle */
         .crashed .stage { animation: stage-rumble 0.9s linear; }
         @keyframes stage-rumble {
             0%   { transform: translate(0,0); }
-            10%  { transform: translate(-8px, 6px) rotate(-0.4deg); filter: hue-rotate(20deg) saturate(1.3); }
-            20%  { transform: translate(7px, -5px) rotate(0.3deg); filter: hue-rotate(-30deg); }
+            10%  { transform: translate(-8px, 6px) rotate(-0.4deg); }
+            20%  { transform: translate(7px, -5px) rotate(0.3deg); }
             30%  { transform: translate(-5px, 4px) rotate(-0.2deg); }
             45%  { transform: translate(4px, -3px); }
             60%  { transform: translate(-2px, 2px); }
             80%  { transform: translate(1px, -1px); }
-            100% { transform: translate(0,0); filter: none; }
+            100% { transform: translate(0,0); }
         }
 
-        /* (7) Submarine itself rolls + fades on impact */
+        /* (7) Submarine: a punch on impact, then sinks away while (gothic skin)
+           the hull tears in two along a jagged seam and the halves tumble apart.
+           Half offsets are in the sub's own (nose-down tilted) frame, so they
+           read as back → left, front → right on screen. */
         .crashed .sub-wrap {
-            animation: sub-collapse 1.3s cubic-bezier(0.4, 0.1, 0.6, 1) forwards;
+            animation: sub-collapse 1.6s cubic-bezier(0.3, 0.1, 0.5, 1) forwards;
         }
         @keyframes sub-collapse {
-            0%   { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; filter: none; }
-            15%  { transform: translate(-50%, -52%) scale(0.85) rotate(-6deg); filter: brightness(2); }
-            45%  { transform: translate(-50%, -44%) scale(1.4) rotate(15deg); opacity: 0.6; filter: blur(2px); }
-            100% { transform: translate(-50%, -30%) scale(0.4) rotate(60deg); opacity: 0; filter: blur(8px); }
+            0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            8%   { transform: translate(-50%, -50%) scale(1.07); }
+            70%  { opacity: 1; }
+            100% { transform: translate(-50%, -38%) scale(0.92); opacity: 0; }
+        }
+        .sub-half { transition: none; }
+        .crashed .sub-half-back  { animation: half-back 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) forwards; }
+        .crashed .sub-half-front { animation: half-front 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) forwards; }
+        @keyframes half-back {
+            0%   { transform: none; }
+            10%  { transform: translate(-6px, 2px) rotate(-4deg); }
+            100% { transform: translate(-72px, 44px) rotate(-42deg); }
+        }
+        @keyframes half-front {
+            0%   { transform: none; }
+            10%  { transform: translate(6px, -2px) rotate(5deg); }
+            100% { transform: translate(84px, -28px) rotate(48deg); }
+        }
+        .sub-half-back  { transform-origin: 112px 40px; }
+        .sub-half-front { transform-origin: 114px 40px; }
+        .sub-rupture { opacity: 0; transform-origin: 113px 38px; }
+        .crashed .sub-rupture { animation: rupture 0.9s ease-out forwards; }
+        @keyframes rupture {
+            0%   { opacity: 0; transform: scale(0.4, 0.6); }
+            12%  { opacity: 1; transform: scale(1.3, 1.1); }
+            100% { opacity: 0; transform: scale(2.2, 1.4); }
         }
 
         /* ---------- Log ---------- */
@@ -2711,8 +2787,26 @@
                                 <stop offset="100%" stop-color="#f5e08a" stop-opacity="0"/>
                             </radialGradient>
                         </defs>
-                        <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
-                        <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
+                        {{-- Drawn as two halves meeting on a jagged seam; on a crash they tear apart. --}}
+                        <defs>
+                            <clipPath id="subCutBack"><path d="M-12 -40 H119 L111 -12 L121 8 L108 30 L117 52 L105 76 L114 112 H-12 Z"/></clipPath>
+                            <clipPath id="subCutFront"><path d="M118.4 -40 H245 V112 H113.4 L104.4 76 L116.4 52 L107.4 30 L120.4 8 L110.4 -12 Z"/></clipPath>
+                            <radialGradient id="subRuptureGlow">
+                                <stop offset="0%"   stop-color="#fff7d6" stop-opacity="1"/>
+                                <stop offset="35%"  stop-color="#fbbf24" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <g class="sub-half sub-half-back" clip-path="url(#subCutBack)">
+                            <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
+                        </g>
+                        <g class="sub-half sub-half-front">
+                            <g clip-path="url(#subCutFront)">
+                                <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
+                            </g>
+                            <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
+                        </g>
+                        <ellipse class="sub-rupture" cx="113" cy="38" rx="16" ry="58" fill="url(#subRuptureGlow)"/>
                     </g>
                 </svg>
             </div>
@@ -2768,8 +2862,8 @@
 
         <!-- Critical warnings -->
         <div class="warnings">
-            <div>⚠ PRESSURE CRITICAL</div>
-            <div>⚠ HULL DAMAGE DETECTED</div>
+            <div><i>!</i>Pressure critical</div>
+            <div><i>!</i>Hull damage detected</div>
         </div>
 
         <!-- Sonar -->
@@ -2871,7 +2965,7 @@
                 <path d="M72,70 L86,82 M72,70 L78,86"/>
             </g>
         </svg>
-        <div class="crash-banner">⚠ HULL BREACH ⚠</div>
+        <div class="crash-banner"><b></b><span>Hull breach</span><b></b></div>
 
         <!-- Activity log -->
         <div id="log" class="log"></div>
@@ -2984,7 +3078,9 @@
             while ($log.children.length > 6) $log.lastChild.remove();
         };
 
+        let stageKey = '';
         function setStage(state) {
+            stageKey = state.join(' ');
             $stage.classList.remove('waiting', 'betting', 'running', 'deep', 'abyss', 'critical', 'crashed');
             for (const s of state) $stage.classList.add(s);
         }
@@ -3003,7 +3099,8 @@
             if (m >= 8)  tiers.push('critical');
             else if (m >= 3.5) tiers.push('abyss');
             else if (m >= 1.8) tiers.push('deep');
-            setStage(tiers);
+            // Runs every animation frame — only touch the stage classes on a tier change.
+            if (tiers.join(' ') !== stageKey) setStage(tiers);
         }
 
         // ---------- Countdown helper (state text only) ----------
@@ -3027,7 +3124,33 @@
             countdownTimer = setInterval(render, 1000);
         }
 
+        // Ticks land every ~100 ms; glide the readout from the shown value to each
+        // new tick over the measured interval. It never runs ahead of the last
+        // tick, so it can't overshoot the crash point.
+        const tween = { from: 1, to: 1, start: 0, dur: 100, lastAt: 0, raf: 0 };
+        function tweenValue(now) {
+            const k = Math.min(1, (now - tween.start) / tween.dur);
+            return tween.from + (tween.to - tween.from) * k;
+        }
+        function tweenFrame(now) {
+            updateMultiplierUI(tweenValue(now));
+            tween.raf = now - tween.start < tween.dur ? requestAnimationFrame(tweenFrame) : 0;
+        }
+        function tweenMultiplier(m) {
+            const now = performance.now();
+            const shown = tween.lastAt ? tweenValue(now) : m;
+            tween.dur = tween.lastAt ? Math.min(250, Math.max(60, now - tween.lastAt)) : 100;
+            Object.assign(tween, { from: shown, to: m, start: now, lastAt: now });
+            if (!tween.raf) tween.raf = requestAnimationFrame(tweenFrame);
+        }
+        function stopTween(m) {
+            cancelAnimationFrame(tween.raf);
+            Object.assign(tween, { from: m, to: m, lastAt: 0, raf: 0 });
+        }
+
         function resetIdleVisuals() {
+            stopTween(1);
+            rebuildDebris(); // fresh vectors for the next crash, built while nothing is animating
             $mult.textContent = '1.00x';
             $pressVal.textContent = '0';
             $hullVal.textContent = '100';
@@ -3060,7 +3183,7 @@
                     if ($stage.classList.contains('crashed')) return;
                     const m = Number(e.multiplier ?? e.data?.multiplier ?? NaN);
                     if (!Number.isFinite(m)) return;
-                    updateMultiplierUI(m);
+                    tweenMultiplier(m);
                     // Tick implies running. If user opened the page mid-round and
                     // missed betting_opened/started, sync state text + cashout button.
                     const elapsed = Number(e.elapsed_seconds ?? 0).toFixed(1);
@@ -3074,7 +3197,7 @@
                     try {
                         log('💥 raw: ' + JSON.stringify(e));
                         const cp = Number(e.crash_point ?? e.crashPoint ?? e.data?.crash_point ?? NaN);
-                        rebuildDebris();
+                        stopTween(Number.isFinite(cp) ? cp : tween.to);
                         setStage(['crashed', 'critical']);
                         if (Number.isFinite(cp)) {
                             $mult.textContent = cp.toFixed(2) + 'x';
