@@ -1940,7 +1940,11 @@
             const SEEN_KEY = 'orange.intro.seen';
             const SCENE_MS = 5800; // matches the CSS timeline (sub dives away at ~6.4s)
             const seen = () => { try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch (_) { return false; } };
-            if ((cfg.oncePerSession && seen()) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const skipReason = (cfg.oncePerSession && seen()) ? 'already shown in this session'
+                : window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'device prefers reduced motion'
+                : null;
+            if (skipReason) {
+                console.info('[intro] skipped: ' + skipReason);
                 $intro.remove();
                 return;
             }

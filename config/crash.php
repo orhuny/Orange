@@ -20,6 +20,6 @@ return [
         'frame_ms' => 550,          // frames mode: how long each frame stays on screen
         'fade_ms' => 400,           // frames mode: cross-fade; both modes: final fade into the game
         'hold_ms' => [6 => 1300],   // per-frame overrides (1-based), e.g. the title frame
-        'once_per_session' => true, // skip on reloads within the same browser session
+        'once_per_session' => false, // true = only the first launch per browser tab session
     ],
 ];
