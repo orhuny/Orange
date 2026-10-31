@@ -26,6 +26,7 @@ class OperatorWalletClient
         string $playerExternalId,
         string $idempotencyKey,
         array $reference,
+        ?int $maxAttempts = null,
     ): array {
         if ($operator->callback_base_url === null) {
             throw new WalletCallbackFailed('operator has no callback_base_url configured', 0);
@@ -52,7 +53,7 @@ class OperatorWalletClient
             timestamp: $timestamp,
         );
 
-        $maxAttempts = max(1, (int) config('wallet.callback.retry_attempts', 3));
+        $maxAttempts = max(1, $maxAttempts ?? (int) config('wallet.callback.retry_attempts', 3));
         $timeoutSeconds = (int) config('wallet.callback.timeout_seconds', 5);
         $backoffMs = (int) config('wallet.callback.retry_backoff_ms', 500);
 

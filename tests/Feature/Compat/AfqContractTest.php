@@ -281,8 +281,9 @@ it('broadcasts the round lifecycle on round.{uuid} and crash with unchanged name
         Event::assertDispatched($class, function (BettingOpened|RoundStarted|MultiplierTick|RoundCrashed|RoundSettled $event) use ($name, $keys, $round): bool {
             $channels = array_map(fn (Channel $c) => $c->name, $event->broadcastOn());
 
+            // The channels afq listens on are still there; game.{code} is only added alongside.
             return $event->broadcastAs() === $name
-                && $channels === ["round.{$round->round_uuid}", 'crash']
+                && $channels === ["round.{$round->round_uuid}", 'crash', 'game.crash']
                 && afqSorted(array_keys($event->broadcastWith())) === afqSorted($keys);
         });
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Operator\Models\Operator;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,8 +24,10 @@ class AllowGameEmbed
         /** @var Response $response */
         $response = $next($request);
 
-        $origins = (array) config('embed.allowed_origins', []);
-        $origins = array_values(array_filter(array_map('trim', $origins)));
+        // EMBED_ALLOWED_ORIGINS plus operators' own embed origins (none configured today,
+        // so /crash's header is unchanged until an operator gets one).
+        $origins = array_merge((array) config('embed.allowed_origins', []), Operator::allEmbedOrigins());
+        $origins = array_values(array_unique(array_filter(array_map('trim', $origins))));
 
         if ($origins === []) {
             return $response;

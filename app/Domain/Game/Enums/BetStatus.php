@@ -7,6 +7,9 @@ namespace App\Domain\Game\Enums;
 enum BetStatus: string
 {
     case Placed = 'placed';
+
+    /** Direct play: created, waiting for the operator to confirm the stake debit. */
+    case Pending = 'pending';
     case Won = 'won';
     case Lost = 'lost';
     case Refunded = 'refunded';

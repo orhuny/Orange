@@ -8,6 +8,7 @@ use App\Domain\Game\Exceptions\BettingClosed;
 use App\Domain\Game\Exceptions\CurrencyNotSupported;
 use App\Domain\Game\Exceptions\GameNotAvailable;
 use App\Domain\Game\Exceptions\InvalidBetParams;
+use App\Domain\Game\Exceptions\StakeNotTaken;
 use App\Domain\Game\Exceptions\StakeOutsideLimits;
 use Illuminate\Http\JsonResponse;
 use Throwable;
@@ -30,6 +31,9 @@ final class GameErrors
             $e instanceof CurrencyNotSupported => response()->json(['error' => 'currency_not_supported', 'message' => $e->getMessage()], 422),
             $e instanceof StakeOutsideLimits => response()->json(['error' => $e->reason, 'message' => $e->getMessage(), 'limit' => $e->limit], 422),
             $e instanceof InvalidBetParams => response()->json(['error' => 'invalid_params', 'message' => $e->getMessage()], 422),
+            $e instanceof StakeNotTaken => $e->definite
+                ? response()->json(['error' => 'wallet_rejected', 'reason' => $e->operatorError, 'message' => $e->getMessage()], 402)
+                : response()->json(['error' => 'wallet_unavailable', 'message' => $e->getMessage()], 503),
             default => null,
         };
     }

@@ -25,6 +25,11 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // The page each engine type plays in, embedded by Orange's host pages (/play, /lobby).
+    'frontends' => [
+        'crash' => '/crash',
+    ],
+
     'launch' => [
         // A launch token must be exchanged (the page opened) within this time, once.
         'token_ttl_seconds' => 120,
@@ -32,6 +37,8 @@ return [
         'session_ttl_seconds' => 4 * 3600,
     ],
 
-    // The game whose rounds are also broadcast on the legacy `crash` channel (afq's /crash).
-    'legacy_channel_game' => 'crash',
+    // Which games' rounds also go out on the legacy `crash` channel (afq's /crash page):
+    // null = every crash-type game, as before there were several games; or a list of codes.
+    // Every round is also broadcast on game.{code}.
+    'legacy_channel_games' => null,
 ];

@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Domain\Game\Services;
 
 use App\Domain\Game\Enums\BetStatus;
+use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Events\BetPlaced;
 use App\Domain\Game\Exceptions\BettingClosed;
 use App\Domain\Game\Exceptions\CurrencyNotSupported;
 use App\Domain\Game\Exceptions\GameNotAvailable;
+use App\Domain\Game\Exceptions\StakeNotTaken;
 use App\Domain\Game\Exceptions\StakeOutsideLimits;
 use App\Domain\Game\Limits\GameLimits;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Operator\Models\Operator;
 use App\Domain\Operator\Models\Player;
+use App\Domain\Wallet\Services\DebitResult;
 use App\Domain\Wallet\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 
@@ -26,10 +29,15 @@ class BetPlacementService
     ) {}
 
     /**
+     * @param  bool  $confirmStake  direct play: the bet starts pending and only counts once the
+     *                              operator confirms the stake debit (relay play debits in the
+     *                              background, as it always has, because the operator already took it)
+     *
      * @throws BettingClosed
      * @throws GameNotAvailable
      * @throws CurrencyNotSupported
      * @throws StakeOutsideLimits
+     * @throws StakeNotTaken
      */
     public function place(
         Operator $operator,
@@ -39,8 +47,11 @@ class BetPlacementService
         string $currency,
         string $idempotencyKey,
         ?float $autoCashoutAt = null,
+        bool $confirmStake = false,
     ): Bet {
-        return DB::transaction(function () use (
+        $created = false;
+
+        $bet = DB::transaction(function () use (
             $operator,
             $externalPlayerId,
             $roundUuid,
@@ -48,6 +59,8 @@ class BetPlacementService
             $currency,
             $idempotencyKey,
             $autoCashoutAt,
+            $confirmStake,
+            &$created,
         ): Bet {
             $existing = Bet::query()
                 ->where('operator_id', $operator->id)
@@ -90,12 +103,23 @@ class BetPlacementService
                 'operator_id' => $operator->id,
                 'amount' => $amount,
                 'currency' => $currency,
-                'status' => BetStatus::Placed,
+                'status' => $confirmStake ? BetStatus::Pending : BetStatus::Placed,
                 'auto_cashout_at' => $autoCashoutAt,
                 'max_payout' => $limits->maxWin,
                 'placed_at' => now(),
                 'idempotency_key' => $idempotencyKey,
             ]);
+
+            $created = true;
+
+            $round->forceFill([
+                'total_bet_amount' => bcadd((string) $round->total_bet_amount, $amount, 8),
+            ])->save();
+
+            if ($confirmStake) {
+                // Debited after this transaction commits: no lock is held across the HTTP call.
+                return $bet;
+            }
 
             $tx = $this->wallet->debit(
                 $operator,
@@ -108,13 +132,62 @@ class BetPlacementService
 
             $bet->forceFill(['external_tx_id' => (string) $tx->id])->save();
 
-            $round->forceFill([
-                'total_bet_amount' => bcadd((string) $round->total_bet_amount, $amount, 8),
-            ])->save();
-
             BetPlaced::dispatch($bet);
 
             return $bet;
         });
+
+        return $confirmStake && $created ? $this->confirmStake($operator, $bet, $amount) : $bet;
+    }
+
+    /**
+     * Debits the stake of a pending bet and waits for the operator. Accepted: the bet goes
+     * live (or, if its round ended meanwhile, counts as lost). Refused: the bet is rejected.
+     * Unanswered: the bet is rolled back and a rollback is sent. Either way a bet whose
+     * stake wasn't taken never plays.
+     *
+     * @throws StakeNotTaken
+     */
+    private function confirmStake(Operator $operator, Bet $bet, string $amount): Bet
+    {
+        $result = $this->wallet->debitNow($operator, $bet->player, $amount, $bet->currency, "bet:{$bet->idempotency_key}", (int) $bet->id);
+
+        if ($result->accepted()) {
+            DB::transaction(function () use ($bet, $result): void {
+                // Locking the round orders this with RoundOrchestrator::crash(), which settles
+                // losers under the same lock: either it sees the bet placed, or we see it crashed.
+                $round = GameRound::query()->whereKey($bet->round_id)->lockForUpdate()->first();
+
+                DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)
+                    ->update(['status' => BetStatus::Placed->value, 'external_tx_id' => (string) $result->transaction->id, 'updated_at' => now()]);
+
+                if ($round instanceof GameRound && ! in_array($round->getAttribute('state'), [RoundState::Betting, RoundState::Running], true)) {
+                    DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Placed->value)
+                        ->update(['status' => BetStatus::Lost->value, 'multiplier' => '0', 'payout_amount' => '0', 'settled_at' => now(), 'updated_at' => now()]);
+                }
+            });
+
+            $bet = $bet->fresh() ?? $bet;
+            BetPlaced::dispatch($bet);
+
+            return $bet;
+        }
+
+        $refused = $result->outcome === DebitResult::REJECTED;
+        $flipped = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
+            'status' => ($refused ? BetStatus::Rejected : BetStatus::RolledBack)->value,
+            'settled_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if ($flipped > 0) {
+            DB::update('UPDATE game_rounds SET total_bet_amount = total_bet_amount - ? WHERE id = ?', [$amount, $bet->round_id]);
+
+            if (! $refused) {
+                $this->wallet->rollback($operator, $bet->player, $amount, $bet->currency, "rollback:{$bet->id}", (int) $bet->id);
+            }
+        }
+
+        throw $refused ? StakeNotTaken::refused($result->error) : StakeNotTaken::unanswered();
     }
 }

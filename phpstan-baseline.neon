@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Cannot call method diffInMicroseconds\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Console/Commands/BroadcastRoundTickCommand.php
-
-		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 1

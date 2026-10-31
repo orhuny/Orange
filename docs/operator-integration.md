@@ -215,6 +215,7 @@ const channel = pusher.subscribe('crash');   // public, no auth signing required
 |---|---|---|
 | `crash` | public | All round-lifecycle events for the live crash game |
 | `round.{round_uuid}` | public | Same events, scoped to one round (subscribe if you only care about one) |
+| `game.{code}` | public | Same events for one game, e.g. `game.crash` (new; every round-based game has one) |
 
 ### Events
 
@@ -283,6 +284,8 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `cashout` | `{ bet_id }` | User clicked Cash Out in the iframe |
 | `enter_fullscreen` | `{}` | User clicked the fullscreen toggle |
 | `exit_fullscreen` | `{}` | User clicked the toggle while in fullscreen |
+| `launch_game` | `{ code }` | (new, informational) The player opened another game from the lobby |
+| `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it |
 
 #### Messages **parent → iframe**
 
@@ -526,6 +529,28 @@ Public, no HMAC, 60 requests a minute per IP.
 - `GET /v1/fairness/{code}/verify?server_seed=…&client_seed=…&nonce=…[&expected_server_seed_hash=…]`
   recomputes an outcome with the game's own parameters, so you don't need to pass `house_edge`.
   Games that are no longer offered stay verifiable.
+
+### Direct play: `/play/{code}`
+
+The `play_url` from a launch opens Orange's host page in your iframe. The page hosts the game,
+and the game places bets through Orange's player API, authenticated by a play session that the
+launch token was exchanged for. You don't relay any `place_bet` or `cashout` messages.
+
+What you need:
+- **Your origin allowed:** add it to your operator's `embed_origins` (Orange sets this in your
+  operator configuration).
+- **A wallet that accepts Orange-originated bets:** a direct bet's stake is debited
+  synchronously, with `tx_id` = `bet:ps-…`, before the bet counts.
+  - A 4xx from your wallet rejects the bet (`wallet_rejected`, with your error code passed to
+    the game).
+  - No answer rolls it back (`rollback:{bet_id}`).
+
+  Wins and refunds come as usual through `/wallet/credit` and `/wallet/rollback`.
+- **Optional:** answer the page's `embed_ready` with any message (for example
+  `fullscreen_state`), so the page can forward `enter_fullscreen` / `exit_fullscreen` and
+  `back_to_lobby` to you.
+
+Reloading the page keeps the session. A launch token can't be reused.
 
 ### Max win
 

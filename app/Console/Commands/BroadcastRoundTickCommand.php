@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Events\MultiplierTick;
 use App\Domain\Game\Models\GameRound;
-use App\Domain\Game\Services\MultiplierCalculator;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,14 @@ use Illuminate\Support\Facades\DB;
 class BroadcastRoundTickCommand extends Command
 {
     protected $signature = 'crash:tick
-        {--once : Emit a single tick for the active round and exit}
+        {--once : Emit a single tick for every running round and exit}
         {--interval-ms= : Override config crash.tick_interval_ms}
         {--max-ticks=0 : Exit gracefully after N ticks (0 = forever). Use a wrapper loop for periodic restart.}
         {--memory=512M : Soft memory ceiling (passed to ini_set). Override per-process if php.ini wins.}';
 
-    protected $description = 'Long-running ticker that broadcasts MultiplierTick events for the active running round.';
+    protected $description = 'Long-running ticker that broadcasts MultiplierTick events for every running round of every round-based game.';
 
-    public function handle(MultiplierCalculator $calculator): int
+    public function handle(EngineRegistry $engines): int
     {
         // Long-running CLI hardening.
         $requested = (string) $this->option('memory');
@@ -56,14 +57,18 @@ class BroadcastRoundTickCommand extends Command
         $softLimitBytes = (int) ($memoryCeilingBytes * 0.70);
 
         do {
-            $round = GameRound::query()
+            // Every running round of every round-based game, each ticked by its own engine.
+            $rounds = GameRound::query()
                 ->where('state', RoundState::Running)
-                ->latest('started_at')
-                ->first(['id', 'round_uuid', 'state', 'started_at', 'crashed_at', 'crash_point']);
+                ->with('game')
+                ->get();
+            $now = Carbon::now();
 
-            if ($round instanceof GameRound) {
-                $now = Carbon::now();
-                $elapsedSeconds = abs($round->started_at->diffInMicroseconds($now)) / 1_000_000;
+            foreach ($rounds as $round) {
+                $startedAt = $round->getAttribute('started_at');
+                $elapsedSeconds = $startedAt instanceof CarbonInterface
+                    ? abs($startedAt->diffInMicroseconds($now)) / 1_000_000
+                    : 0.0;
 
                 if ($elapsedSeconds > $maxAgeSeconds) {
                     if (! isset($warned[$round->id])) {
@@ -73,13 +78,19 @@ class BroadcastRoundTickCommand extends Command
                             array_shift($warned);
                         }
                     }
-                } else {
-                    $multiplier = $calculator->forRound($round, $now);
-                    MultiplierTick::dispatch($round, $multiplier, $elapsedSeconds);
+
+                    continue;
                 }
+
+                if ($round->game === null || ! $engines->has($round->game->engineType())) {
+                    continue;
+                }
+
+                $tick = $engines->roundBased($round->game)->publicTick($round, $now);
+                MultiplierTick::dispatch($round, (float) $tick['multiplier'], (float) $tick['elapsed_seconds']);
             }
 
-            unset($round);
+            unset($rounds);
 
             if ($this->option('once')) {
                 return self::SUCCESS;

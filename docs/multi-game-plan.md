@@ -662,7 +662,23 @@ Viewer. `orange:sync-access` creates the missing permissions; edited roles are l
 3. ✅ Schema + money: §3.1–3.5 migrations; limits/enablement; max-win; D2–D5 fixes; `wallet:reconcile`.
 4. ✅ Operator API (catalogue, launch, generic bets for round games, per-game fairness, query signing, signature v2, D6, D7; per-player seed endpoints and `bet.settled` move to Phase 6 with the first instant game): catalogue, launch tokens/play sessions, generic bets, seeds, query signing,
    `bet.settled`, docs and OpenAPI.
-5. Player side: bridge module, `/play/{code}`, `/play-api`, per-operator CSP, `game.{code}`,
+5. ✅ Player side (as built):
+   - Orange **host pages** embed the game frame and act as its bridge parent, so
+     `crash.blade.php` keeps its own bridge code (its only change: it also accepts its own
+     origin as parent).
+   - Direct bets are created `pending` and debited synchronously (`WalletService::debitNow`).
+     Accepted → live (or lost, if the round already ended); refused → rejected; no answer →
+     rolled back.
+   - The shared bridge is `public/js/orange/bridge.js` (no build step), tested with Vitest
+     (`npm run test:js`).
+   - Operators' `config.embed_origins` join `frame-ancestors`.
+   - Rounds broadcast on `game.{code}`; `crash` keeps every crash-type game unless
+     `games.legacy_channel_games` narrows it.
+   - `crash:tick` ticks every running round through its engine.
+   - Moving `crash.blade.php` onto the shared module is left for a later pass (it doesn't need
+     it to work).
+
+   Original scope: bridge module, `/play/{code}`, `/play-api`, per-operator CSP, `game.{code}`,
    multi-round ticker.
 6. Dice end to end.
 7. Lobby + categories.

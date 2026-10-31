@@ -162,14 +162,15 @@ class RunCrashLoopCommand extends Command
         $bets = Bet::query()
             ->with(['operator', 'player'])
             ->whereIn('round_id', $roundIds)
-            ->where('status', BetStatus::Placed->value)
+            // Pending: a direct-play stake whose debit never got an answer.
+            ->whereIn('status', [BetStatus::Placed->value, BetStatus::Pending->value])
             ->lazyById();
 
         $rolledBack = 0;
         foreach ($bets as $bet) {
             $flipped = DB::table('bets')
                 ->where('id', $bet->id)
-                ->where('status', BetStatus::Placed->value)
+                ->whereIn('status', [BetStatus::Placed->value, BetStatus::Pending->value])
                 ->update(['status' => BetStatus::RolledBack->value, 'settled_at' => now(), 'updated_at' => now()]);
 
             if ($flipped === 0) {

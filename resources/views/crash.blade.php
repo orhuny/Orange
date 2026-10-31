@@ -3821,7 +3821,8 @@
             document.body.classList.add('embedded');
 
             // Origins permitted to drive this embed. Mirrors config('embed.allowed_origins').
-            const allowedParentOrigins = @json(array_values((array) config('embed.allowed_origins', [])));
+            // Orange's own host pages (/play, /lobby) drive the game from the same origin.
+            const allowedParentOrigins = [...@json(array_values((array) config('embed.allowed_origins', []))), window.location.origin];
 
             const $panel    = document.getElementById('op-panel');
             const $player   = document.getElementById('op-player');

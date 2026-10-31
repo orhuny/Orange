@@ -24,10 +24,7 @@ class MultiplierTick implements ShouldBroadcastNow
     /** @return list<Channel> */
     public function broadcastOn(): array
     {
-        return [
-            new Channel("round.{$this->round->round_uuid}"),
-            new Channel('crash'),
-        ];
+        return RoundChannels::for($this->round);
     }
 
     public function broadcastAs(): string

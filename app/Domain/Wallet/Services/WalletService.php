@@ -36,6 +36,81 @@ class WalletService
         );
     }
 
+    /**
+     * Direct play: debits the stake and waits for the operator's answer, so a bet only
+     * counts once its stake is confirmed. One attempt, no retries: the caller rolls back
+     * a debit that got no definite answer instead of guessing.
+     */
+    public function debitNow(
+        Operator $operator,
+        Player $player,
+        string $amount,
+        string $currency,
+        string $idempotencyKey,
+        ?int $betId = null,
+    ): DebitResult {
+        $existing = WalletTransaction::query()
+            ->where('operator_id', $operator->id)
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+        if ($existing instanceof WalletTransaction) {
+            return $this->debitResultFor($existing);
+        }
+
+        $tx = WalletTransaction::create([
+            'player_id' => $player->id,
+            'operator_id' => $operator->id,
+            'bet_id' => $betId,
+            'type' => WalletTransactionType::Debit,
+            'amount' => $amount,
+            'currency' => $currency,
+            'operator_callback_status' => WalletCallbackStatus::Pending,
+            'operator_response' => null,
+            'idempotency_key' => $idempotencyKey,
+        ]);
+        $tx->setRelation('player', $player);
+        $payload = $this->payloadFor($tx);
+
+        try {
+            $result = $this->client->dispatch(
+                $operator,
+                $payload['type'],
+                $payload['amount'],
+                $payload['currency'],
+                playerExternalId: $payload['player_external_id'],
+                idempotencyKey: $payload['idempotency_key'],
+                reference: $payload['reference'],
+                maxAttempts: 1,
+            );
+            $tx->forceFill(['operator_callback_status' => WalletCallbackStatus::Completed, 'operator_response' => $result])->save();
+        } catch (WalletCallbackFailed $e) {
+            $tx->forceFill([
+                'operator_callback_status' => WalletCallbackStatus::Failed,
+                // attempts=0: nothing was sent (no callback URL), which is a definite "no".
+                'operator_response' => ($e->lastResponse ?? ['error' => $e->getMessage()]) + ['attempts' => $e->attempts],
+            ])->save();
+        }
+
+        return $this->debitResultFor($tx);
+    }
+
+    private function debitResultFor(WalletTransaction $tx): DebitResult
+    {
+        $response = (array) $tx->getAttribute('operator_response');
+        $balance = data_get($response, 'body.balance_after');
+        $balance = is_scalar($balance) ? (string) $balance : null;
+
+        if ($tx->getAttribute('operator_callback_status') === WalletCallbackStatus::Completed) {
+            return new DebitResult($tx, DebitResult::ACCEPTED, balance: $balance);
+        }
+
+        $status = (int) ($response['status'] ?? 0);
+        $error = data_get($response, 'body.error');
+        $definite = ($status >= 400 && $status < 500) || ($response['attempts'] ?? null) === 0;
+
+        return new DebitResult($tx, $definite ? DebitResult::REJECTED : DebitResult::UNKNOWN, is_string($error) ? $error : null);
+    }
+
     public function credit(
         Operator $operator,
         Player $player,
