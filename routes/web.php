@@ -9,7 +9,10 @@ Route::get('/', function () {
 });
 
 Route::get('/crash', function () {
+    // Only finished rounds: crash_point is stored at round start, so the live
+    // round must never show up here.
     $recentCrashes = GameRound::query()
+        ->whereIn('state', GameRound::CRASH_POINT_PUBLIC_STATES)
         ->whereNotNull('crash_point')
         ->latest('id')
         ->limit(8)

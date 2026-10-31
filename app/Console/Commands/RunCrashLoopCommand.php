@@ -82,14 +82,15 @@ class RunCrashLoopCommand extends Command
             sleep($bettingSeconds);
 
             $round = $orchestrator->start($round->refresh());
-            $this->line("    → started, crash_point={$round->crash_point}x");
+            // No crash point (or the duration it implies) in the log while the round
+            // is live — log files are readable by more people than the database.
+            $this->line('    → started');
 
             $duration = $calculator->durationToReach((float) $round->crash_point);
-            $this->line('    → expected duration '.round($duration, 2).'s');
             usleep((int) ($duration * 1_000_000));
 
             $orchestrator->crash($round->refresh());
-            $this->line("    → CRASHED @ {$round->crash_point}x");
+            $this->line("    → CRASHED @ {$round->crash_point}x after ".round($duration, 2).'s');
             sleep(1);
 
             $orchestrator->settle($round->refresh());

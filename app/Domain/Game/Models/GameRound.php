@@ -48,6 +48,18 @@ class GameRound extends Model
         ];
     }
 
+    /** States in which the crash point may be shown (it is stored from round start). */
+    public const CRASH_POINT_PUBLIC_STATES = [RoundState::Crashed, RoundState::Settled];
+
+    /**
+     * The crash point is written when the round starts so the engine can time
+     * the crash — it must never reach anyone (admin or player) before then.
+     */
+    public function publicCrashPoint(): ?float
+    {
+        return in_array($this->getAttribute('state'), self::CRASH_POINT_PUBLIC_STATES, true) ? $this->crash_point : null;
+    }
+
     /** @return BelongsTo<Game, $this> */
     public function game(): BelongsTo
     {

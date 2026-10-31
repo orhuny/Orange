@@ -80,7 +80,12 @@ class GameRoundResource extends Resource
                         RoundState::Settled => 'gray',
                         default => 'gray',
                     }),
-                TextColumn::make('crash_point')->numeric(decimalPlaces: 2)->suffix('x'),
+                // Never the live round's crash point: only shown once it has crashed.
+                TextColumn::make('crash_point')
+                    ->state(fn (GameRound $record): ?float => $record->publicCrashPoint())
+                    ->numeric(decimalPlaces: 2)
+                    ->suffix('x')
+                    ->placeholder('—'),
                 TextColumn::make('total_bet_amount')->numeric(decimalPlaces: 2),
                 TextColumn::make('total_payout_amount')->numeric(decimalPlaces: 2),
                 TextColumn::make('started_at')->dateTime('H:i:s'),
