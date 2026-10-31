@@ -21,7 +21,12 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
-use Tests\TestCase;
+use Symfony\Component\HttpFoundation\Response;
+
+use function Pest\Laravel\artisan;
+use function Pest\Laravel\call;
+use function Pest\Laravel\get;
+use function Pest\Laravel\postJson;
 
 /*
  * The live afq integration (afq-integrations + afq-casino), byte for byte as afq sends it.
@@ -47,8 +52,13 @@ function afqBettingRound(): GameRound
     return $orchestrator->openBetting($orchestrator->create($game));
 }
 
-/** Signs and sends a request exactly like afq's OrangeCasinoService::callOrange(). */
-function afqCall(TestCase $test, Operator $operator, string $path, array $payload, string $idempotencyKey, ?int $timestamp = null): TestResponse
+/**
+ * Signs and sends a request exactly like afq's OrangeCasinoService::callOrange().
+ *
+ * @param  array<string, mixed>  $payload
+ * @return TestResponse<Response>
+ */
+function afqCall(Operator $operator, string $path, array $payload, string $idempotencyKey, ?int $timestamp = null): TestResponse
 {
     $body = $payload === [] ? '' : json_encode($payload, JSON_UNESCAPED_SLASHES);
     $timestamp ??= time();
@@ -67,9 +77,24 @@ function afqCall(TestCase $test, Operator $operator, string $path, array $payloa
         $server[in_array($key, ['CONTENT_TYPE'], true) ? $key : 'HTTP_'.$key] = $value;
     }
 
-    return $test->call('POST', $path, [], [], [], $server, $body);
+    return call('POST', $path, [], [], [], $server, $body);
 }
 
+/**
+ * @param  list<string>  $keys
+ * @return list<string>
+ */
+function afqSorted(array $keys): array
+{
+    sort($keys);
+
+    return $keys;
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
 function afqBetPayload(GameRound $round, array $overrides = []): array
 {
     // afq drops null fields (array_filter), so auto_cashout_at is absent unless set.
@@ -116,7 +141,7 @@ it('places a bet: response keys, debit callback with tx_id bet:{key}, bet.placed
     $round = afqBettingRound();
     $key = 'f1e2d3c4-0000-4000-8000-000000000001';
 
-    $response = afqCall($this, $operator, '/v1/bets', afqBetPayload($round), $key);
+    $response = afqCall($operator, '/v1/bets', afqBetPayload($round), $key);
 
     $response->assertStatus(201);
     expect(array_keys($response->json()))->toEqualCanonicalizing(['bet_id', 'status', 'round_uuid', 'amount', 'currency', 'wallet_tx_id'])
@@ -143,7 +168,7 @@ it('places a bet: response keys, debit callback with tx_id bet:{key}, bet.placed
         ->and(array_keys($webhooks[0]['data']))->toEqualCanonicalizing(['bet_id', 'round_uuid', 'amount', 'currency', 'placed_at']);
 
     // afq retries with the same Idempotency-Key and a fresh timestamp.
-    $retry = afqCall($this, $operator, '/v1/bets', afqBetPayload($round), $key, time() + 1);
+    $retry = afqCall($operator, '/v1/bets', afqBetPayload($round), $key, time() + 1);
     $retry->assertStatus(201)->assertHeader('Idempotent-Replay', 'true');
     expect($retry->json('bet_id'))->toBe($betId)
         ->and(Bet::count())->toBe(1)
@@ -153,13 +178,13 @@ it('places a bet: response keys, debit callback with tx_id bet:{key}, bet.placed
 it('cashes out with an empty body: response keys, credit callback matching the payout, cashout.done webhook', function (): void {
     $operator = afqOperator();
     $round = afqBettingRound();
-    $betId = afqCall($this, $operator, '/v1/bets', afqBetPayload($round), 'afq-bet-cashout')->json('bet_id');
+    $betId = afqCall($operator, '/v1/bets', afqBetPayload($round), 'afq-bet-cashout')->json('bet_id');
 
     Carbon::setTestNow(now());
     $round = app(RoundOrchestrator::class)->start($round);
     Carbon::setTestNow(now()->addSeconds(5));
 
-    $response = afqCall($this, $operator, "/v1/bets/{$betId}/cashout", [], 'afq-cashout-1');
+    $response = afqCall($operator, "/v1/bets/{$betId}/cashout", [], 'afq-cashout-1');
 
     $response->assertOk();
     expect(array_keys($response->json()))->toEqualCanonicalizing(['cashout_id', 'bet_id', 'multiplier', 'payout_amount', 'cashed_out_at', 'is_auto'])
@@ -182,7 +207,7 @@ it('cashes out with an empty body: response keys, credit callback matching the p
 
     // A second cashout (afq's manual click racing its auto-cashout) reports the settled win.
     // (one second later: an identical empty-body request in the same second is rejected as a replay)
-    $again = afqCall($this, $operator, "/v1/bets/{$betId}/cashout", [], 'afq-cashout-2', time() + 1);
+    $again = afqCall($operator, "/v1/bets/{$betId}/cashout", [], 'afq-cashout-2', time() + 1);
     $again->assertStatus(409);
     expect(array_keys($again->json()))->toEqualCanonicalizing(['error', 'bet_status', 'cashout'])
         ->and($again->json('error'))->toBe('already_settled')
@@ -196,17 +221,17 @@ it('answers every rejected bet with a 4xx that leaves no bet and no debit (afq r
     $operator = afqOperator();
     $round = afqBettingRound();
 
-    $unknown = afqCall($this, $operator, '/v1/bets', afqBetPayload($round, ['round_uuid' => '00000000-0000-4000-8000-000000000000']), 'afq-unknown');
+    $unknown = afqCall($operator, '/v1/bets', afqBetPayload($round, ['round_uuid' => '00000000-0000-4000-8000-000000000000']), 'afq-unknown');
     $unknown->assertStatus(404)->assertExactJson(['error' => 'unknown_round']);
 
-    $invalid = afqCall($this, $operator, '/v1/bets', afqBetPayload($round, ['amount' => '-1']), 'afq-invalid');
+    $invalid = afqCall($operator, '/v1/bets', afqBetPayload($round, ['amount' => '-1']), 'afq-invalid');
     $invalid->assertStatus(422);
 
-    $badSignature = afqCall($this, $operator, '/v1/bets', afqBetPayload($round), 'afq-bad-sig', time() + 7200);
+    $badSignature = afqCall($operator, '/v1/bets', afqBetPayload($round), 'afq-bad-sig', time() + 7200);
     $badSignature->assertStatus(401)->assertJson(['error' => 'unauthorized', 'reason' => 'timestamp_outside_window']);
 
     $running = app(RoundOrchestrator::class)->start($round);
-    $closed = afqCall($this, $operator, '/v1/bets', afqBetPayload($running), 'afq-closed');
+    $closed = afqCall($operator, '/v1/bets', afqBetPayload($running), 'afq-closed');
     $closed->assertStatus(409)->assertJsonPath('error', 'betting_closed');
     expect($closed->json('message'))->toBeString();
 
@@ -217,17 +242,17 @@ it('answers every rejected bet with a 4xx that leaves no bet and no debit (afq r
 it('rejects a cashout outside the running phase with the codes afq maps to round_crashed', function (): void {
     $operator = afqOperator();
     $round = afqBettingRound();
-    $betId = afqCall($this, $operator, '/v1/bets', afqBetPayload($round), 'afq-bet-early')->json('bet_id');
+    $betId = afqCall($operator, '/v1/bets', afqBetPayload($round), 'afq-bet-early')->json('bet_id');
 
     // Still betting: round_not_running with a detail string.
-    $early = afqCall($this, $operator, "/v1/bets/{$betId}/cashout", [], 'afq-early');
+    $early = afqCall($operator, "/v1/bets/{$betId}/cashout", [], 'afq-early');
     $early->assertStatus(409)->assertJsonPath('error', 'round_not_running');
     expect($early->json('detail'))->toBeString();
 
     // Crashed: the bet was settled as lost.
     $orchestrator = app(RoundOrchestrator::class);
     $orchestrator->crash($orchestrator->start($round));
-    $late = afqCall($this, $operator, "/v1/bets/{$betId}/cashout", [], 'afq-late', time() + 1);
+    $late = afqCall($operator, "/v1/bets/{$betId}/cashout", [], 'afq-late', time() + 1);
     $late->assertStatus(409)
         ->assertJsonPath('error', 'already_settled')
         ->assertJsonPath('bet_status', 'lost')
@@ -241,7 +266,7 @@ it('broadcasts the round lifecycle on round.{uuid} and crash with unchanged name
     $orchestrator = app(RoundOrchestrator::class);
     $round = afqBettingRound();
     $round = $orchestrator->start($round);
-    $this->artisan('crash:tick', ['--once' => true])->assertSuccessful();
+    artisan('crash:tick', ['--once' => true])->assertSuccessful();
     $orchestrator->settle($orchestrator->crash($round));
 
     $expected = [
@@ -253,12 +278,12 @@ it('broadcasts the round lifecycle on round.{uuid} and crash with unchanged name
     ];
 
     foreach ($expected as $class => [$name, $keys]) {
-        Event::assertDispatched($class, function ($event) use ($name, $keys, $round): bool {
-            $channels = collect($event->broadcastOn())->map(fn (Channel $c) => $c->name)->all();
+        Event::assertDispatched($class, function (BettingOpened|RoundStarted|MultiplierTick|RoundCrashed|RoundSettled $event) use ($name, $keys, $round): bool {
+            $channels = array_map(fn (Channel $c) => $c->name, $event->broadcastOn());
 
             return $event->broadcastAs() === $name
                 && $channels === ["round.{$round->round_uuid}", 'crash']
-                && collect(array_keys($event->broadcastWith()))->sort()->values()->all() === collect($keys)->sort()->values()->all();
+                && afqSorted(array_keys($event->broadcastWith())) === afqSorted($keys);
         });
     }
 });
@@ -276,7 +301,7 @@ it('reveals a seed at settle that verifies the round through /v1/fairness/verify
     $round = afqBettingRound();
     $round = $orchestrator->settle($orchestrator->crash($orchestrator->start($round)));
 
-    $verify = $this->postJson('/v1/fairness/verify', [
+    $verify = postJson('/v1/fairness/verify', [
         'server_seed' => $settled['server_seed'],
         'client_seed' => config('provably_fair.house_client_seed'),
         'nonce' => $opened['nonce'],
@@ -293,7 +318,7 @@ it('reveals a seed at settle that verifies the round through /v1/fairness/verify
 it('sends round.crashed and round.settled webhooks with unchanged keys to operators with bets', function (): void {
     $operator = afqOperator();
     $round = afqBettingRound();
-    afqCall($this, $operator, '/v1/bets', afqBetPayload($round), 'afq-bet-webhooks')->assertStatus(201);
+    afqCall($operator, '/v1/bets', afqBetPayload($round), 'afq-bet-webhooks')->assertStatus(201);
 
     $orchestrator = app(RoundOrchestrator::class);
     $orchestrator->settle($orchestrator->crash($orchestrator->start($round)));
@@ -311,7 +336,7 @@ it('sends round.crashed and round.settled webhooks with unchanged keys to operat
 it('serves /crash embeddable by allow-listed origins with the full postMessage bridge', function (): void {
     config()->set('embed.allowed_origins', ['https://afq.example']);
 
-    $response = $this->get('/crash');
+    $response = get('/crash');
 
     $response->assertOk();
     expect($response->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'self' https://afq.example")
