@@ -1587,7 +1587,7 @@
            In cashout mode the inputs row collapses (display:none on inputs),
            so the bar effectively shrinks to 2 rows + a giant Cash Out CTA. */
         @media (max-width: 719px) {
-            body.embedded { --op-bar-h: 92px; }
+            body.embedded { --op-bar-h: 112px; }
             body.embedded .operator-panel {
                 flex-wrap: wrap;
                 white-space: normal;
@@ -1637,27 +1637,28 @@
             body.embedded .op-status { order: 0; }
             body.embedded .op-bet-row { order: 1; }
 
-            body.embedded .op-id { gap: 6px; min-width: 0; flex-shrink: 1; }
+            body.embedded .op-id { gap: 8px; min-width: 0; flex-shrink: 1; }
             body.embedded .op-id .op-name {
-                max-width: 64px;
+                max-width: 96px;
                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                font-size: 11px;
+                font-size: 12px;
             }
             body.embedded .op-id .op-balance {
-                font-size: 12px;
-                max-width: 110px;
+                font-size: 15px;
+                max-width: 140px;
                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             }
-            body.embedded .op-phase { font-size: 8px; padding: 2px 6px; letter-spacing: 0.18em; flex-shrink: 0; }
-            /* Status forced to single-line ellipsis on the right of row 1 — it
-               must not wrap onto a new row or the bar overflows --op-bar-h. */
+            body.embedded .op-phase { font-size: 9px; padding: 3px 8px; letter-spacing: 0.16em; flex-shrink: 0; margin-left: auto; }
+            /* Status gets its own full-width line under the player row so the
+               bet/cashout message reads in full instead of an ellipsis at 9px.
+               --op-bar-h above accounts for this extra line. */
             body.embedded .op-status {
-                font-size: 9px;
-                margin-left: auto;
-                text-align: right;
+                flex: 1 0 100%;
+                font-size: 11px;
+                margin-left: 0;
+                text-align: left;
                 min-width: 0;
-                flex: 1 1 0;
-                max-width: 140px;
+                max-width: none;
                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             }
 
