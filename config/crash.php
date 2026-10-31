@@ -17,6 +17,7 @@ return [
     'intro' => [
         'enabled' => true,
         'title' => 'DeepDive',
+        'tagline' => 'Dive deep · Cash out', // small line under the title; '' hides it
         'frame_ms' => 550,          // frames mode: how long each frame stays on screen
         'fade_ms' => 400,           // frames mode: cross-fade; both modes: final fade into the game
         'hold_ms' => [6 => 1300],   // per-frame overrides (1-based), e.g. the title frame
