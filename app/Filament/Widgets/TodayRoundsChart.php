@@ -20,6 +20,11 @@ class TodayRoundsChart extends ChartWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        return (bool) auth()->user()?->can('dashboard.view');
+    }
+
     protected function getData(): array
     {
         // The aggregation (date_trunc + group by) is the expensive part —

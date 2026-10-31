@@ -10,29 +10,30 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
+    /**
+     * Role-based: an active account with at least one role. What it can see
+     * inside the panel is decided by the role's permissions.
+     */
     public function canAccessPanel(Panel $panel): bool
     {
-        if (app()->environment('local')) {
-            return true;
-        }
-
-        return str_ends_with($this->email, '@orange.local')
-            || str_ends_with($this->email, '@arkingroup.com');
+        return $this->is_active && $this->roles->isNotEmpty();
     }
 }

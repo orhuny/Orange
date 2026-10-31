@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\Operator\Enums\OperatorStatus;
 use App\Domain\Operator\Models\Operator;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\OperatorResource\Pages;
 use BackedEnum;
@@ -29,6 +30,10 @@ use Illuminate\Support\Facades\Cache;
 
 class OperatorResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'operators';
+
     protected static ?string $model = Operator::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
@@ -101,6 +106,7 @@ class OperatorResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 Action::make('suspend')
+                    ->authorize(fn (): bool => (bool) auth()->user()?->can('operators.manage'))
                     ->icon(Heroicon::OutlinedNoSymbol)
                     ->color('warning')
                     ->visible(fn (Operator $record) => $record->status === OperatorStatus::Active)
@@ -110,6 +116,7 @@ class OperatorResource extends Resource
                     })
                     ->requiresConfirmation(),
                 Action::make('activate')
+                    ->authorize(fn (): bool => (bool) auth()->user()?->can('operators.manage'))
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->visible(fn (Operator $record) => $record->status !== OperatorStatus::Active)

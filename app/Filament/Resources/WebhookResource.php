@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Domain\Wallet\Enums\WebhookStatus;
 use App\Domain\Wallet\Jobs\DeliverWebhookJob;
 use App\Domain\Wallet\Models\Webhook;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\WebhookResource\Pages;
 use BackedEnum;
@@ -23,6 +24,10 @@ use Illuminate\Support\Facades\Cache;
 
 class WebhookResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'webhooks';
+
     protected static ?string $model = Webhook::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
@@ -90,6 +95,7 @@ class WebhookResource extends Resource
             ])
             ->recordActions([
                 Action::make('redeliver')
+                    ->authorize(fn (): bool => (bool) auth()->user()?->can('webhooks.redeliver'))
                     ->icon(Heroicon::OutlinedArrowPath)
                     ->color('info')
                     ->visible(fn (Webhook $w) => $w->status !== WebhookStatus::Delivered)

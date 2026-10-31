@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Models\GameRound;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\GameRoundResource\Pages;
 use BackedEnum;
@@ -20,6 +21,10 @@ use Illuminate\Support\Facades\Cache;
 
 class GameRoundResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'rounds';
+
     protected static ?string $model = GameRound::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;

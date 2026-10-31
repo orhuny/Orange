@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Domain\Operator\Models\Player;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\PlayerResource\Pages;
 use BackedEnum;
@@ -17,6 +18,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PlayerResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'players';
+
     protected static ?string $model = Player::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;

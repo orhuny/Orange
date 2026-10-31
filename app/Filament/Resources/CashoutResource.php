@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Domain\Game\Models\Cashout;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\CashoutResource\Pages;
 use BackedEnum;
@@ -18,6 +19,10 @@ use Filament\Tables\Table;
 
 class CashoutResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'cashouts';
+
     protected static ?string $model = Cashout::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;

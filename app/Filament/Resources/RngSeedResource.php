@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\ProvablyFair\Models\RngSeed;
 use App\Domain\ProvablyFair\Services\SeedRotator;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\RngSeedResource\Pages;
 use BackedEnum;
@@ -19,6 +20,10 @@ use Filament\Tables\Table;
 
 class RngSeedResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'rng_seeds';
+
     protected static ?string $model = RngSeed::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
@@ -50,6 +55,7 @@ class RngSeedResource extends Resource
             ])
             ->headerActions([
                 Action::make('rotateNow')
+                    ->authorize(fn (): bool => (bool) auth()->user()?->can('rng_seeds.manage'))
                     ->label('Rotate active seed')
                     ->icon(Heroicon::OutlinedArrowPath)
                     ->color('warning')
@@ -61,6 +67,7 @@ class RngSeedResource extends Resource
             ])
             ->recordActions([
                 Action::make('reveal')
+                    ->authorize(fn (): bool => (bool) auth()->user()?->can('rng_seeds.manage'))
                     ->icon(Heroicon::OutlinedEye)
                     ->color('danger')
                     ->visible(fn (RngSeed $r) => $r->rotated_at !== null && $r->revealed_at === null)

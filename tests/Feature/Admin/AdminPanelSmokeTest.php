@@ -11,9 +11,10 @@ use App\Domain\Operator\Models\Player;
 use App\Domain\ProvablyFair\Models\RngSeed;
 use App\Domain\Wallet\Models\Webhook;
 use App\Models\User;
+use App\Support\AccessControl;
 
 beforeEach(function (): void {
-    $this->actingAs(User::factory()->create(['email' => 'admin@orange.local']));
+    $this->actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create(['email' => 'admin@orange.local']));
 });
 
 function seedOneOfEach(): void
@@ -44,6 +45,8 @@ dataset('admin_resource_index_routes', [
     ['/admin/rng-seeds'],
     ['/admin/webhooks'],
     ['/admin/players'],
+    ['/admin/users'],
+    ['/admin/roles'],
 ]);
 
 it('admin resource index page renders for authenticated users', function (string $url): void {

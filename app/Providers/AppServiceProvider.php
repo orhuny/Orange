@@ -10,8 +10,11 @@ use App\Domain\Game\Events\RoundSettled;
 use App\Domain\Game\Listeners\AutoCashoutOnTick;
 use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Wallet\Listeners\WebhookOnGameEvents;
+use App\Models\User;
+use App\Support\AccessControl;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -46,5 +49,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(CashoutCompleted::class, [WebhookOnGameEvents::class, 'onCashoutCompleted']);
         Event::listen(RoundCrashed::class, [WebhookOnGameEvents::class, 'onRoundCrashed']);
         Event::listen(RoundSettled::class, [WebhookOnGameEvents::class, 'onRoundSettled']);
+
+        // Super Admins pass every permission check in the admin panel.
+        Gate::before(fn (User $user): ?bool => AccessControl::isSuperAdmin($user) ? true : null);
     }
 }

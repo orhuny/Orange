@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Models\Bet;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Exports\BetExporter;
 use App\Filament\Filters\DateRangeFilter;
 use App\Filament\Resources\BetResource\Pages;
@@ -21,6 +22,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class BetResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'bets';
+
     protected static ?string $model = Bet::class;
 
     /**
@@ -115,6 +120,7 @@ class BetResource extends Resource
             ])
             ->headerActions([
                 ExportAction::make()
+                    ->authorize(fn (): bool => (bool) auth()->user()?->can('bets.export'))
                     ->exporter(BetExporter::class)
                     ->label('Export')
                     ->icon('heroicon-o-arrow-down-tray'),

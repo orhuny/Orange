@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Domain\Game\Models\Game;
 use App\Models\User;
+use App\Support\AccessControl;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -14,14 +15,17 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        AccessControl::sync();
+
         User::updateOrCreate(
             ['email' => 'admin@orange.local'],
             [
                 'name' => 'Orange Admin',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
+                'is_active' => true,
             ],
-        );
+        )->assignRole(AccessControl::SUPER_ADMIN);
 
         Game::updateOrCreate(
             ['code' => 'crash'],

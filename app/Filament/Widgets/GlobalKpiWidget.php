@@ -24,6 +24,11 @@ class GlobalKpiWidget extends StatsOverviewWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        return (bool) auth()->user()?->can('dashboard.view');
+    }
+
     protected function getStats(): array
     {
         // The 6 underlying queries are deterministic for any given second

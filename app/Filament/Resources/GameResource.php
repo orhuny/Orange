@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Domain\Game\Models\Game;
+use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\Resources\GameResource\Pages;
 use BackedEnum;
 use Filament\Actions\EditAction;
@@ -21,6 +22,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class GameResource extends Resource
 {
+    use AuthorizesWithPermissions;
+
+    protected static string $permission = 'games';
+
     protected static ?string $model = Game::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPuzzlePiece;

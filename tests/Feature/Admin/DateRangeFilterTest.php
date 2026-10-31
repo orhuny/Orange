@@ -17,12 +17,13 @@ use App\Filament\Resources\PlayerResource\Pages\ListPlayers;
 use App\Filament\Resources\RngSeedResource\Pages\ListRngSeeds;
 use App\Filament\Resources\WebhookResource\Pages\ListWebhooks;
 use App\Models\User;
+use App\Support\AccessControl;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 
 beforeEach(function (): void {
-    actingAs(User::factory()->create(['email' => 'qa@orange.local']));
+    actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create());
 });
 
 dataset('reports', [
