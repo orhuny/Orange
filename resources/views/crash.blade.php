@@ -186,12 +186,13 @@
         :root[data-theme="burton"] .creature { filter: grayscale(0.85) contrast(1.15) brightness(0.9); }
         :root[data-theme="burton"] .particle { background: rgba(236,230,216,0.55); }
         :root[data-theme="burton"] .gauge {
-            border: 2px solid transparent;
             border-radius: 4px 14px 6px 12px;
-            background:
-              linear-gradient(rgba(var(--panel-rgb),0.82), rgba(var(--panel-rgb),0.82)) padding-box,
-              repeating-linear-gradient(45deg, #ece6d8 0 6px, #0b0910 6px 12px) border-box;
+            outline: 1px dashed rgba(236,230,216,0.22); outline-offset: -6px;
             transform: rotate(-0.6deg);
+        }
+        :root[data-theme="burton"] .gauge-value {
+            font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+            font-size: 24px; letter-spacing: 0.01em;
         }
         :root[data-theme="burton"] .gauge:nth-child(even) { transform: rotate(0.7deg); }
         /* Painted water surface is light behind the history caption. */
@@ -199,7 +200,7 @@
             color: var(--hud-bright); opacity: 1;
             text-shadow: 0 0 4px #0b0910, 0 0 10px #0b0910, 0 1px 2px #000;
         }
-        :root[data-theme="burton"] .gauge-label { letter-spacing: 0.26em; font-style: italic; }
+        :root[data-theme="burton"] .gauge-label { letter-spacing: 0.24em; }
         :root[data-theme="burton"] .multiplier {
             font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
             font-style: italic; letter-spacing: -0.02em;
@@ -723,38 +724,91 @@
             z-index: 10;
         }
 
+        /* ---------- Cockpit gauges (pressure | hull) flanking the multiplier ----------
+           data-level (ok | warn | crit, set from JS) drives the accent colour. */
         .gauge {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 14px;
-            background: rgba(var(--panel-rgb),0.55);
-            border: 1px solid rgba(var(--hud-rgb),0.4);
-            border-radius: 12px;
-            backdrop-filter: blur(6px);
+            --gc: var(--hud); --gc-rgb: var(--hud-rgb);
+            position: relative;
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px 10px 12px;
+            background:
+              radial-gradient(120% 140% at 0% 0%, rgba(var(--gc-rgb),0.18), transparent 55%),
+              linear-gradient(160deg, rgba(var(--panel-rgb),0.72), rgba(var(--panel-rgb),0.92));
+            border: 1px solid rgba(var(--gc-rgb),0.45);
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(var(--gc-rgb),0.15);
+            backdrop-filter: blur(8px);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
-        .gauge svg { display:block; }
+        .gauge[data-level="warn"] { --gc: var(--gold); --gc-rgb: 251,191,36; }
+        .gauge[data-level="crit"] { --gc: var(--warn); --gc-rgb: 239,68,68; animation: gauge-alarm 0.6s ease-in-out infinite alternate; }
+        @keyframes gauge-alarm {
+            to { border-color: rgba(239,68,68,0.95); box-shadow: 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 28px rgba(239,68,68,0.6); }
+        }
+        .crashed .gauge { filter: saturate(0.5) brightness(0.8); animation: none; }
+        .gauge svg { display: block; flex: none; overflow: visible; }
+        .gauge-text { min-width: 84px; }
+        .gauge-hull .gauge-text { text-align: right; }
         .gauge-label {
-            font-size: 10px; letter-spacing: 0.18em;
-            color: var(--hud); opacity: 0.8;
-            text-transform: uppercase;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
+            text-transform: uppercase; color: var(--text-muted);
         }
         .gauge-value {
-            font-size: 14px; font-weight: 700;
-            color: var(--hud);
+            font-size: 22px; font-weight: 800; line-height: 1.15;
+            font-variant-numeric: tabular-nums;
+            color: var(--hud-bright);
+            text-shadow: 0 0 12px rgba(var(--gc-rgb),0.6), 0 2px 0 rgba(0,0,0,0.6);
+            transition: color 0.3s ease;
         }
+        .gauge[data-level="warn"] .gauge-value,
+        .gauge[data-level="crit"] .gauge-value { color: var(--gc); }
+        .gauge-value small { margin-left: 3px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-shadow: none; }
 
-        /* hull bar */
+        /* Pressure dial: 270° sweep with a red zone; the needle trembles while diving. */
+        .dial-face { fill: rgba(0,0,0,0.4); stroke: rgba(var(--hud-rgb),0.25); stroke-width: 1; }
+        .dial-track, .dial-arc { fill: none; stroke-width: 3; stroke-linecap: round; }
+        .dial-track { stroke: rgba(var(--hud-rgb),0.15); stroke-dasharray: 75 100; }
+        .dial-arc {
+            stroke: var(--gc); stroke-dasharray: 0 100;
+            filter: drop-shadow(0 0 3px var(--gc));
+            transition: stroke-dasharray 0.2s linear, stroke 0.3s ease;
+        }
+        .dial-tick { stroke: rgba(var(--hud-rgb),0.6); stroke-width: 1.2; }
+        .dial-tick.hot { stroke: var(--warn); }
+        .dial-needle {
+            stroke: var(--hud-bright); stroke-width: 1.8; stroke-linecap: round;
+            transform-origin: 22px 22px; transform: rotate(-135deg);
+            transition: transform 0.2s linear;
+        }
+        .dial-hub { fill: var(--gc); stroke: rgba(0,0,0,0.6); stroke-width: 1; }
+        .dial-wobble { transform-origin: 22px 22px; }
+        .running .dial-wobble { animation: needle-wobble 0.22s ease-in-out infinite alternate; }
+        .critical .dial-wobble { animation-duration: 0.08s; }
+        @keyframes needle-wobble { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+
+        /* Hull: shield drains with the integrity, segmented bar shifts green → red (--hull-c from JS). */
+        .hull-shield-outline { fill: rgba(0,0,0,0.4); stroke: var(--gc); stroke-width: 1.4; stroke-linejoin: round; transition: stroke 0.3s ease; }
+        .hull-shield-level {
+            fill: var(--hull-c, var(--good)); opacity: 0.9;
+            transform-box: fill-box; transform-origin: bottom;
+            transition: transform 0.2s linear, fill 0.3s ease;
+        }
+        .critical .gauge-hull svg { animation: hull-rattle 0.16s linear infinite; }
+        @keyframes hull-rattle { 25% { transform: translate(-1px, 1px) rotate(-3deg); } 75% { transform: translate(1px, -1px) rotate(3deg); } }
         .hull-bar {
-            margin-top: 6px;
-            width: 130px; height: 8px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(var(--hud-rgb),0.4);
+            margin: 6px 0 0 auto;
+            width: 120px; height: 7px;
+            background: rgba(255,255,255,0.1);
             border-radius: 2px;
             overflow: hidden;
+            -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
+                    mask: repeating-linear-gradient(90deg, #000 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
         }
         .hull-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--good), var(--gold), var(--warn));
-            transition: width 0.2s linear;
+            background: var(--hull-c, var(--good));
+            box-shadow: 0 0 8px var(--hull-c, var(--good));
+            transition: width 0.2s linear, background 0.3s ease;
         }
 
         /* ---------- Recent crashes history ---------- */
@@ -850,14 +904,20 @@
         @media (max-width: 720px) {
             .center-row { gap: 14px; }
             .center-row .gauge { padding: 6px 9px; }
-            .center-row .gauge svg { width: 30px; height: 30px; }
-            .center-row .gauge-value { font-size: 12px; }
+            .center-row .gauge { gap: 8px; }
+            .center-row .gauge svg { width: 32px; height: 32px; }
+            .center-row .gauge-text { min-width: 60px; }
+            .center-row .gauge-value { font-size: 16px; }
             .center-row .hull-bar { width: 90px; }
         }
         @media (max-width: 480px) {
             .center-row .gauge { padding: 4px 7px; }
             .center-row .gauge-label { font-size: 9px; }
-            .center-row .hull-bar { width: 70px; }
+            .center-row .hull-bar { width: 56px; }
+            .center-row .gauge svg, .gauge-label-long { display: none; }
+            .center-row .gauge-text { min-width: 0; }
+            .center-row .gauge-label { letter-spacing: 0.12em; }
+            .center-row .gauge-value { font-size: 15px; }
         }
         .multiplier {
             font-family: "SF Mono", ui-monospace, monospace;
@@ -1766,8 +1826,8 @@
         @media (max-width: 500px) {
             .multiplier { font-size: 22vw; }
             .gauge { padding: 8px 10px; }
-            .gauge-value { font-size: 12px; }
-            .hull-bar { width: 100px; }
+            .gauge-value { font-size: 16px; }
+            .hull-bar { width: 80px; }
             .cashout { padding: 16px 40px; font-size: 14px; }
             .sonar { width: 180px; bottom: 100px; }
         }
@@ -2671,30 +2731,37 @@
         <div class="center">
             <div id="state" class="state">Awaiting next dive…</div>
             <div class="center-row">
-                <div class="gauge" title="Pressure">
-                    <svg width="38" height="38" viewBox="0 0 38 38">
-                        <circle cx="19" cy="19" r="16" fill="none" stroke="var(--hud)" stroke-opacity="0.25" stroke-width="2"/>
-                        <circle id="pressureArc" cx="19" cy="19" r="16" fill="none"
-                                stroke="var(--hud)" stroke-width="2"
-                                stroke-dasharray="100 100" stroke-dashoffset="100"
-                                transform="rotate(-90 19 19)" stroke-linecap="round"
-                                style="transition: stroke-dashoffset 0.2s ease, stroke 0.3s ease;"/>
-                        <circle cx="19" cy="19" r="2" fill="var(--hud)"/>
+                <div class="gauge gauge-pressure" title="Pressure" data-level="ok">
+                    <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+                        <circle class="dial-face" cx="22" cy="22" r="21"/>
+                        <circle class="dial-track" cx="22" cy="22" r="17" pathLength="100" transform="rotate(135 22 22)"/>
+                        <circle id="pressureArc" class="dial-arc" cx="22" cy="22" r="17" pathLength="100" transform="rotate(135 22 22)"/>
+                        @for ($tick = 0; $tick <= 9; $tick++)
+                        <line class="dial-tick{{ $tick >= 7 ? ' hot' : '' }}" x1="22" y1="8" x2="22" y2="{{ $tick % 3 === 0 ? 11.5 : 10 }}" transform="rotate({{ -135 + $tick * 30 }} 22 22)"/>
+                        @endfor
+                        <g class="dial-wobble"><line id="pressureNeedle" class="dial-needle" x1="22" y1="22" x2="22" y2="9"/></g>
+                        <circle class="dial-hub" cx="22" cy="22" r="2.6"/>
                     </svg>
-                    <div>
+                    <div class="gauge-text">
                         <div class="gauge-label">Pressure</div>
-                        <div class="gauge-value"><span id="pressureValue">0</span> bar</div>
+                        <div class="gauge-value"><span id="pressureValue">0</span><small>bar</small></div>
                     </div>
                 </div>
 
                 <div id="multiplier" class="multiplier">1.00x</div>
 
-                <div class="gauge" title="Hull integrity">
-                    <div>
-                        <div class="gauge-label">Hull integrity</div>
-                        <div class="gauge-value"><span id="hullValue">100</span>%</div>
+                <div class="gauge gauge-hull" title="Hull integrity" data-level="ok">
+                    <div class="gauge-text">
+                        <div class="gauge-label">Hull<span class="gauge-label-long"> integrity</span></div>
+                        <div class="gauge-value"><span id="hullValue">100</span><small>%</small></div>
                         <div class="hull-bar"><div id="hullFill" class="hull-fill" style="width:100%"></div></div>
                     </div>
+                    <svg width="38" height="44" viewBox="0 0 24 28" aria-hidden="true">
+                        <defs><clipPath id="hullShieldClip"><path d="M12 2 3 5.5v7c0 6.2 3.9 10.9 9 13 5.1-2.1 9-6.8 9-13v-7L12 2z"/></clipPath></defs>
+                        <path class="hull-shield-outline" d="M12 2 3 5.5v7c0 6.2 3.9 10.9 9 13 5.1-2.1 9-6.8 9-13v-7L12 2z"/>
+                        <rect id="hullLevel" class="hull-shield-level" x="0" y="2" width="24" height="24" clip-path="url(#hullShieldClip)"/>
+                        <path d="M8.5 13.5l2.5 2.5 4.5-5" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </div>
             </div>
         </div>
@@ -2819,6 +2886,20 @@
         const $pressVal = document.getElementById('pressureValue');
         const $hullFill = document.getElementById('hullFill');
         const $hullVal = document.getElementById('hullValue');
+        const $pressNeedle = document.getElementById('pressureNeedle');
+        const $hullLevel = document.getElementById('hullLevel');
+        const $pressGauge = $pressArc.closest('.gauge');
+        const $hullGauge = $hullFill.closest('.gauge');
+        // Pressure dial sweeps 270°; hull colour runs green (120°) → red (0°).
+        function setGauges(norm, hull, pressLevel) {
+            $pressArc.style.strokeDasharray = (75 * norm).toFixed(2) + ' 100';
+            $pressNeedle.style.transform = 'rotate(' + (-135 + 270 * norm).toFixed(1) + 'deg)';
+            $pressGauge.dataset.level = pressLevel;
+            $hullGauge.dataset.level = hull <= 30 ? 'crit' : (hull <= 60 ? 'warn' : 'ok');
+            $hullGauge.style.setProperty('--hull-c', 'hsl(' + Math.round(hull * 1.2) + ' 80% 50%)');
+            $hullLevel.style.transform = 'scaleY(' + (hull / 100) + ')';
+            $hullFill.style.width = hull + '%';
+        }
         const $cashout = document.getElementById('cashout');
         const $cashoutHint = document.getElementById('cashoutHint');
 
@@ -2916,9 +2997,7 @@
             const hull = Math.max(0, Math.round(100 - norm * 100));
             $pressVal.textContent = pressure;
             $hullVal.textContent = hull;
-            $pressArc.setAttribute('stroke-dashoffset', String(100 - norm * 100));
-            $pressArc.setAttribute('stroke', m >= 8 ? 'var(--warn)' : (m >= 3 ? 'var(--gold)' : 'var(--hud)'));
-            $hullFill.style.width = hull + '%';
+            setGauges(norm, hull, m >= 8 ? 'crit' : (m >= 3 ? 'warn' : 'ok'));
 
             const tiers = ['running'];
             if (m >= 8)  tiers.push('critical');
@@ -2952,9 +3031,7 @@
             $mult.textContent = '1.00x';
             $pressVal.textContent = '0';
             $hullVal.textContent = '100';
-            $pressArc.setAttribute('stroke-dashoffset', '100');
-            $pressArc.setAttribute('stroke', 'var(--hud)');
-            $hullFill.style.width = '100%';
+            setGauges(0, 100, 'ok');
         }
 
         function attachEcho() {
