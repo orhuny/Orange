@@ -9,6 +9,11 @@ return [
     'tick_interval_ms' => (int) env('GAME_CRASH_TICK_INTERVAL_MS', 100),
     'house_edge_divisor' => (int) env('GAME_CRASH_HOUSE_EDGE_DIVISOR', 33),
 
+    // Multiplier at which the depth meter reaches the Challenger Deep and the
+    // pressure/hull gauges max out (log scale). Crash points are uncapped, but
+    // crash:tick stops broadcasting after 120 s (≈ 1339x at growth 0.06).
+    'depth_max_multiplier' => 1000,
+
     // Studio intro shown over /crash on launch.
     // - No images in public/images/intro/: a built-in scene animates the game's
     //   own art (submarine, background, creatures) with the title below.

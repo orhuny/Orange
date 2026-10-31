@@ -3190,15 +3190,18 @@
             for (const s of state) $stage.classList.add(s);
         }
 
-        // Depth meter: log scale so the needle travels visibly on the common
-        // low-x rounds — 2x ≈ 2.4 km, 5x ≈ 5.5 km, 25x hits the Challenger Deep.
+        // Dive progress 0..1 on a log scale up to config('crash.depth_max_multiplier'),
+        // so depth, pressure and hull keep moving on any realistic round instead of
+        // maxing out early. With 1000x: 2x ≈ 1.1 km, 10x ≈ 3.7 km, 100x ≈ 7.3 km.
+        const DIVE_MAX_X = @json((float) config('crash.depth_max_multiplier', 1000));
+        const diveProgress = (m) => Math.min(1, Math.max(0, Math.log(m) / Math.log(DIVE_MAX_X)));
         const $depthMeter = document.getElementById('depth-meter');
         const $depthVal = document.getElementById('depth-value');
         const $depthZone = document.getElementById('depth-zone');
         const MAX_DEPTH_M = 10994;
         const depthFmt = new Intl.NumberFormat('en-US');
         function setDepth(m) {
-            const p = Math.min(1, Math.max(0, Math.log(m) / Math.log(25)));
+            const p = diveProgress(m);
             const metres = Math.round(p * MAX_DEPTH_M);
             $depthMeter.style.setProperty('--p', p.toFixed(4));
             $depthVal.textContent = depthFmt.format(metres) + ' m';
@@ -3213,9 +3216,9 @@
         function updateMultiplierUI(m) {
             $mult.textContent = m.toFixed(2) + 'x';
             setDepth(m);
-            // scale 1.00x → 200m / 0%, 25.00x → 1500m / red zone
-            const norm = Math.min(1, Math.max(0, (m - 1) / 24));
-            const pressure = Math.round(200 + norm * 1300);
+            // Same dive progress as the depth meter: ~1 bar per 10 m of water.
+            const norm = diveProgress(m);
+            const pressure = Math.round(1 + norm * MAX_DEPTH_M / 10);
             const hull = Math.max(0, Math.round(100 - norm * 100));
             $pressVal.textContent = pressure;
             $hullVal.textContent = hull;
