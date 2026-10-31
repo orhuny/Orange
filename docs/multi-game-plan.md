@@ -65,7 +65,7 @@ D6 in Phase 4.
 
 | # | Severity | Defect | Where |
 |---|---|---|---|
-| D7 | Low | The signature doesn't cover `Idempotency-Key`, and a cashout has an empty body. Two *different* cashout calls on one bet in the same second (for example afq's manual click racing its auto-cashout) therefore carry identical signatures, and the second gets 401 `replay_detected` instead of 409 `already_settled`. afq handles it as a failed cashout. Fix in Phase 4: include the idempotency key in the replay-cache key, so a replay is a repeat of the same request, not of the same signature. Signatures don't change. | `VerifyOperatorSignature` |
+| D7 | Low | The signature doesn't cover `Idempotency-Key`, and a cashout has an empty body. Two *different* cashout calls on one bet in the same second (for example afq's manual click racing its auto-cashout) therefore carry identical signatures, and the second gets 401 `replay_detected` instead of 409 `already_settled`. afq handles it as a failed cashout. **Fixed in Phase 4 with an opt-in signature v2** (`X-Signature-Version: 2`), which also signs the Idempotency-Key. Only adding the key to the replay-cache key would have been unsafe: the key isn't signed under v1, so a captured request could be resent under a new key. v1 is unchanged and documented. | `VerifyOperatorSignature` |
 
 ---
 
@@ -659,8 +659,8 @@ Viewer. `orange:sync-access` creates the missing permissions; edited roles are l
    `CrashPointSecrecyTest`, `SeedRotatorTest`, `RoundOrchestratorTest`, `RunCrashRoundJobTest`.
 1. ✅ Discovery (this document).
 2. ✅ Engine abstraction: contract test first, then registry + `CrashEngine` adapter. No schema change.
-3. Schema + money: §3.1–3.5 migrations; limits/enablement; max-win; D2–D5 fixes; `wallet:reconcile`.
-4. Operator API: catalogue, launch tokens/play sessions, generic bets, seeds, query signing,
+3. ✅ Schema + money: §3.1–3.5 migrations; limits/enablement; max-win; D2–D5 fixes; `wallet:reconcile`.
+4. ✅ Operator API (catalogue, launch, generic bets for round games, per-game fairness, query signing, signature v2, D6, D7; per-player seed endpoints and `bet.settled` move to Phase 6 with the first instant game): catalogue, launch tokens/play sessions, generic bets, seeds, query signing,
    `bet.settled`, docs and OpenAPI.
 5. Player side: bridge module, `/play/{code}`, `/play-api`, per-operator CSP, `game.{code}`,
    multi-round ticker.

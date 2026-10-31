@@ -44,14 +44,8 @@ class BetController
             );
         } catch (ModelNotFoundException) {
             return response()->json(['error' => 'unknown_round'], 404);
-        } catch (BettingClosed $e) {
-            return response()->json(['error' => 'betting_closed', 'message' => $e->getMessage()], 409);
-        } catch (GameNotAvailable $e) {
-            return response()->json(['error' => $e->reason, 'message' => $e->getMessage()], $e->reason === 'game_not_enabled' ? 403 : 409);
-        } catch (CurrencyNotSupported $e) {
-            return response()->json(['error' => 'currency_not_supported', 'message' => $e->getMessage()], 422);
-        } catch (StakeOutsideLimits $e) {
-            return response()->json(['error' => $e->reason, 'message' => $e->getMessage(), 'limit' => $e->limit], 422);
+        } catch (BettingClosed|GameNotAvailable|CurrencyNotSupported|StakeOutsideLimits $e) {
+            return GameErrors::render($e) ?? throw $e;
         }
 
         return response()->json([

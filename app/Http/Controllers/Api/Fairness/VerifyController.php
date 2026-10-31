@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Fairness;
 
+use App\Domain\ProvablyFair\Rules\ValidHouseEdge;
 use App\Domain\ProvablyFair\Services\ProvablyFairService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ class VerifyController
             // the service's default divisor is used (config/crash.php). When
             // reproducing a specific round, callers should pass the same
             // house_edge that the round's game had at the time of play.
-            'house_edge' => ['nullable', 'numeric', 'gt:0', 'lt:1'],
+            'house_edge' => ['nullable', 'numeric', 'gt:0', 'lt:1', new ValidHouseEdge],
         ]);
 
         $serverSeed = $validated['server_seed'];

@@ -25,6 +25,8 @@ tags:
     description: Bet placement and cashout
   - name: Fairness
     description: Public provably-fair verification
+  - name: Games
+    description: Multi-game catalogue, launch and bets (optional; the endpoints above are unchanged)
 
 components:
   securitySchemes:
@@ -60,6 +62,36 @@ components:
       schema: { type: string, maxLength: 128 }
 
   schemas:
+    LaunchRequest:
+      type: object
+      required: [player_external_id, currency]
+      properties:
+        player_external_id: { type: string }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        language: { type: string, example: tr }
+        return_url: { type: string, format: uri }
+    CatalogueGame:
+      type: object
+      properties:
+        code: { type: string }
+        name: { type: string }
+        type: { type: string }
+        family: { type: string, enum: [round, instant, session] }
+        category: { type: [string, 'null'] }
+        thumbnail_url: { type: [string, 'null'] }
+        status: { type: string, enum: [active, maintenance] }
+        rtp: { type: string, example: '0.9700' }
+        currencies: { type: string, enum: [any, listed] }
+        limits:
+          type: object
+          description: Effective limits per currency (decimal strings; null = no limit)
+          additionalProperties:
+            type: object
+            properties:
+              min_bet: { type: [string, 'null'] }
+              max_bet: { type: [string, 'null'] }
+              max_win: { type: [string, 'null'] }
+        play_mode: { type: string, enum: [relay, direct] }
     Error:
       type: object
       required: [error]
@@ -189,4 +221,110 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/FairnessResponse' }
+        '422': { description: validation error }
+
+  /games:
+    get:
+      tags: [Games]
+      summary: The games enabled for the calling operator, with its effective limits per currency
+      description: |
+        HMAC-signed. When a query string is sent, PATH in the signed message is path + "?" + query string, exactly as sent.
+      responses:
+        '200':
+          description: Catalogue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/CatalogueGame' }
+        '401': { description: HMAC failure }
+
+  /games/{code}/launch:
+    post:
+      tags: [Games]
+      summary: A single-use launch token and the URL that opens the game for one player
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LaunchRequest' }
+      responses:
+        '201':
+          description: Launch issued (valid once, for 2 minutes); body has launch_token, play_url, expires_at
+        '403': { description: game_not_enabled }
+        '404': { description: unknown_game }
+        '409': { description: game_unavailable }
+        '422': { description: currency_not_supported | validation error }
+
+  /lobby/launch:
+    post:
+      tags: [Games]
+      summary: A single-use launch token and the URL that opens the lobby for one player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LaunchRequest' }
+      responses:
+        '201':
+          description: Launch issued (valid once, for 2 minutes); body has launch_token, lobby_url, expires_at
+        '422': { description: validation error }
+
+  /games/{code}/bets:
+    post:
+      tags: [Games]
+      summary: Place a bet on any game (relay mode)
+      description: |
+        Round games (crash): round_uuid is optional and defaults to the round taking bets now; params holds
+        auto_cashout_at. The response has the POST /bets keys plus `game`. Instant games resolve in the same call.
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [player_external_id, amount, currency]
+              properties:
+                player_external_id: { type: string }
+                amount: { type: string, example: '2.50', description: 'Plain decimal: up to 10 integer digits, no sign or exponent' }
+                currency: { type: string, minLength: 3, maxLength: 3 }
+                round_uuid: { type: string, format: uuid }
+                params: { type: object }
+      responses:
+        '201': { description: Bet placed }
+        '403': { description: game_not_enabled }
+        '404': { description: unknown_game | unknown_round }
+        '409': { description: betting_closed | game_unavailable | idempotency_conflict }
+        '422': { description: invalid_params | currency_not_supported | bet_below_min | bet_above_max | validation error }
+
+  /fairness/{code}:
+    get:
+      tags: [Fairness]
+      summary: How to verify a game's outcomes (public, no HMAC)
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 'Algorithm, the game''s public parameters (crash includes house_client_seed) and verify_url' }
+        '404': { description: unknown_game }
+
+  /fairness/{code}/verify:
+    get:
+      tags: [Fairness]
+      summary: Recompute an outcome from revealed seeds with the game's own parameters (public, no HMAC)
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+        - { name: server_seed, in: query, required: true, schema: { type: string } }
+        - { name: client_seed, in: query, required: true, schema: { type: string } }
+        - { name: nonce, in: query, required: true, schema: { type: integer, minimum: 0 } }
+        - { name: expected_server_seed_hash, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: 'The recomputed outcome (crash: hmac, crash_point, house_edge_divisor)' }
+        '404': { description: unknown_game }
         '422': { description: validation error }

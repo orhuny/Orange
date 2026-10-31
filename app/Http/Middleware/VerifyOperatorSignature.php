@@ -35,6 +35,11 @@ class VerifyOperatorSignature
             return $this->unauthorized('timestamp_outside_window');
         }
 
+        $version = (string) ($request->header('X-Signature-Version') ?? '1');
+        if (! in_array($version, ['1', '2'], true)) {
+            return $this->unauthorized('unsupported_signature_version');
+        }
+
         $operator = Operator::find($operatorId);
 
         if (! $operator) {
@@ -45,12 +50,23 @@ class VerifyOperatorSignature
             return $this->unauthorized('operator_inactive');
         }
 
+        // The query string, exactly as sent, is part of the signed path when there is one
+        // (no existing client sends one, so their signatures are unchanged).
+        $path = '/'.ltrim($request->path(), '/');
+        $query = (string) $request->server('QUERY_STRING', '');
+        if ($query !== '') {
+            $path .= '?'.$query;
+        }
+
         $expected = OperatorSignature::compute(
             secret: $operator->secret_key,
             method: $request->method(),
-            path: '/'.ltrim($request->path(), '/'),
+            path: $path,
             body: $request->getContent(),
             timestamp: $timestamp,
+            // v2 signs the Idempotency-Key too, so two different requests in the same
+            // second can't share a signature and be mistaken for a replay.
+            idempotencyKey: $version === '2' ? (string) $request->header('Idempotency-Key', '') : null,
         );
 
         if (! OperatorSignature::matches($expected, $signature)) {

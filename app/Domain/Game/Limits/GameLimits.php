@@ -51,12 +51,26 @@ final class GameLimits
             ->where('currency', $currency)
             ->first();
 
+        return self::combine($currency, $limit, $own);
+    }
+
+    /** The game's limits for a currency tightened by the operator's (either may be absent). */
+    public static function combine(string $currency, ?GameLimit $limit, ?OperatorGameLimit $own): EffectiveLimits
+    {
         return new EffectiveLimits(
             currency: $currency,
             minBet: self::higher(self::decimal($limit?->min_bet), self::decimal($own?->min_bet)),
             maxBet: self::lower(self::decimal($limit?->max_bet), self::decimal($own?->max_bet)),
             maxWin: self::lower(self::decimal($limit?->max_win), self::decimal($own?->max_win)),
         );
+    }
+
+    /** Whether the game is open to the operator (ignoring its status). */
+    public static function isEnabledFor(Game $game, ?OperatorGame $operatorGame): bool
+    {
+        return $game->getAttribute('access') === GameAccess::All
+            ? $operatorGame === null || $operatorGame->enabled
+            : $operatorGame !== null && $operatorGame->enabled;
     }
 
     /** @throws StakeOutsideLimits */
@@ -78,11 +92,7 @@ final class GameLimits
             throw GameNotAvailable::unavailable($game);
         }
 
-        $enabled = $game->getAttribute('access') === GameAccess::All
-            ? $operatorGame === null || $operatorGame->enabled
-            : $operatorGame !== null && $operatorGame->enabled;
-
-        if (! $enabled) {
+        if (! self::isEnabledFor($game, $operatorGame)) {
             throw GameNotAvailable::notEnabled($game);
         }
     }

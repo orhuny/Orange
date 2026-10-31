@@ -6,6 +6,7 @@ namespace App\Domain\Game\Engines\Crash;
 
 use App\Domain\Game\Engines\Contracts\FairnessVerifier;
 use App\Domain\Game\Models\Game;
+use App\Domain\ProvablyFair\Rules\ValidHouseEdge;
 use App\Domain\ProvablyFair\Services\ProvablyFairService;
 
 /** Same maths as POST /v1/fairness/verify: bustabit HMAC with a 1-in-N house edge. */
@@ -13,12 +14,31 @@ final class CrashVerifier implements FairnessVerifier
 {
     public function __construct(private readonly ProvablyFairService $math) {}
 
+    public function describe(Game $game): array
+    {
+        return [
+            'algorithm' => 'bustabit-style-hmac-sha256-1overN-edge',
+            'house_edge' => number_format((float) $game->house_edge, 4, '.', ''),
+            'house_edge_divisor' => $this->math->divisorForGame($game),
+            // Public on purpose: every round has its own server seed, revealed only once the
+            // round settles, so knowing the client seed predicts nothing.
+            'house_client_seed' => (string) config('provably_fair.house_client_seed'),
+            'inputs' => [
+                'server_seed' => 'revealed in round.settled (its SHA-256 is published in round.betting_opened)',
+                'client_seed' => 'house_client_seed',
+                'nonce' => 'from round.betting_opened',
+            ],
+            'formula' => 'h = HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}"); '
+                .'if int(h[0..8], 16) mod divisor == 0 then 1.00 '
+                .'else floor((100 * 2^52 - x) / (2^52 - x)) / 100 with x = int(h[0..13], 16)',
+        ];
+    }
+
     public function rules(): array
     {
         return [
-            // The house edge the round was played with, if it has changed since. Bounded so
-            // the derived 1-in-N divisor is a valid integer of at least 2 (0.6 → 2, 0.000001 → 10⁶).
-            'house_edge' => ['nullable', 'numeric', 'gte:0.000001', 'lte:0.6'],
+            // The house edge the round was played with, if it has changed since.
+            'house_edge' => ['nullable', 'numeric', new ValidHouseEdge],
         ];
     }
 

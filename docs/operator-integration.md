@@ -363,7 +363,13 @@ All errors return JSON `{ "error": "<machine_code>", "reason": "<more_detail>"? 
 | 404 | `unknown_round` | Wrong / expired `round_uuid` |
 | 409 | `betting_closed` | Window already shut |
 | 409 | `idempotency_conflict` | Reused key with different body |
-| 422 | (validation) | Inspect `errors` field |
+| 403 | `game_not_enabled` | The game is switched off for your operator |
+| 409 | `game_unavailable` | The game is disabled or in maintenance |
+| 422 | `currency_not_supported` | The game has limits configured, but none for this currency |
+| 422 | `bet_below_min` / `bet_above_max` | Outside the per-currency limits; `limit` holds the bound |
+| 422 | (validation) | Inspect `errors` field. `amount` must be a plain decimal (`"1.50"`; no exponent or sign) |
+
+Every 4xx above means **no bet was placed and no debit was sent**, so it is safe to refund the stake on your side.
 
 ### Cashout (4xx)
 
@@ -434,6 +440,98 @@ Operator Browser                Operator Server               Orange API
        ◄── postMessage 'cashout_result' ──┤
                        ◄────────── round.settled ────────────────────────
 ```
+
+---
+
+## 11. Multi-game API
+
+Everything above keeps working unchanged. The endpoints below are new and optional; they serve
+every game, crash included.
+
+### Signing GET requests and signature v2
+
+- **Query strings are signed.** When a request has a query string, PATH in the signed message is
+  the path plus `?` plus the query string, byte for byte as you send it:
+  `GET\n/v1/games?currency=EUR\n\n1730000000`. Requests without a query string sign exactly as before.
+- **Signature v2 (opt-in).** Send `X-Signature-Version: 2` and append `\n` + the `Idempotency-Key`
+  to the signed message: `METHOD\nPATH\nBODY\nTIMESTAMP\nIDEMPOTENCY_KEY`. The key is then covered
+  by the signature. Two *different* requests with the same method, path, body and timestamp
+  second, such as two cashouts with empty bodies, are no longer rejected as `replay_detected`.
+  Under v1 they are: give each request its own timestamp second, or switch to v2.
+
+### `GET /v1/games` — your game catalogue
+
+Lists the games enabled for your operator, ordered for display, with your effective limits per currency.
+
+```json
+{ "data": [
+  { "code": "crash", "name": "DeepDive", "type": "crash", "family": "round", "category": "crash",
+    "thumbnail_url": null, "status": "active", "rtp": "0.9700",
+    "currencies": "any", "limits": {}, "play_mode": "relay" },
+  { "code": "dice", "name": "Dice", "type": "dice", "family": "instant", "category": "originals",
+    "thumbnail_url": "https://…/storage/thumbs/dice.webp", "status": "active", "rtp": "0.9900",
+    "currencies": "listed",
+    "limits": { "EUR": { "min_bet": "0.10000000", "max_bet": "100.00000000", "max_win": "10000.00000000" } },
+    "play_mode": "direct" } ] }
+```
+
+- `family`: `round` (shared rounds: crash), `instant` (resolved in one call: dice), or `session`
+  (several steps: mines).
+- `currencies: "any"` with empty `limits`: the game takes any currency without limits. With
+  `"listed"`, only the currencies in `limits` are accepted.
+- `status: "maintenance"`: listed, but bets and launches answer `409 game_unavailable`.
+
+### `POST /v1/games/{code}/launch` and `POST /v1/lobby/launch` — open a game or the lobby
+
+```json
+// request
+{ "player_external_id": "12*3456", "currency": "EUR", "language": "tr",
+  "return_url": "https://casino.example/games" }
+// 201 (lobby: "lobby_url" instead of "play_url")
+{ "launch_token": "lt_6vQ…", "play_url": "https://orange…/play/dice?token=lt_6vQ…",
+  "expires_at": "2026-11-02T10:02:00+00:00" }
+```
+
+Open the URL in your iframe within `expires_at` (2 minutes). The token works **once**. In direct
+play mode, Orange then debits and credits your wallet through the wallet callbacks of §8 for bets
+the player places in the page. Those bets were not started by your backend, so your credit and
+rollback handlers must accept them. Errors: `404 unknown_game`, `403 game_not_enabled`,
+`409 game_unavailable`, `422 currency_not_supported`, `422` validation.
+
+### `POST /v1/games/{code}/bets` — place a bet on any game (relay mode)
+
+The same idempotency and wallet rules as `POST /v1/bets`.
+
+- **Round games (crash).** `round_uuid` is optional: by default the bet goes on the round that is
+  taking bets now. Player choices go in `params`, e.g. `{ "auto_cashout_at": "2.00" }`. The
+  response has the same keys as `POST /v1/bets`, plus `game`. Cash out with
+  `POST /v1/bets/{id}/cashout`.
+- **Instant games (dice).** The bet resolves in the same call. The response carries the outcome,
+  multiplier and payout (see the game's page in this guide).
+
+```json
+{ "player_external_id": "12*3456", "amount": "2.50", "currency": "EUR",
+  "params": { "auto_cashout_at": "2.00" } }
+```
+
+Extra errors: `404 unknown_game`, `404 unknown_round` (the round isn't this game's), and
+`422 invalid_params`.
+
+### Fairness: `GET /v1/fairness/{code}` and `GET /v1/fairness/{code}/verify`
+
+Public, no HMAC, 60 requests a minute per IP.
+
+- `GET /v1/fairness/{code}` returns what a player needs to verify the game's outcomes: the
+  algorithm, the game's house edge and, for crash, the public `house_client_seed`.
+- `GET /v1/fairness/{code}/verify?server_seed=…&client_seed=…&nonce=…[&expected_server_seed_hash=…]`
+  recomputes an outcome with the game's own parameters, so you don't need to pass `house_edge`.
+  Games that are no longer offered stay verifiable.
+
+### Max win
+
+When a game has limits for the bet's currency, a payout never exceeds the effective `max_win`.
+A crash bet that reaches its max win is cashed out automatically, with `is_auto: true`. The max
+win is fixed when the bet is placed.
 
 ---
 

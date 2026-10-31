@@ -76,11 +76,12 @@ it('accepts only house edges the verifier can compute with', function (): void {
     $rules = ['house_edge' => crashEngine()->verifier()->rules()['house_edge']];
     $game = Game::factory()->create();
 
-    foreach ([0.000001, 0.03, 0.6] as $edge) {
+    // 0.66 → round(1.52) = 2 is the largest usable edge; 0.67 → round(1.49) = 1 is not.
+    foreach ([0.0000001, 0.03, 0.6, 0.66] as $edge) {
         expect(validator(['house_edge' => $edge], $rules)->passes())->toBeTrue();
         crashEngine()->verifier()->verify($game, 'seed', 'client', 1, ['house_edge' => $edge]);
     }
-    foreach ([0, 0.0000001, 0.7, 0.99] as $edge) {
+    foreach ([0, 0.67, 0.99, 1, 1e-20, 'abc'] as $edge) {
         expect(validator(['house_edge' => $edge], $rules)->passes())->toBeFalse();
     }
 });

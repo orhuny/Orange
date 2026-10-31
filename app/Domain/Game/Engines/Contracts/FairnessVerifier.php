@@ -10,6 +10,14 @@ use App\Domain\Game\Models\Game;
 interface FairnessVerifier
 {
     /**
+     * What a player needs to verify outcomes themselves: the algorithm, the game's
+     * public parameters and where each input comes from.
+     *
+     * @return array<string, mixed>
+     */
+    public function describe(Game $game): array;
+
+    /**
      * Validation rules for the game-specific verification inputs (besides the seeds and nonce).
      *
      * @return array<string, mixed>
