@@ -224,3 +224,18 @@ it('keeps a crash game\'s existing settings when it is edited', function (): voi
     expect($crash->fresh()->name)->toBe('DeepDive')
         ->and($crash->fresh()->config)->toBe(['growth_rate' => 0.06, 'max_win' => 100000]);
 });
+
+it('keeps an operator\'s max win above its max bet', function (): void {
+    $operator = Operator::factory()->create();
+    $dice = adminDice();
+    OperatorGame::factory()->create(['operator_id' => $operator->id, 'game_id' => $dice->id]);
+    GameLimit::factory()->create(['game_id' => $dice->id, 'currency' => 'EUR', 'min_bet' => '0.10', 'max_bet' => '100', 'max_win' => '10000']);
+
+    expect(fn () => app(OperatorLimitsEditor::class)->replace($operator->id, $dice, [['currency' => 'EUR', 'max_win' => '100']]))
+        ->toThrow(InvalidArgumentException::class, 'above the max bet')
+        ->and(fn () => app(OperatorLimitsEditor::class)->replace($operator->id, $dice, [['currency' => 'EUR', 'max_bet' => '10', 'max_win' => '10']]))
+        ->toThrow(InvalidArgumentException::class, 'above the max bet');
+
+    app(OperatorLimitsEditor::class)->replace($operator->id, $dice, [['currency' => 'EUR', 'max_bet' => '10', 'max_win' => '10.01']]);
+    expect(OperatorGameLimit::count())->toBe(1);
+});

@@ -7,6 +7,7 @@ use App\Domain\Launch\Exceptions\InvalidLaunchToken;
 use App\Domain\Launch\Models\PlaySession;
 use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Launch\Services\PlaySessionService;
+use App\Domain\Operator\Enums\OperatorStatus;
 use App\Domain\Operator\Models\Operator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -99,4 +100,17 @@ it('answers the player API only with a valid session', function (): void {
         ->assertJsonPath('game', 'crash')
         ->assertJsonPath('lobby', false)
         ->assertJsonPath('language', 'tr');
+});
+
+it('ends play sessions and launch links when their operator is suspended', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $operator = Operator::factory()->create();
+    $unused = launchFor($game, $operator);
+    [, $bearer] = app(PlaySessionService::class)->exchange(launchFor($game, $operator));
+
+    $operator->forceFill(['status' => OperatorStatus::Suspended])->save();
+
+    expect(app(PlaySessionService::class)->authenticate($bearer))->toBeNull()
+        ->and(fn () => app(PlaySessionService::class)->exchange($unused))->toThrow(InvalidLaunchToken::class);
+    getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])->assertUnauthorized();
 });

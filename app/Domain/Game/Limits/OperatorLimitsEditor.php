@@ -60,6 +60,13 @@ final class OperatorLimitsEditor
                 $this->assertTighter($currency, $values, $limit);
             }
 
+            // The max win must stay above the largest stake, or a win could pay less than it cost.
+            $maxBet = $values['max_bet'] ?? ($limit instanceof GameLimit ? (string) $limit->max_bet : null);
+            $maxWin = $values['max_win'] ?? ($limit instanceof GameLimit ? (string) $limit->max_win : null);
+            if ($maxBet !== null && $maxWin !== null && bccomp($maxWin, $maxBet, 8) <= 0) {
+                throw new InvalidArgumentException("{$currency}: the max win must be above the max bet ({$maxBet}).");
+            }
+
             $clean[$currency] = $values;
         }
 

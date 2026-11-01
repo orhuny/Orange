@@ -34,15 +34,23 @@ final class DiceVerifier implements FairnessVerifier
     public function rules(): array
     {
         return [
-            'target' => ['required', 'regex:/^\d{1,2}(\.\d{1,2})?$/'],
+            // At least 0.01: an "under 0" bet has no chance, and no multiplier to verify.
+            'target' => ['required', 'regex:/^\d{1,2}(\.\d{1,2})?$/', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (is_numeric($value) && bccomp((string) $value, '0.01', 2) < 0) {
+                    $fail('The target must be at least 0.01.');
+                }
+            }],
             'direction' => ['required', 'in:under,over'],
+            // The RTP the bet was played with (in its outcome); defaults to the game's current one.
+            'rtp' => ['nullable', 'regex:/^0\.\d{1,4}$/'],
         ];
     }
 
     public function verify(Game $game, string $serverSeed, string $clientSeed, int $nonce, array $params): array
     {
         $roll = (new RandomStream($serverSeed, $clientSeed, $nonce))->nextInt(DiceEngine::OUTCOMES);
-        $result = DiceEngine::resolve(DiceEngine::rtp($game), [
+        $rtp = isset($params['rtp']) ? bcadd((string) $params['rtp'], '0', 4) : DiceEngine::rtp($game);
+        $result = DiceEngine::resolve($rtp, [
             'target' => bcadd((string) $params['target'], '0', 2),
             'direction' => (string) $params['direction'],
         ], $roll);
@@ -53,6 +61,7 @@ final class DiceVerifier implements FairnessVerifier
             'roll' => $result->outcome['roll'],
             'win' => $result->won,
             'payout_multiplier' => $result->outcome['payout_multiplier'],
+            'rtp' => $rtp,
         ];
     }
 }

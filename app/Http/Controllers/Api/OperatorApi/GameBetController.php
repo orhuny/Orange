@@ -47,7 +47,7 @@ class GameBetController
 
         $validated = $request->validate([
             'player_external_id' => ['required', 'string', 'min:1', 'max:128'],
-            'amount' => ['required', 'numeric', 'gt:0', 'regex:/^\d{1,10}(\.\d+)?$/'],
+            'amount' => ['required', 'numeric', 'gt:0', 'regex:/^\d{1,10}(\.\d{1,8})?$/'],
             'currency' => ['required', 'string', 'size:3'],
             'round_uuid' => ['nullable', 'uuid'],
             'params' => ['nullable', 'array'],

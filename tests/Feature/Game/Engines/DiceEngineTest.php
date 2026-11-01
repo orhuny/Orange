@@ -59,7 +59,7 @@ it('rolls the published values through play()', function (): void {
 
     $result = dice()->play($game, $under, new RandomStream('orange-dice-seed-0001', 'player-seed', 1));
 
-    expect($result->outcome)->toBe(['roll' => '44.30', 'target' => '50.00', 'direction' => 'under', 'win' => true, 'payout_multiplier' => '1.9800'])
+    expect($result->outcome)->toBe(['roll' => '44.30', 'target' => '50.00', 'direction' => 'under', 'win' => true, 'payout_multiplier' => '1.9800', 'rtp' => '0.9900'])
         ->and($result->won)->toBeTrue()
         ->and($result->multiplier)->toBe('1.9800');
 
@@ -89,4 +89,19 @@ it('validates its config', function (): void {
     expect(dice()->validateConfig(diceGame(), ['min_chance' => '1', 'max_chance' => '95.5']))->toBe(['min_chance' => '1.00', 'max_chance' => '95.50'])
         ->and(fn () => dice()->validateConfig(diceGame(), ['min_chance' => '50', 'max_chance' => '10']))->toThrow(InvalidGameConfig::class)
         ->and(fn () => dice()->validateConfig(diceGame(), ['max_chance' => '100']))->toThrow(InvalidGameConfig::class);
+});
+
+it('fixes the RTP when the bet is placed, and verifies with it after the game changes', function (): void {
+    $game = diceGame();
+    $params = dice()->validateParams($game, ['target' => '50', 'direction' => 'under', 'rtp' => '0.5']);
+    expect($params['rtp'])->toBe('0.9900');
+
+    $game->forceFill(['rtp_target' => 0.97, 'house_edge' => 0.03])->save();
+    $result = dice()->play($game, $params, new RandomStream('orange-dice-seed-0001', 'player-seed', 1));
+
+    expect($result->multiplier)->toBe('1.9800')
+        ->and(dice()->verifier()->verify($game, 'orange-dice-seed-0001', 'player-seed', 1, ['target' => '50', 'direction' => 'under', 'rtp' => '0.9900']))
+        ->toMatchArray(['roll' => '44.30', 'payout_multiplier' => '1.9800', 'rtp' => '0.9900'])
+        ->and(dice()->verifier()->verify($game, 'orange-dice-seed-0001', 'player-seed', 1, ['target' => '50', 'direction' => 'under']))
+        ->toMatchArray(['payout_multiplier' => '1.9400']);
 });

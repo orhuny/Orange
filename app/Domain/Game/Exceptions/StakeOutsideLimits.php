@@ -20,6 +20,11 @@ class StakeOutsideLimits extends RuntimeException
         return new self("The minimum bet is {$limits->minBet} {$limits->currency}.", 'bet_below_min', (string) $limits->minBet);
     }
 
+    public static function notBelowMaxWin(EffectiveLimits $limits): self
+    {
+        return new self("The stake must be below the maximum win of {$limits->maxWin} {$limits->currency}.", 'bet_above_max', (string) $limits->maxWin);
+    }
+
     public static function aboveMax(EffectiveLimits $limits): self
     {
         return new self("The maximum bet is {$limits->maxBet} {$limits->currency}.", 'bet_above_max', (string) $limits->maxBet);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Game\Limits;
 
+use App\Domain\Game\Engines\Contracts\RoundBasedEngine;
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Enums\GameAccess;
 use App\Domain\Game\Exceptions\CurrencyNotSupported;
 use App\Domain\Game\Exceptions\GameNotAvailable;
@@ -25,6 +27,8 @@ use App\Domain\Operator\Models\Operator;
  */
 final class GameLimits
 {
+    public function __construct(private readonly EngineRegistry $engines) {}
+
     /**
      * @throws GameNotAvailable
      * @throws CurrencyNotSupported
@@ -42,7 +46,10 @@ final class GameLimits
         $gameLimits = GameLimit::query()->where('game_id', $game->id)->get();
         $limit = $gameLimits->firstWhere('currency', $currency);
 
-        if ($gameLimits->isNotEmpty() && ! $limit instanceof GameLimit) {
+        // Only round-based games (crash) may run without limit rows, as they always have; an
+        // instant or session game without them would take any currency with uncapped wins.
+        $unlimitedAllowed = $this->engines->has($game->engineType()) && $this->engines->forGame($game) instanceof RoundBasedEngine;
+        if (($gameLimits->isNotEmpty() || ! $unlimitedAllowed) && ! $limit instanceof GameLimit) {
             throw CurrencyNotSupported::for($game, $currency);
         }
 
@@ -82,6 +89,11 @@ final class GameLimits
 
         if ($limits->maxBet !== null && bccomp($amount, $limits->maxBet, 8) > 0) {
             throw StakeOutsideLimits::aboveMax($limits);
+        }
+
+        // A stake at or above the max win could only ever "win" back less than it cost.
+        if ($limits->maxWin !== null && bccomp($amount, $limits->maxWin, 8) >= 0) {
+            throw StakeOutsideLimits::notBelowMaxWin($limits);
         }
     }
 

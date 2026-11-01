@@ -82,12 +82,14 @@ final class DiceEngine implements InstantEngine
             throw new InvalidBetParams("The win chance must be between {$min}% and {$max}%; this bet's is {$chance}%.");
         }
 
-        return $normalised;
+        // The RTP is fixed when the bet is placed, so a later change to the game can neither
+        // alter a pending payout nor stop the bet from verifying.
+        return $normalised + ['rtp' => self::rtp($game)];
     }
 
     public function play(Game $game, array $params, RandomStream $rng): InstantResult
     {
-        return self::resolve(self::rtp($game), $params, $rng->nextInt(self::OUTCOMES));
+        return self::resolve((string) ($params['rtp'] ?? self::rtp($game)), $params, $rng->nextInt(self::OUTCOMES));
     }
 
     /**
@@ -108,6 +110,7 @@ final class DiceEngine implements InstantEngine
                 'direction' => (string) $params['direction'],
                 'win' => $won,
                 'payout_multiplier' => $multiplier,
+                'rtp' => $rtp,
             ],
             won: $won,
             multiplier: $won ? $multiplier : '0',

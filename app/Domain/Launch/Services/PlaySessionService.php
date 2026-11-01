@@ -32,8 +32,9 @@ final class PlaySessionService
                 ->where('expires_at', '>', now())
                 ->update(['used_at' => now()]);
 
-            $launch = $claimed === 1 ? LaunchToken::query()->where('token_hash', $hash)->first() : null;
-            if (! $launch instanceof LaunchToken) {
+            $launch = $claimed === 1 ? LaunchToken::query()->with('operator')->where('token_hash', $hash)->first() : null;
+            // A suspended or disabled operator's links stop working, like its API keys do.
+            if (! $launch instanceof LaunchToken || $launch->operator?->isActive() !== true) {
                 throw new InvalidLaunchToken('This link has expired or was already used.');
             }
 
@@ -56,8 +57,9 @@ final class PlaySessionService
 
     public function authenticate(string $bearerToken): ?PlaySession
     {
-        $session = PlaySession::query()->where('token_hash', LaunchService::hash($bearerToken))->first();
-        if (! $session instanceof PlaySession || ! $session->isUsable()) {
+        $session = PlaySession::query()->with('operator')->where('token_hash', LaunchService::hash($bearerToken))->first();
+        // Sessions end with their operator: a suspended operator takes no more bets.
+        if (! $session instanceof PlaySession || ! $session->isUsable() || $session->operator?->isActive() !== true) {
             return null;
         }
 

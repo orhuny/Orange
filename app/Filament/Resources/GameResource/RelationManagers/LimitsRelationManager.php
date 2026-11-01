@@ -43,7 +43,8 @@ class LimitsRelationManager extends RelationManager
                 ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->where('game_id', $this->getOwnerRecord()->getKey())),
             TextInput::make('min_bet')->label('Min bet')->required()->numeric()->minValue(0),
             TextInput::make('max_bet')->label('Max bet')->required()->numeric()->gte('min_bet'),
-            TextInput::make('max_win')->label('Max win')->required()->numeric()->minValue(0),
+            // Above the max bet, or a win could pay less than its stake.
+            TextInput::make('max_win')->label('Max win')->required()->numeric()->gt('max_bet'),
         ]);
     }
 

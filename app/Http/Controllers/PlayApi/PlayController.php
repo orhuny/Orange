@@ -92,7 +92,7 @@ class PlayController
         }
 
         $validated = $request->validate([
-            'amount' => ['required', 'numeric', 'gt:0', 'regex:/^\d{1,10}(\.\d+)?$/'],
+            'amount' => ['required', 'numeric', 'gt:0', 'regex:/^\d{1,10}(\.\d{1,8})?$/'],
             'round_uuid' => ['nullable', 'uuid'],
             'params' => ['nullable', 'array'],
         ]);

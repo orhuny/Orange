@@ -16,7 +16,7 @@ use App\Domain\Operator\Models\Operator;
 
 function limits(): GameLimits
 {
-    return new GameLimits;
+    return app(GameLimits::class);
 }
 
 it('leaves a game without limit rows unlimited in any currency (crash today)', function (): void {
@@ -118,4 +118,17 @@ it('caps a payout at max win', function (): void {
     expect($limits->capPayout('499.99999999'))->toBe('499.99999999')
         ->and($limits->capPayout('500.00000001'))->toBe('500.00000000')
         ->and(EffectiveLimits::unlimited('EUR')->capPayout('1000000.00000000'))->toBe('1000000.00000000');
+});
+
+it('refuses every currency for an instant game that has no limits yet', function (): void {
+    $dice = Game::factory()->create(['type' => 'dice', 'rtp_target' => 0.99, 'house_edge' => 0.01]);
+
+    expect(fn () => limits()->for($dice, Operator::factory()->create(), 'EUR'))->toThrow(CurrencyNotSupported::class);
+});
+
+it('refuses a stake at or above the max win', function (): void {
+    $limits = new EffectiveLimits('EUR', null, '100.00000000', '50.00000000');
+
+    limits()->assertStake($limits, '49.99999999');
+    expect(fn () => limits()->assertStake($limits, '50'))->toThrow(StakeOutsideLimits::class, 'below the maximum win');
 });
