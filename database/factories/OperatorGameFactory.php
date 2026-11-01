@@ -27,6 +27,12 @@ class OperatorGameFactory extends Factory
         ];
     }
 
+    /** Played directly through Orange's launch / lobby pages. */
+    public function direct(): static
+    {
+        return $this->state(['settings' => ['play_mode' => 'direct']]);
+    }
+
     public function disabled(): static
     {
         return $this->state(['enabled' => false]);

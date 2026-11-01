@@ -735,6 +735,35 @@ every phase.
 
 ---
 
+## 12b. Whole-build review (2026-11-01)
+
+An adversarial review of Phases 3–8 found thirteen defects. Each was checked against the code
+and then fixed (branch `fix/review-findings`):
+
+**Money**
+- Direct crash bets left `pending` by a dying process are now resolved by
+  `games:settle-stale-bets`.
+- Every status flip and its wallet record are one transaction, and callbacks are queued after
+  commit.
+- Rollbacks after an unanswered debit wait `wallet.unanswered_debit_rollback_delay_seconds` and
+  name the debit (`reference.debit_tx_id`); afq refuses such a late debit.
+- A stake must be below the max win, and max win must exceed max bet.
+- Instant games need limit rows for every currency they take.
+- New endpoints accept at most 8 decimals.
+
+**Fairness and secrecy**
+- Dice fixes its RTP at placement, and the verifier takes it.
+- Player seed pairs pre-commit the next server seed (`next_server_seed_hash`).
+- Game pages show the odds of the game being played (`?game={code}`).
+- The Dice verifier refuses target 0.
+
+**Access**
+- Play sessions and launch links stop when their operator is suspended.
+- Direct play (launch, lobby, player API) requires the per-game play mode `direct`.
+
+**Reports**
+- The dashboard reports one currency at a time.
+
 ## 13. Decisions (2026-10-31)
 
 | # | Question | Decision |

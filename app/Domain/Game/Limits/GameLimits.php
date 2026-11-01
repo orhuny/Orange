@@ -72,6 +72,32 @@ final class GameLimits
         );
     }
 
+    /**
+     * Whether the operator plays the game directly (launch, lobby, /play-api): only when its
+     * operator_game row says so. Relay operators place their bets themselves, so Orange must
+     * never start bets — and debit their wallet — on their behalf.
+     */
+    public static function isDirectPlay(Game $game, ?OperatorGame $operatorGame): bool
+    {
+        $settings = $operatorGame?->getAttribute('settings');
+
+        return $operatorGame !== null && $operatorGame->enabled
+            && is_array($settings) && ($settings['play_mode'] ?? null) === 'direct';
+    }
+
+    /** @throws GameNotAvailable unless the operator plays the game directly */
+    public function assertDirectPlay(Game $game, Operator $operator): void
+    {
+        $operatorGame = OperatorGame::query()->where('operator_id', $operator->id)->where('game_id', $game->id)->first();
+
+        if (! self::isEnabledFor($game, $operatorGame)) {
+            throw GameNotAvailable::notEnabled($game);
+        }
+        if (! self::isDirectPlay($game, $operatorGame)) {
+            throw GameNotAvailable::directPlayNotEnabled($game);
+        }
+    }
+
     /** Whether the game is open to the operator (ignoring its status). */
     public static function isEnabledFor(Game $game, ?OperatorGame $operatorGame): bool
     {

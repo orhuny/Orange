@@ -7,6 +7,7 @@ use App\Domain\Game\Enums\GameAccess;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
+use App\Domain\Game\Models\OperatorGame;
 use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Launch\Services\PlaySessionService;
@@ -41,6 +42,9 @@ function directPlay(?Game $game = null, bool $lobby = false): array
     $game ??= Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
     $orchestrator = app(RoundOrchestrator::class);
     $round = $orchestrator->openBetting($orchestrator->create($game));
+    if ($game->getAttribute('access') === GameAccess::All) {
+        OperatorGame::factory()->direct()->create(['operator_id' => $operator->id, 'game_id' => $game->id]);
+    }
     $token = app(LaunchService::class)->issue($operator, $lobby ? null : $game, 'p-1', 'EUR')->token;
     [, $bearer] = app(PlaySessionService::class)->exchange($token);
 
@@ -169,9 +173,12 @@ it('lets a session bet only on its own game, or on any enabled game from the lob
     directBet($bearer, code: 'other')->assertNotFound()->assertJsonPath('error', 'unknown_game');
 
     $listed = Game::factory()->create(['code' => 'listed', 'slug' => 'listed', 'access' => GameAccess::Listed]);
-    [, , , $lobbyBearer] = directPlay($listed, lobby: true);
+    [$lobbyOperator, , , $lobbyBearer] = directPlay($listed, lobby: true);
     directBet($lobbyBearer, code: 'listed')->assertStatus(403)->assertJsonPath('error', 'game_not_enabled');
-    directBet($lobbyBearer, code: 'other', key: 'browser-key-0002')->assertCreated();
+    // Open to every operator, but this one plays it in relay mode until set up for direct play.
+    directBet($lobbyBearer, code: 'other', key: 'browser-key-0002')->assertStatus(403)->assertJsonPath('error', 'direct_play_not_enabled');
+    OperatorGame::factory()->direct()->create(['operator_id' => $lobbyOperator->id, 'game_id' => $other->id]);
+    directBet($lobbyBearer, code: 'other', key: 'browser-key-0003')->assertCreated();
 });
 
 it('requires an Idempotency-Key from the page', function (): void {

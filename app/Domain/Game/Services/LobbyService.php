@@ -24,7 +24,8 @@ final class LobbyService
     {
         $frontends = (array) config('games.frontends', []);
         $tiles = collect($this->catalogue->forOperator($session->operator))
-            ->filter(fn (array $game): bool => isset($frontends[$game['type']]))
+            // The lobby plays games directly: only those set up for direct play are offered.
+            ->filter(fn (array $game): bool => isset($frontends[$game['type']]) && $game['play_mode'] === 'direct')
             ->map(fn (array $game): array => [
                 'code' => $game['code'],
                 'name' => $game['name'],
@@ -32,7 +33,7 @@ final class LobbyService
                 'category' => $game['category'],
                 'thumbnail_url' => $game['thumbnail_url'],
                 'playable' => $game['status'] === 'active',
-                'frame_url' => url((string) $frontends[$game['type']]),
+                'frame_url' => url((string) $frontends[$game['type']]).'?game='.rawurlencode($game['code']),
             ])
             ->values();
         $codes = $tiles->pluck('code')->all();

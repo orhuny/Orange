@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\DB;
  * Each player's seed pair for instant games: one active pair, shared by every instant
  * game; each bet takes the next nonce. Rotating reveals the server seed (so the player
  * can verify every bet on it) and starts a new pair.
+ *
+ * Every pair also carries the next server seed, committed (hashed) in advance: the new
+ * pair a rotation starts uses it, with the client seed the player picks then. So the
+ * server seed is always fixed before the client seed is known.
  */
 final class PlayerSeedService
 {
@@ -69,21 +73,26 @@ final class PlayerSeedService
                 throw new SeedInUse('A bet on this seed pair is still being settled; rotate once it has.');
             }
 
-            $current->forceFill(['active' => false, 'revealed_at' => now()])->save();
+            // The next server seed was committed before this client seed was chosen.
+            $committed = $current->next_server_seed;
+            $current->forceFill(['active' => false, 'revealed_at' => now(), 'next_server_seed' => null])->save();
 
-            return [$current, $this->mint($player, $clientSeed ?? self::randomClientSeed())];
+            return [$current, $this->mint($player, $clientSeed ?? self::randomClientSeed(), $committed)];
         });
     }
 
-    private function mint(Player $player, string $clientSeed): PlayerSeed
+    private function mint(Player $player, string $clientSeed, ?string $serverSeed = null): PlayerSeed
     {
-        $serverSeed = bin2hex(random_bytes(32));
+        $serverSeed ??= bin2hex(random_bytes(32));
+        $next = bin2hex(random_bytes(32));
 
         return PlayerSeed::create([
             'operator_id' => $player->operator_id,
             'player_id' => $player->id,
             'server_seed' => $serverSeed,
             'server_seed_hash' => hash('sha256', $serverSeed),
+            'next_server_seed' => $next,
+            'next_server_seed_hash' => hash('sha256', $next),
             'client_seed' => $clientSeed,
             'nonce' => 0,
             'active' => true,

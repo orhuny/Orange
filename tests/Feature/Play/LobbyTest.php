@@ -56,7 +56,9 @@ it('falls back to the default look for anything that is not a safe logo URL or a
 
 it('refuses a game launch token at the lobby, and a used one', function (): void {
     $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
-    $gameToken = app(LaunchService::class)->issue(Operator::factory()->create(), $game, 'p-1', 'EUR')->token;
+    $gameOperator = Operator::factory()->create();
+    OperatorGame::factory()->direct()->create(['operator_id' => $gameOperator->id, 'game_id' => $game->id]);
+    $gameToken = app(LaunchService::class)->issue($gameOperator, $game, 'p-1', 'EUR')->token;
     [, $token] = lobbyLaunch();
 
     get("/lobby?token={$gameToken}")->assertNotFound();
@@ -73,9 +75,14 @@ it('lists the operator\'s playable games by category, with recent and popular', 
     $crash = Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'name' => 'DeepDive', 'category_id' => $crashCategory->id]);
     $dice = Game::factory()->create(['code' => 'dice', 'slug' => 'dice', 'type' => 'dice', 'name' => 'Dice', 'access' => GameAccess::Listed,
         'category_id' => $originals->id, 'rtp_target' => 0.99, 'house_edge' => 0.01]);
-    OperatorGame::factory()->create(['operator_id' => $operator->id, 'game_id' => $dice->id]);
+    OperatorGame::factory()->direct()->create(['operator_id' => $operator->id, 'game_id' => $dice->id]);
+    OperatorGame::factory()->direct()->create(['operator_id' => $operator->id, 'game_id' => $crash->id]);
     Game::factory()->create(['code' => 'other-dice', 'slug' => 'other-dice', 'type' => 'dice', 'access' => GameAccess::Listed]);
-    Game::factory()->create(['code' => 'rocket', 'slug' => 'rocket', 'name' => 'Rocket', 'status' => 'maintenance']);
+    $rocket = Game::factory()->create(['code' => 'rocket', 'slug' => 'rocket', 'name' => 'Rocket', 'status' => 'maintenance']);
+    OperatorGame::factory()->direct()->create(['operator_id' => $operator->id, 'game_id' => $rocket->id]);
+    // Relay-only for this operator: not offered in the lobby.
+    $relayed = Game::factory()->create(['code' => 'relayed', 'slug' => 'relayed', 'name' => 'Relayed']);
+    OperatorGame::factory()->create(['operator_id' => $operator->id, 'game_id' => $relayed->id, 'settings' => ['play_mode' => 'relay']]);
     $player = Player::query()->where('external_player_id', 'p-1')->sole();
     Bet::factory()->create(['operator_id' => $operator->id, 'player_id' => $player->id, 'round_id' => null, 'game_id' => $dice->id]);
     Bet::factory()->create(['operator_id' => $operator->id, 'player_id' => $player->id, 'round_id' => null, 'game_id' => $crash->id]);
@@ -90,15 +97,17 @@ it('lists the operator\'s playable games by category, with recent and popular', 
         ->and($response->json('popular'))->toBe(['crash', 'dice'])
         ->and($response->json('theme.primary'))->toBe('#ff8a00');
     $tiles = array_column((array) $response->json('games'), null, 'code');
-    expect($tiles['dice']['frame_url'])->toBe(url('/games/dice'))
-        ->and($tiles['crash']['frame_url'])->toBe(url('/crash'))
+    expect($tiles['dice']['frame_url'])->toBe(url('/games/dice').'?game=dice')
+        ->and($tiles['crash']['frame_url'])->toBe(url('/crash').'?game=crash')
         ->and($tiles['rocket']['playable'])->toBeFalse()
         ->and($tiles['dice']['playable'])->toBeTrue();
 });
 
 it('serves lobby data only to lobby sessions', function (): void {
     $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
-    [, $bearer] = app(PlaySessionService::class)->exchange(app(LaunchService::class)->issue(Operator::factory()->create(), $game, 'p-1', 'EUR')->token);
+    $operator = Operator::factory()->create();
+    OperatorGame::factory()->direct()->create(['operator_id' => $operator->id, 'game_id' => $game->id]);
+    [, $bearer] = app(PlaySessionService::class)->exchange(app(LaunchService::class)->issue($operator, $game, 'p-1', 'EUR')->token);
 
     getJson('/play-api/lobby', ['Authorization' => "Bearer {$bearer}"])->assertForbidden()->assertJsonPath('error', 'not_a_lobby_session');
 });

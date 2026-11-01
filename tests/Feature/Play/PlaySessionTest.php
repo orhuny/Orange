@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Game\Models\Game;
+use App\Domain\Game\Models\OperatorGame;
 use App\Domain\Launch\Exceptions\InvalidLaunchToken;
 use App\Domain\Launch\Models\PlaySession;
 use App\Domain\Launch\Services\LaunchService;
@@ -20,9 +21,12 @@ afterEach(fn () => Carbon::setTestNow());
 
 function launchFor(?Game $game = null, ?Operator $operator = null): string
 {
-    return app(LaunchService::class)
-        ->issue($operator ?? Operator::factory()->create(), $game, 'p-1', 'EUR', 'tr')
-        ->token;
+    $operator ??= Operator::factory()->create();
+    if ($game !== null) {
+        OperatorGame::query()->firstOrCreate(['operator_id' => $operator->id, 'game_id' => $game->id], ['enabled' => true, 'settings' => ['play_mode' => 'direct']]);
+    }
+
+    return app(LaunchService::class)->issue($operator, $game, 'p-1', 'EUR', 'tr')->token;
 }
 
 it('exchanges a launch token for a play session exactly once', function (): void {
@@ -63,7 +67,7 @@ it('opens the host page for the launched game, with the game frame and no-store,
         ->assertHeader('Cache-Control', 'no-store, private')
         ->assertHeader('Referrer-Policy', 'no-referrer')
         ->assertSee('play-host.js', false)
-        ->assertSee(json_encode(url('/crash')), false)
+        ->assertSee(json_encode(url('/crash').'?game=crash'), false)
         ->assertSee('"ps_', false)
         ->assertSee('https:\/\/casino.example', false);
     expect($response->headers->get('Content-Security-Policy'))->toContain('https://casino.example');

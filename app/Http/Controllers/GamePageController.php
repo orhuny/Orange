@@ -8,6 +8,7 @@ use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Models\Game;
 use App\Domain\Operator\Models\Operator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 /**
  * GET /games/{type} — an engine's game page (resources/views/games/{type}.blade.php),
@@ -18,11 +19,17 @@ class GamePageController
 {
     public function __construct(private readonly EngineRegistry $engines) {}
 
-    public function __invoke(string $type): View
+    public function __invoke(Request $request, string $type): View
     {
         abort_unless($this->engines->has($type) && view()->exists("games.{$type}"), 404);
 
-        $game = Game::query()->where('type', $type)->where('status', '!=', 'draft')->orderBy('id')->first();
+        // The game being played (?game={code}, set by Orange's host pages), so its own odds are
+        // shown; an operator embedding the page without one gets the type's first game.
+        $games = Game::query()->where('type', $type)->where('status', '!=', 'draft');
+        $code = $request->query('game');
+        $game = is_string($code) && $code !== ''
+            ? (clone $games)->where('code', $code)->first() ?? abort(404)
+            : $games->orderBy('id')->first();
         $engine = $this->engines->for($type);
 
         return view("games.{$type}", [

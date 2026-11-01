@@ -16,6 +16,8 @@ final class SeedResponse
             'server_seed_hash' => $seed->server_seed_hash,
             'client_seed' => $seed->client_seed,
             'nonce' => $seed->nonce,
+            // The server seed the next pair will use, committed before its client seed is chosen.
+            'next_server_seed_hash' => $seed->next_server_seed_hash,
         ];
     }
 

@@ -146,8 +146,10 @@ it('refuses an unknown signature version', function (): void {
 
 it('launches a game: a single-use token stored only as a hash, and the play URL', function (): void {
     $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $operator = Operator::factory()->create();
+    OperatorGame::factory()->direct()->create(['operator_id' => $operator->id, 'game_id' => $game->id]);
 
-    $response = operatorApi(Operator::factory()->create(), 'POST', '/v1/games/crash/launch', [
+    $response = operatorApi($operator, 'POST', '/v1/games/crash/launch', [
         'player_external_id' => '12*3456', 'currency' => 'EUR', 'language' => 'tr', 'return_url' => 'https://casino.example/games',
     ])->assertCreated();
 
@@ -236,4 +238,15 @@ it('refuses a crash bet on another game\'s round, with bad params, or when betti
         ->assertStatus(404)->assertJsonPath('error', 'unknown_game');
 
     expect(Bet::count())->toBe(0);
+});
+
+it('refuses to launch a game the operator plays in relay mode', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $operator = Operator::factory()->create();
+    OperatorGame::factory()->create(['operator_id' => $operator->id, 'game_id' => $game->id, 'settings' => ['play_mode' => 'relay']]);
+
+    operatorApi($operator, 'POST', '/v1/games/crash/launch', ['player_external_id' => 'p-1', 'currency' => 'EUR'])
+        ->assertStatus(403)
+        ->assertJsonPath('error', 'direct_play_not_enabled');
+    expect(LaunchToken::count())->toBe(0);
 });

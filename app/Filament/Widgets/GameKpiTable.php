@@ -6,6 +6,7 @@ namespace App\Filament\Widgets;
 
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Models\Game;
+use App\Filament\Pages\Dashboard;
 use App\Support\AccessControl;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -37,6 +38,7 @@ class GameKpiTable extends TableWidget
         $settled = fn (Builder $q): Builder => $this->settledBets($q);
 
         return $table
+            ->heading(fn (): string => 'Games · '.$this->currency())
             ->query(fn (): Builder => AccessControl::scopeGamesToOperator(Game::query())
                 ->when($this->gameId(), fn (Builder $q, int $id) => $q->whereKey($id))
                 ->withCount(['bets as settled_bets' => $settled])
@@ -75,9 +77,18 @@ class GameKpiTable extends TableWidget
         $until = $this->pageFilters['until'] ?? now()->toDateString();
 
         return AccessControl::scopeToOperator($query)
+            ->where('currency', $this->currency())
             ->whereIn('status', [BetStatus::Won->value, BetStatus::Lost->value])
             ->whereDate('settled_at', '>=', (string) $from)
             ->whereDate('settled_at', '<=', (string) $until);
+    }
+
+    /** One currency at a time: amounts in different currencies can't be added up. */
+    private function currency(): string
+    {
+        $currency = $this->pageFilters['currency'] ?? null;
+
+        return is_string($currency) && $currency !== '' ? $currency : (string) array_key_first(Dashboard::currencies());
     }
 
     private function gameId(): ?int

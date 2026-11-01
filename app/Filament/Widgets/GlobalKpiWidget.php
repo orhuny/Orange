@@ -11,6 +11,7 @@ use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Operator\Enums\OperatorStatus;
 use App\Domain\Operator\Models\Operator;
+use App\Filament\Pages\Dashboard;
 use App\Support\AccessControl;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
@@ -40,6 +41,7 @@ class GlobalKpiWidget extends StatsOverviewWidget
         // Operator users get their own operator's bet/payout figures (cached per operator).
         $operatorId = AccessControl::operatorId();
         $gameId = $this->gameId();
+        $currency = $this->currency();
 
         // The 6 underlying queries are deterministic for any given second
         // and cheap to share across viewers. A 10s cache cuts DB load by
@@ -50,7 +52,7 @@ class GlobalKpiWidget extends StatsOverviewWidget
             'totalPayout' => $totalPayout,
             'activeRounds' => $activeRounds,
             'activeOperators' => $activeOperators,
-        ] = Cache::remember('admin.kpi-widget:'.($operatorId ?? 'all').':'.($gameId ?? 'all'), 10, function () use ($gameId): array {
+        ] = Cache::remember('admin.kpi-widget:'.($operatorId ?? 'all').':'.($gameId ?? 'all').':'.$currency, 10, function () use ($gameId, $currency): array {
             $today = Carbon::today();
             $forGame = fn (Builder $q): Builder => $q->when($gameId, fn (Builder $q, int $id) => $q->where('game_id', $id));
 
@@ -61,11 +63,13 @@ class GlobalKpiWidget extends StatsOverviewWidget
                     ->count(),
                 // Stakes actually taken: refused or rolled-back bets took nothing.
                 'totalBet' => (string) $forGame(AccessControl::scopeToOperator(Bet::query()))
+                    ->where('currency', $currency)
                     ->where('placed_at', '>=', $today)
                     ->whereNotIn('status', [BetStatus::Rejected->value, BetStatus::RolledBack->value])
                     ->sum('amount'),
                 // Every game's wins, as settled on the bet (crash cashouts included).
                 'totalPayout' => (string) $forGame(AccessControl::scopeToOperator(Bet::query()))
+                    ->where('currency', $currency)
                     ->where('status', BetStatus::Won->value)
                     ->where('settled_at', '>=', $today)
                     ->sum('payout_amount'),
@@ -98,19 +102,27 @@ class GlobalKpiWidget extends StatsOverviewWidget
                 ->description('settled / crashed since midnight')
                 ->icon('heroicon-o-chart-bar'),
 
-            Stat::make('Total bet today', $this->fmt($totalBet))
+            Stat::make("Total bet today ({$currency})", $this->fmt($totalBet))
                 ->icon('heroicon-o-currency-dollar'),
 
-            Stat::make('Total payout today', $this->fmt($totalPayout))
+            Stat::make("Total payout today ({$currency})", $this->fmt($totalPayout))
                 ->icon('heroicon-o-banknotes')
                 ->color('amber'),
 
-            Stat::make('GGR today', $this->fmt($ggr))
+            Stat::make("GGR today ({$currency})", $this->fmt($ggr))
                 ->description($rtp.'% RTP')
                 ->descriptionIcon($rtp >= 95 ? 'heroicon-o-arrow-trending-down' : 'heroicon-o-arrow-trending-up')
                 ->icon('heroicon-o-presentation-chart-line')
                 ->color(bccomp($ggr, '0', 2) >= 0 ? 'success' : 'danger'),
         ]));
+    }
+
+    /** One currency at a time: amounts in different currencies can't be added up. */
+    private function currency(): string
+    {
+        $currency = $this->pageFilters['currency'] ?? null;
+
+        return is_string($currency) && $currency !== '' ? $currency : (string) array_key_first(Dashboard::currencies());
     }
 
     /** The dashboard's game filter, if it names a game this user may see. */

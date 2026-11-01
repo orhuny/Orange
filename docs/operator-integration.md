@@ -369,7 +369,7 @@ All errors return JSON `{ "error": "<machine_code>", "reason": "<more_detail>"? 
 | 403 | `game_not_enabled` | The game is switched off for your operator |
 | 409 | `game_unavailable` | The game is disabled or in maintenance |
 | 422 | `currency_not_supported` | The game has limits configured, but none for this currency |
-| 422 | `bet_below_min` / `bet_above_max` | Outside the per-currency limits; `limit` holds the bound |
+| 422 | `bet_below_min` / `bet_above_max` | Outside the per-currency limits; `limit` holds the bound. A stake must also stay below the max win |
 | 422 | (validation) | Inspect `errors` field. `amount` must be a plain decimal (`"1.50"`; no exponent or sign) |
 
 Every 4xx above means **no bet was placed and no debit was sent**, so it is safe to refund the stake on your side.
@@ -532,6 +532,14 @@ Public, no HMAC, 60 requests a minute per IP.
 
 ### Direct play: `/play/{code}`
 
+Direct play is set up **per game** for your operator by Orange (play mode `direct`). Until it is,
+the game is relay-only for you:
+- launching it answers `403 direct_play_not_enabled`;
+- the lobby doesn't list it;
+- Orange never starts bets on it for you, so it never debits your wallet for them.
+
+`GET /v1/games` shows each game's `play_mode`.
+
 The `play_url` from a launch opens Orange's host page in your iframe. The page hosts the game,
 and the game places bets through Orange's player API, authenticated by a play session that the
 launch token was exchanged for. You don't relay any `place_bet` or `cashout` messages.
@@ -539,6 +547,11 @@ launch token was exchanged for. You don't relay any `place_bet` or `cashout` mes
 What you need:
 - **Your origin allowed:** add it to your operator's `embed_origins` (Orange sets this in your
   operator configuration).
+- **Rollbacks that may arrive before their debit.** If your answer to a debit doesn't reach
+  Orange in time, Orange rolls the stake back about a minute later (`rollback:{bet_id}`). The
+  rollback names the debit in `reference.debit_tx_id`. If you haven't seen that debit yet,
+  acknowledge the rollback **and refuse that debit `tx_id` from then on**: it may still arrive
+  late, and it must not take a stake that was already rolled back.
 - **A wallet that accepts Orange-originated bets:** a direct bet's stake is debited
   synchronously, with `tx_id` = `bet:ps-…`, before the bet counts.
   - A 4xx from your wallet rejects the bet (`wallet_rejected`, with your error code passed to
@@ -608,13 +621,17 @@ Money flow:
 **Fairness and seeds.** Each player has one seed pair for all instant games. Every bet uses the
 next nonce, and the server seed stays secret (only its SHA-256 is shown) until the player
 rotates the pair:
-- `GET /v1/players/{external_id}/seeds` returns `{ server_seed_hash, client_seed, nonce }`.
+- `GET /v1/players/{external_id}/seeds` returns `{ server_seed_hash, client_seed, nonce, next_server_seed_hash }`.
+  `next_server_seed_hash` commits to the server seed the *next* pair will use, before the player
+  picks its client seed.
 - `POST /v1/players/{external_id}/seeds/rotate` takes an optional `{ "client_seed": "…" }`.
   It returns `previous` (with the revealed `server_seed`) and `current`. While a bet on the
   pair is still settling, it answers `409 bets_in_progress`.
 
 Verify a bet with
-`GET /v1/fairness/dice/verify?server_seed=…&client_seed=…&nonce=…&target=…&direction=…`.
+`GET /v1/fairness/dice/verify?server_seed=…&client_seed=…&nonce=…&target=…&direction=…&rtp=…`.
+`rtp` is the one the bet was played with (it's in its `outcome`), so a later RTP change doesn't
+affect it. Stakes have at most 8 decimals.
 The algorithm is spelled out at `GET /v1/fairness/dice`.
 
 **Embedding the page yourself (relay play).** Embed `/games/dice`. The page posts

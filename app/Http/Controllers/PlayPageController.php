@@ -55,7 +55,7 @@ class PlayPageController
             ->view('play.host', [
                 'gameCode' => $game->code,
                 'gameName' => $game->name,
-                'frameUrl' => url($frameUrl),
+                'frameUrl' => url($frameUrl).'?game='.rawurlencode($game->code),
                 'bearer' => $bearer,
                 'language' => $language,
                 'outerOrigins' => array_values(array_unique($outerOrigins)),

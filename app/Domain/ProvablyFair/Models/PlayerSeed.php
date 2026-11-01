@@ -20,6 +20,8 @@ class PlayerSeed extends Model
         'player_id',
         'server_seed',
         'server_seed_hash',
+        'next_server_seed',
+        'next_server_seed_hash',
         'client_seed',
         'nonce',
         'active',
@@ -28,12 +30,14 @@ class PlayerSeed extends Model
 
     protected $hidden = [
         'server_seed',
+        'next_server_seed',
     ];
 
     protected function casts(): array
     {
         return [
             'server_seed' => 'encrypted',
+            'next_server_seed' => 'encrypted',
             'nonce' => 'integer',
             'active' => 'boolean',
             'revealed_at' => 'datetime',

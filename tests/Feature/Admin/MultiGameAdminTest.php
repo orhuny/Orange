@@ -239,3 +239,20 @@ it('keeps an operator\'s max win above its max bet', function (): void {
     app(OperatorLimitsEditor::class)->replace($operator->id, $dice, [['currency' => 'EUR', 'max_bet' => '10', 'max_win' => '10.01']]);
     expect(OperatorGameLimit::count())->toBe(1);
 });
+
+it('reports one currency at a time, the most bet one by default', function (): void {
+    $operator = Operator::factory()->create();
+    $dice = adminDice();
+    $player = Player::factory()->create(['operator_id' => $operator->id]);
+    $bet = fn (string $currency, string $amount, string $payout) => Bet::factory()->create([
+        'round_id' => null, 'game_id' => $dice->id, 'operator_id' => $operator->id, 'player_id' => $player->id,
+        'status' => BetStatus::Lost, 'currency' => $currency, 'amount' => $amount, 'payout_amount' => $payout, 'settled_at' => now(),
+    ]);
+    $bet('TRY', '1000', '0');
+    $bet('TRY', '500', '0');
+    $bet('EUR', '10', '0');
+    actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create());
+
+    Livewire::test(GameKpiTable::class)->assertTableColumnStateSet('ggr', '1500.00', $dice);
+    Livewire::test(GameKpiTable::class, ['pageFilters' => ['currency' => 'EUR']])->assertTableColumnStateSet('ggr', '10.00', $dice);
+});

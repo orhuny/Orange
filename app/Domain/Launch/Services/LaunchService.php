@@ -34,8 +34,10 @@ final class LaunchService
         $currency = strtoupper($currency);
 
         if ($game instanceof Game) {
-            // Refuse up front what a bet would refuse later: disabled game, unsupported currency.
+            // Refuse up front what a bet would refuse later: disabled game, unsupported currency,
+            // or a game this operator plays in relay mode.
             $this->limits->for($game, $operator, $currency);
+            $this->limits->assertDirectPlay($game, $operator);
         }
 
         $player = Player::query()->firstOrCreate(

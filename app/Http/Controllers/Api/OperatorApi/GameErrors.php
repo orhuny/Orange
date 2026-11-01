@@ -26,7 +26,7 @@ final class GameErrors
             $e instanceof BettingClosed => response()->json(['error' => 'betting_closed', 'message' => $e->getMessage()], 409),
             $e instanceof GameNotAvailable => response()->json(
                 ['error' => $e->reason, 'message' => $e->getMessage()],
-                $e->reason === 'game_not_enabled' ? 403 : 409,
+                in_array($e->reason, ['game_not_enabled', 'direct_play_not_enabled'], true) ? 403 : 409,
             ),
             $e instanceof CurrencyNotSupported => response()->json(['error' => 'currency_not_supported', 'message' => $e->getMessage()], 422),
             $e instanceof StakeOutsideLimits => response()->json(['error' => $e->reason, 'message' => $e->getMessage(), 'limit' => $e->limit], 422),

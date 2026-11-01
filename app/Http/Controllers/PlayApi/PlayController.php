@@ -17,6 +17,7 @@ use App\Domain\Game\Exceptions\InvalidBetParams;
 use App\Domain\Game\Exceptions\RoundNotRunning;
 use App\Domain\Game\Exceptions\StakeNotTaken;
 use App\Domain\Game\Exceptions\StakeOutsideLimits;
+use App\Domain\Game\Limits\GameLimits;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
@@ -49,6 +50,7 @@ class PlayController
         private readonly InstantPlayService $instantBets,
         private readonly PlayerSeedService $seeds,
         private readonly LobbyService $lobbies,
+        private readonly GameLimits $limits,
     ) {}
 
     /** GET /play-api/lobby — the lobby's tiles, categories, recent and popular games, and theme. */
@@ -84,6 +86,11 @@ class PlayController
         $game = $this->playableGame($session, $code);
         if ($game === null) {
             return GameErrors::unknownGame();
+        }
+        try {
+            $this->limits->assertDirectPlay($game, $session->operator);
+        } catch (GameNotAvailable $e) {
+            return GameErrors::render($e) ?? throw $e;
         }
 
         $key = (string) $request->header('Idempotency-Key');

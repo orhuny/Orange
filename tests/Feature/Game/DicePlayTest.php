@@ -14,6 +14,7 @@ use App\Domain\Operator\Models\Operator;
 use App\Domain\Operator\Models\Player;
 use App\Domain\Operator\Services\OperatorSignature;
 use App\Domain\ProvablyFair\Models\PlayerSeed;
+use App\Domain\ProvablyFair\Services\PlayerSeedService;
 use App\Domain\Wallet\Enums\WalletCallbackStatus;
 use App\Domain\Wallet\Models\WalletTransaction;
 use App\Domain\Wallet\Models\Webhook;
@@ -193,6 +194,7 @@ it('refuses to rotate (and so reveal) a seed pair while a bet on it is unresolve
 
 it('plays dice in direct play through the player API', function (): void {
     [$operator, $game] = diceSetup();
+    OperatorGame::query()->where('operator_id', $operator->id)->where('game_id', $game->id)->update(['settings' => json_encode(['play_mode' => 'direct'])]);
     [, $bearer] = app(PlaySessionService::class)->exchange(app(LaunchService::class)->issue($operator, $game, 'p-1', 'EUR')->token);
     $auth = ['Authorization' => "Bearer {$bearer}"];
 
@@ -257,4 +259,33 @@ it('never records a win without its payment: a failed credit leaves the bet to t
     expect($bet->fresh()->status)->toBe(BetStatus::Won)
         ->and(data_get($bet->fresh()->outcome, 'roll'))->toBe('44.30');
     Http::assertSent(fn (Request $r): bool => ($r->data()['tx_id'] ?? null) === "payout:{$bet->id}");
+});
+
+it('shows the odds of the dice game being played, not just the first one', function (): void {
+    diceSetup();
+    Game::factory()->create(['code' => 'dice-97', 'slug' => 'dice-97', 'type' => 'dice', 'rtp_target' => 0.97, 'house_edge' => 0.03,
+        'config' => ['min_chance' => '1.00', 'max_chance' => '90.00']]);
+
+    get('/games/dice?game=dice-97')->assertOk()
+        ->assertSee('const RTP = "0.9700"', false)
+        ->assertSee('const MAX_CHANCE = "90.00"', false);
+    get('/games/dice')->assertOk()->assertSee('const RTP = "0.9900"', false);
+    get('/games/dice?game=nope')->assertNotFound();
+});
+
+it('pairs a new client seed with a server seed committed before it was chosen', function (): void {
+    [$operator] = diceSetup();
+    $player = Player::query()->where('external_player_id', 'p-1')->sole();
+    $first = app(PlayerSeedService::class)->rotate($player)[1];
+
+    $published = diceApi($operator, 'GET', '/v1/players/p-1/seeds', null, 'seeds-next')->assertOk()->json();
+    expect($published['next_server_seed_hash'])->toBe($first->next_server_seed_hash);
+
+    $rotated = diceApi($operator, 'POST', '/v1/players/p-1/seeds/rotate', ['client_seed' => 'chosen-after'], 'rotate-next')->assertOk();
+
+    expect($rotated->json('current.server_seed_hash'))->toBe($published['next_server_seed_hash'])
+        ->and($rotated->json('current.client_seed'))->toBe('chosen-after')
+        ->and($rotated->json('current.next_server_seed_hash'))->not->toBe($published['next_server_seed_hash'])
+        ->and(hash('sha256', (string) $rotated->json('previous.server_seed')))->toBe($published['server_seed_hash'])
+        ->and(json_encode($rotated->json()))->not->toContain((string) PlayerSeed::query()->where('active', true)->sole()->server_seed);
 });
