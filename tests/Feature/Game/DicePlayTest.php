@@ -235,3 +235,26 @@ it('serves the dice page with the game\'s odds and the shared bridge', function 
         ->assertSee('const RTP = "0.9900"', false)
         ->assertSee('const MAX_CHANCE = "98.00"', false);
 });
+
+it('never records a win without its payment: a failed credit leaves the bet to the stale sweeper', function (): void {
+    [$operator] = diceSetup();
+    config()->set('testing.fail_credits', true);
+    WalletTransaction::creating(function (WalletTransaction $tx): void {
+        if (config('testing.fail_credits') === true && $tx->getAttribute('type')?->value === 'credit') {
+            throw new RuntimeException('database hiccup');
+        }
+    });
+
+    roll($operator, '50', 'under', 'dice-hiccup')->assertStatus(500);
+    $bet = Bet::sole();
+    expect($bet->status)->toBe(BetStatus::Pending)
+        ->and($bet->outcome)->toBeNull();
+
+    config()->set('testing.fail_credits', false);
+    $bet->forceFill(['placed_at' => now()->subMinutes(5)])->save();
+    artisan('games:settle-stale-bets')->assertSuccessful();
+
+    expect($bet->fresh()->status)->toBe(BetStatus::Won)
+        ->and(data_get($bet->fresh()->outcome, 'roll'))->toBe('44.30');
+    Http::assertSent(fn (Request $r): bool => ($r->data()['tx_id'] ?? null) === "payout:{$bet->id}");
+});

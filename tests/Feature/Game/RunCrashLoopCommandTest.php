@@ -125,7 +125,8 @@ it('rolls back the bets left placed on orphan rounds and leaves settled bets alo
         && $request['amount'] === '2.50000000'
         && $request['currency'] === 'EUR'
         && $request['player_external_id'] === $player->external_player_id
-        && $request['reference'] === ['type' => 'rollback', 'bet_id' => $placed->id]);
+        // The refund names the debit it reverses, so a late debit can be refused.
+        && $request['reference'] === ['type' => 'rollback', 'bet_id' => $placed->id, 'debit_tx_id' => "bet:{$placed->idempotency_key}"]);
 });
 
 it('does not roll a bet back twice when the clean-up runs again', function (): void {

@@ -17,6 +17,8 @@ use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Operator\Models\Operator;
 use App\Domain\Operator\Models\Player;
+use App\Domain\Wallet\Enums\WalletCallbackStatus;
+use App\Domain\Wallet\Models\WalletTransaction;
 use App\Domain\Wallet\Services\DebitResult;
 use App\Domain\Wallet\Services\WalletService;
 use Illuminate\Support\Facades\DB;
@@ -141,10 +143,9 @@ class BetPlacementService
     }
 
     /**
-     * Debits the stake of a pending bet and waits for the operator. Accepted: the bet goes
-     * live (or, if its round ended meanwhile, counts as lost). Refused: the bet is rejected.
-     * Unanswered: the bet is rolled back and a rollback is sent. Either way a bet whose
-     * stake wasn't taken never plays.
+     * Debits the stake of a pending bet and waits for the operator: accepted makes the bet
+     * live, refused rejects it, no answer rolls it back. Either way a bet whose stake
+     * wasn't taken never plays.
      *
      * @throws StakeNotTaken
      */
@@ -153,41 +154,96 @@ class BetPlacementService
         $result = $this->wallet->debitNow($operator, $bet->player, $amount, $bet->currency, "bet:{$bet->idempotency_key}", (int) $bet->id);
 
         if ($result->accepted()) {
-            DB::transaction(function () use ($bet, $result): void {
-                // Locking the round orders this with RoundOrchestrator::crash(), which settles
-                // losers under the same lock: either it sees the bet placed, or we see it crashed.
-                $round = GameRound::query()->whereKey($bet->round_id)->lockForUpdate()->first();
-
-                DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)
-                    ->update(['status' => BetStatus::Placed->value, 'external_tx_id' => (string) $result->transaction->id, 'updated_at' => now()]);
-
-                if ($round instanceof GameRound && ! in_array($round->getAttribute('state'), [RoundState::Betting, RoundState::Running], true)) {
-                    DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Placed->value)
-                        ->update(['status' => BetStatus::Lost->value, 'multiplier' => '0', 'payout_amount' => '0', 'settled_at' => now(), 'updated_at' => now()]);
-                }
-            });
-
-            $bet = $bet->fresh() ?? $bet;
-            BetPlaced::dispatch($bet);
-
-            return $bet;
+            return $this->accept($bet, (string) $result->transaction->id);
         }
 
         $refused = $result->outcome === DebitResult::REJECTED;
-        $flipped = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
-            'status' => ($refused ? BetStatus::Rejected : BetStatus::RolledBack)->value,
-            'settled_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        if ($flipped > 0) {
-            DB::update('UPDATE game_rounds SET total_bet_amount = total_bet_amount - ? WHERE id = ?', [$amount, $bet->round_id]);
-
-            if (! $refused) {
-                $this->wallet->rollback($operator, $bet->player, $amount, $bet->currency, "rollback:{$bet->id}", (int) $bet->id);
-            }
-        }
+        $this->abandon($operator, $bet, $refused);
 
         throw $refused ? StakeNotTaken::refused($result->error) : StakeNotTaken::unanswered();
+    }
+
+    /**
+     * Direct-play round bets a dying process left pending (older than the grace period):
+     * accepted if their stake debit was confirmed, rolled back otherwise. Returns how many
+     * were handled.
+     */
+    public function settleStale(int $olderThanSeconds = 120): int
+    {
+        $handled = 0;
+        $bets = Bet::query()
+            ->whereNotNull('round_id')
+            ->where('status', BetStatus::Pending->value)
+            ->where('placed_at', '<=', now()->subSeconds($olderThanSeconds))
+            ->with(['operator', 'player'])
+            ->lazyById();
+
+        foreach ($bets as $bet) {
+            $debit = WalletTransaction::query()
+                ->where('operator_id', $bet->operator_id)
+                ->where('idempotency_key', "bet:{$bet->idempotency_key}")
+                ->where('operator_callback_status', WalletCallbackStatus::Completed->value)
+                ->first();
+
+            $debit instanceof WalletTransaction
+                ? $this->accept($bet, (string) $debit->id)
+                : $this->abandon($bet->operator, $bet, refused: false);
+            $handled++;
+        }
+
+        return $handled;
+    }
+
+    /** The stake is confirmed: the bet goes live, or counts as lost if its round already ended. */
+    private function accept(Bet $bet, string $debitTxId): Bet
+    {
+        $accepted = DB::transaction(function () use ($bet, $debitTxId): bool {
+            // Locking the round orders this with RoundOrchestrator::crash(), which settles
+            // losers under the same lock: either it sees the bet placed, or we see it crashed.
+            $round = GameRound::query()->whereKey($bet->round_id)->lockForUpdate()->first();
+
+            $flipped = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)
+                ->update(['status' => BetStatus::Placed->value, 'external_tx_id' => $debitTxId, 'updated_at' => now()]);
+
+            if ($flipped > 0 && $round instanceof GameRound && ! in_array($round->getAttribute('state'), [RoundState::Betting, RoundState::Running], true)) {
+                DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Placed->value)
+                    ->update(['status' => BetStatus::Lost->value, 'multiplier' => '0', 'payout_amount' => '0', 'settled_at' => now(), 'updated_at' => now()]);
+            }
+
+            return $flipped > 0;
+        });
+
+        $bet = $bet->fresh() ?? $bet;
+        if ($accepted) {
+            BetPlaced::dispatch($bet);
+        }
+
+        return $bet;
+    }
+
+    /**
+     * The stake wasn't confirmed: the bet never counts. One transaction with its refund, so
+     * neither can happen without the other. An unanswered stake is rolled back only after
+     * the operator's debit window, so the refund can't overtake a debit still in flight.
+     */
+    private function abandon(Operator $operator, Bet $bet, bool $refused): void
+    {
+        DB::transaction(function () use ($operator, $bet, $refused): void {
+            $flipped = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
+                'status' => ($refused ? BetStatus::Rejected : BetStatus::RolledBack)->value,
+                'settled_at' => now(),
+                'updated_at' => now(),
+            ]);
+            if ($flipped === 0) {
+                return;
+            }
+
+            DB::update('UPDATE game_rounds SET total_bet_amount = total_bet_amount - ? WHERE id = ?', [(string) $bet->amount, $bet->round_id]);
+
+            if (! $refused) {
+                $this->wallet->rollback($operator, $bet->player, (string) $bet->amount, $bet->currency, "rollback:{$bet->id}", (int) $bet->id,
+                    (int) config('wallet.unanswered_debit_rollback_delay_seconds', 60));
+            }
+        });
     }
 }

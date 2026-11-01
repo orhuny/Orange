@@ -157,22 +157,31 @@ final class InstantPlayService
             }
         }
 
-        // Written once, guarded on the pending status so a concurrent settle can't run twice.
-        $settled = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
-            'status' => ($result->won ? BetStatus::Won : BetStatus::Lost)->value,
-            'outcome' => json_encode($result->outcome),
-            'multiplier' => $result->multiplier,
-            'payout_amount' => $payout,
-            'settled_at' => now(),
-            'external_tx_id' => $debitTxId,
-            'updated_at' => now(),
-        ]);
-        $bet = $bet->fresh() ?? $bet;
+        $operator = $bet->operator;
+        $player = $bet->player;
 
-        if ($settled > 0) {
-            if (bccomp($payout, '0', 8) > 0) {
-                $this->wallet->credit($bet->operator, $bet->player, $payout, $bet->currency, "payout:{$bet->id}", (int) $bet->id);
+        // Written once (guarded on the pending status, so a concurrent settle can't run twice)
+        // and in one transaction with its credit: a win is never recorded without its payment.
+        $settled = DB::transaction(function () use ($bet, $result, $payout, $debitTxId, $operator, $player): bool {
+            $settled = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
+                'status' => ($result->won ? BetStatus::Won : BetStatus::Lost)->value,
+                'outcome' => json_encode($result->outcome),
+                'multiplier' => $result->multiplier,
+                'payout_amount' => $payout,
+                'settled_at' => now(),
+                'external_tx_id' => $debitTxId,
+                'updated_at' => now(),
+            ]);
+
+            if ($settled > 0 && bccomp($payout, '0', 8) > 0) {
+                $this->wallet->credit($operator, $player, $payout, $bet->currency, "payout:{$bet->id}", (int) $bet->id);
             }
+
+            return $settled > 0;
+        });
+
+        $bet = $bet->fresh() ?? $bet;
+        if ($settled) {
             BetSettled::dispatch($bet);
         }
 
@@ -182,14 +191,22 @@ final class InstantPlayService
     /** The stake wasn't confirmed: the bet never plays. Unanswered stakes are rolled back. */
     private function abandon(Bet $bet, bool $refused): void
     {
-        $flipped = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
-            'status' => ($refused ? BetStatus::Rejected : BetStatus::RolledBack)->value,
-            'settled_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $operator = $bet->operator;
+        $player = $bet->player;
 
-        if ($flipped > 0 && ! $refused) {
-            $this->wallet->rollback($bet->operator, $bet->player, (string) $bet->amount, $bet->currency, "rollback:{$bet->id}", (int) $bet->id);
-        }
+        // One transaction with its refund. An unanswered stake is rolled back only after the
+        // operator's debit window, so the refund can't overtake a debit still in flight.
+        DB::transaction(function () use ($bet, $refused, $operator, $player): void {
+            $flipped = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
+                'status' => ($refused ? BetStatus::Rejected : BetStatus::RolledBack)->value,
+                'settled_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($flipped > 0 && ! $refused) {
+                $this->wallet->rollback($operator, $player, (string) $bet->amount, $bet->currency, "rollback:{$bet->id}", (int) $bet->id,
+                    (int) config('wallet.unanswered_debit_rollback_delay_seconds', 60));
+            }
+        });
     }
 }

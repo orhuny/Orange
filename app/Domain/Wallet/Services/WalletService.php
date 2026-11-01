@@ -130,6 +130,10 @@ class WalletService
         );
     }
 
+    /**
+     * @param  int  $delaySeconds  wait before sending: a rollback for a debit that got no answer
+     *                             must not overtake that debit at the operator
+     */
     public function rollback(
         Operator $operator,
         Player $player,
@@ -137,6 +141,7 @@ class WalletService
         string $currency,
         string $idempotencyKey,
         ?int $betId = null,
+        int $delaySeconds = 0,
     ): WalletTransaction {
         return $this->record(
             $operator,
@@ -146,6 +151,7 @@ class WalletService
             $currency,
             $idempotencyKey,
             $betId,
+            $delaySeconds,
         );
     }
 
@@ -157,6 +163,7 @@ class WalletService
         string $currency,
         string $idempotencyKey,
         ?int $betId,
+        int $delaySeconds = 0,
     ): WalletTransaction {
         $existing = WalletTransaction::query()
             ->where('operator_id', $operator->id)
@@ -196,11 +203,17 @@ class WalletService
         // timeout × retry budget (seconds), which appears in the browser
         // as the multiplier locking up the moment auto-cashout fires.
         //
+        // Sent only after the surrounding transaction commits: a worker must never pick
+        // up a callback for a row (or a bet status) that may still be rolled back.
+        //
         // Tests run with queue.default=sync, so DispatchWalletCallbackJob
-        // executes immediately and the row is updated before fresh()
-        // reads it back — assertions on $tx->operator_callback_status
-        // keep working without a separate inline branch.
-        DispatchWalletCallbackJob::dispatch($payload);
+        // executes as soon as the transaction commits (immediately outside one)
+        // and the row is updated before fresh() reads it back.
+        $dispatch = DispatchWalletCallbackJob::dispatch($payload)->afterCommit();
+        if ($delaySeconds > 0) {
+            $dispatch->delay(now()->addSeconds($delaySeconds));
+        }
+        unset($dispatch);
 
         return $tx->fresh() ?? $tx;
     }
@@ -225,8 +238,27 @@ class WalletService
             'currency' => $tx->currency,
             'player_external_id' => $tx->player->external_player_id,
             'idempotency_key' => $tx->idempotency_key,
-            'reference' => ['type' => $type->value, 'bet_id' => $tx->bet_id === null ? null : (int) $tx->bet_id],
+            'reference' => $this->referenceFor($tx, $type),
         ];
+    }
+
+    /**
+     * What the callback is about. A rollback also names the debit it reverses
+     * (debit_tx_id), so an operator that hasn't seen that debit yet can refuse it when it
+     * arrives late instead of taking the stake after the refund was acknowledged.
+     *
+     * @return array<string, mixed>
+     */
+    private function referenceFor(WalletTransaction $tx, WalletTransactionType $type): array
+    {
+        $reference = ['type' => $type->value, 'bet_id' => $tx->bet_id === null ? null : (int) $tx->bet_id];
+
+        $betKey = $type === WalletTransactionType::Rollback ? $tx->bet?->idempotency_key : null;
+        if (is_string($betKey)) {
+            $reference['debit_tx_id'] = "bet:{$betKey}";
+        }
+
+        return $reference;
     }
 
     /**

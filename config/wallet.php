@@ -9,6 +9,10 @@ return [
         'retry_backoff_ms' => (int) env('WALLET_CALLBACK_RETRY_BACKOFF_MS', 500),
     ],
 
+    // A stake debit that got no answer is rolled back, but only after this long: a slow
+    // operator may still be applying that debit, and the refund must not overtake it.
+    'unanswered_debit_rollback_delay_seconds' => 60,
+
     // wallet:reconcile (every minute) re-sends credits and rollbacks the operator has not
     // acknowledged: `failed` ones, and `pending` ones older than the grace period (the job
     // was lost). Debits are never re-sent; a failed debit is final and the bet flow owns it.

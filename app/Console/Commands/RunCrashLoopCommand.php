@@ -168,24 +168,29 @@ class RunCrashLoopCommand extends Command
 
         $rolledBack = 0;
         foreach ($bets as $bet) {
-            $flipped = DB::table('bets')
-                ->where('id', $bet->id)
-                ->whereIn('status', [BetStatus::Placed->value, BetStatus::Pending->value])
-                ->update(['status' => BetStatus::RolledBack->value, 'settled_at' => now(), 'updated_at' => now()]);
+            // A pending (direct-play) stake's debit may still be in flight at the operator:
+            // its refund waits out the debit window so it can't overtake it.
+            $delay = $bet->getAttribute('status') === BetStatus::Pending
+                ? (int) config('wallet.unanswered_debit_rollback_delay_seconds', 60)
+                : 0;
 
-            if ($flipped === 0) {
-                continue;
+            // The flip and its refund commit together, or not at all.
+            $flipped = DB::transaction(function () use ($bet, $wallet, $delay): int {
+                $flipped = DB::table('bets')
+                    ->where('id', $bet->id)
+                    ->whereIn('status', [BetStatus::Placed->value, BetStatus::Pending->value])
+                    ->update(['status' => BetStatus::RolledBack->value, 'settled_at' => now(), 'updated_at' => now()]);
+
+                if ($flipped > 0) {
+                    $wallet->rollback($bet->operator, $bet->player, (string) $bet->amount, $bet->currency, "rollback:{$bet->id}", (int) $bet->id, $delay);
+                }
+
+                return $flipped;
+            });
+
+            if ($flipped > 0) {
+                $rolledBack++;
             }
-
-            $wallet->rollback(
-                $bet->operator,
-                $bet->player,
-                (string) $bet->amount,
-                $bet->currency,
-                "rollback:{$bet->id}",
-                (int) $bet->id,
-            );
-            $rolledBack++;
         }
 
         return $rolledBack;

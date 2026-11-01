@@ -11,11 +11,16 @@ use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Launch\Services\PlaySessionService;
 use App\Domain\Operator\Models\Operator;
+use App\Domain\Operator\Models\Player;
+use App\Domain\Wallet\Enums\WalletCallbackStatus;
+use App\Domain\Wallet\Enums\WalletTransactionType;
+use App\Domain\Wallet\Jobs\DispatchWalletCallbackJob;
 use App\Domain\Wallet\Models\WalletTransaction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -174,4 +179,50 @@ it('requires an Idempotency-Key from the page', function (): void {
 
     postJson('/play-api/games/crash/bets', ['amount' => '1.00'], ['Authorization' => "Bearer {$bearer}"])
         ->assertStatus(400)->assertJsonPath('error', 'missing_idempotency_key');
+});
+
+it('delays the refund of an unanswered stake so it cannot overtake the debit', function (): void {
+    Http::fake(['wallet.test/w/wallet/debit' => Http::response(['error' => 'down'], 503)]);
+    [, , , $bearer] = directPlay();
+    Queue::fake();
+
+    directBet($bearer)->assertStatus(503);
+
+    Queue::assertPushed(DispatchWalletCallbackJob::class,
+        fn ($job): bool => $job->payload['type'] === WalletTransactionType::Rollback
+            && $job->payload['reference']['debit_tx_id'] === 'bet:ps-browser-key-0001'
+            && $job->delay !== null);
+});
+
+it('resolves a direct crash bet a dying process left pending', function (): void {
+    Http::fake(['wallet.test/*' => Http::response(['balance_after' => '98.00'], 200)]);
+    [$operator, $game, $round] = directPlay();
+    $player = Player::query()->where('external_player_id', 'p-1')->sole();
+    $pending = fn (string $key) => Bet::factory()->create([
+        'round_id' => $round->id, 'game_id' => $game->id, 'operator_id' => $operator->id, 'player_id' => $player->id,
+        'status' => BetStatus::Pending, 'amount' => '2.00000000', 'idempotency_key' => $key, 'placed_at' => now()->subMinutes(5),
+    ]);
+    $taken = $pending('ps-taken-00000001');
+    $unknown = $pending('ps-unknown-000001');
+    $round->forceFill(['total_bet_amount' => '4.00000000'])->save();
+    WalletTransaction::factory()->create(['operator_id' => $operator->id, 'player_id' => $player->id, 'bet_id' => $taken->id, 'type' => 'debit',
+        'amount' => '2.00', 'idempotency_key' => 'bet:ps-taken-00000001', 'operator_callback_status' => WalletCallbackStatus::Completed]);
+
+    Pest\Laravel\artisan('games:settle-stale-bets')->expectsOutputToContain('2 bet(s) handled')->assertSuccessful();
+
+    expect($taken->fresh()->status)->toBe(BetStatus::Placed)
+        ->and($unknown->fresh()->status)->toBe(BetStatus::RolledBack)
+        ->and((string) $round->fresh()->total_bet_amount)->toBe('2.00000000');
+    Http::assertSent(fn (Request $r): bool => ($r->data()['tx_id'] ?? null) === "rollback:{$unknown->id}"
+        && $r['reference']['debit_tx_id'] === 'bet:ps-unknown-000001');
+
+    // Its round is over by the time the next one is found: confirmed, it counts as lost.
+    $late = $pending('ps-late-000000001');
+    WalletTransaction::factory()->create(['operator_id' => $operator->id, 'player_id' => $player->id, 'bet_id' => $late->id, 'type' => 'debit',
+        'amount' => '2.00', 'idempotency_key' => 'bet:ps-late-000000001', 'operator_callback_status' => WalletCallbackStatus::Completed]);
+    $orchestrator = app(RoundOrchestrator::class);
+    $orchestrator->crash($orchestrator->start($round->fresh()));
+
+    Pest\Laravel\artisan('games:settle-stale-bets')->assertSuccessful();
+    expect($late->fresh()->status)->toBe(BetStatus::Lost);
 });
