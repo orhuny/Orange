@@ -472,11 +472,6 @@
         :root[data-theme="jackpot"] .wall-l b { background-image: url("{{ asset('images/wall-jackpot-left.webp') }}?v={{ filemtime(public_path('images/wall-jackpot-left.webp')) }}"); }
         :root[data-theme="jackpot"] .wall-r b { background-image: url("{{ asset('images/wall-jackpot-right.webp') }}?v={{ filemtime(public_path('images/wall-jackpot-right.webp')) }}"); }
 
-        @media (prefers-reduced-motion: reduce) {
-            .backdrop { transform: none !important; }
-            .walls { display: none; }
-        }
-
         /* ---------- God rays ---------- */
         .rays {
             position: absolute; inset: 0;
@@ -2528,16 +2523,15 @@
     <script>
         // Studio intro over the live game: either cross-fades the uploaded frames
         // or plays the built-in scene made from the game's own artwork. Never
-        // blocks the game — a load error, a reduced-motion preference or a
-        // repeat visit in the same session just skips it.
+        // blocks the game: a load error (or, if configured, a repeat visit in the
+        // same session) just skips it. It plays whatever the device's
+        // reduced-motion setting, like the rest of the game.
         (function studioIntro(cfg) {
             const $intro = document.getElementById('intro');
             const SEEN_KEY = 'orange.intro.seen';
             const SCENE_MS = 4250; // matches the CSS timeline (warp dive ends at ~4.3s)
             const seen = () => { try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch (_) { return false; } };
-            const skipReason = (cfg.oncePerSession && seen()) ? 'already shown in this session'
-                : window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'device prefers reduced motion'
-                : null;
+            const skipReason = (cfg.oncePerSession && seen()) ? 'already shown in this session' : null;
             if (skipReason) {
                 console.info('[intro] skipped: ' + skipReason);
                 $intro.remove();
@@ -3343,9 +3337,9 @@
         // speed and --layer its depth (see .bubble): far ones crawl, near ones
         // rush past. The parent stage class drives --speed / --drift-x, so all
         // layers speed up together in deeper dive states without resetting a
-        // bubble. Fewer on phones; only the main field with reduced motion.
+        // bubble. Fewer on phones. Every player sees the same dive (a device's
+        // reduced-motion setting doesn't change it: the dive is the game).
         const fewer = window.matchMedia('(max-width: 600px)').matches ? 0.6 : 1;
-        const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         function spawnBubbles(id, count, { min, max, layer, band }) {
             const host = document.getElementById(id);
             for (let i = 0; i < count; i++) {
@@ -3364,11 +3358,9 @@
             }
         }
         spawnBubbles('bubbles', 64, { min: 4, max: 18, layer: 1, band: 150 });
-        if (!calm) {
-            spawnBubbles('bubbles-far', Math.round(90 * fewer), { min: 2, max: 6, layer: 0.45, band: 150 });
-            spawnBubbles('bubbles-dive', Math.round(90 * fewer), { min: 3, max: 14, layer: 1.2, band: 230 });
-            spawnBubbles('bubbles-near', Math.round(18 * fewer), { min: 24, max: 56, layer: 2, band: 300 });
-        }
+        spawnBubbles('bubbles-far', Math.round(90 * fewer), { min: 2, max: 6, layer: 0.45, band: 150 });
+        spawnBubbles('bubbles-dive', Math.round(90 * fewer), { min: 3, max: 14, layer: 1.2, band: 230 });
+        spawnBubbles('bubbles-near', Math.round(18 * fewer), { min: 24, max: 56, layer: 2, band: 300 });
 
         // ambient silt particles. Spawn slightly past the right edge so the
         // strong leftward drift during dive keeps the visible area populated
