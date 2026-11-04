@@ -364,6 +364,23 @@
         :root[data-theme="burton"] .sub-wake-core { filter: grayscale(0.8); }
         :root[data-theme="burton"] .sub-bubbles { fill: rgba(236,230,216,0.6); }
         .gothic-lantern-glow { animation: lantern-flicker 2.4s ease-in-out infinite; }
+        /* The illustrated subs' propellers are separate pictures, spun about the
+           shaft: seen from the side, a turning propeller is a flip through edge-on
+           (eased, as a blade's height follows the cosine of its angle). Lazy before
+           the dive, quick while diving, faster deep down; it stops when the sub
+           implodes. --axis is the shaft's height within the picture. */
+        .sub-prop {
+            transform-box: fill-box; transform-origin: 50% var(--axis, 50%);
+            animation: prop-spin 0.6s ease-in-out infinite;
+        }
+        .running .sub-prop { animation-duration: 0.22s; }
+        .deep .sub-prop { animation-duration: 0.16s; }
+        .abyss .sub-prop, .critical .sub-prop { animation-duration: 0.12s; }
+        .crashed .sub-prop { animation-play-state: paused; }
+        @keyframes prop-spin {
+            0%, 100% { transform: scaleY(1); }
+            50%      { transform: scaleY(-1); }
+        }
         @keyframes lantern-flicker {
             0%, 100% { opacity: 0.9; }
             40%      { opacity: 0.65; }
@@ -3114,13 +3131,15 @@
                                 <stop offset="100%" stop-color="#f5e08a" stop-opacity="0"/>
                             </radialGradient>
                         </defs>
-                        <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
+                        <image class="sub-prop" href="{{ asset('images/sub-gothic-prop.webp') }}?v={{ filemtime(public_path('images/sub-gothic-prop.webp')) }}" x="5.84" y="46.06" width="20.06" height="39.03" style="--axis: 51.4%" preserveAspectRatio="none"/>
+                        <image href="{{ asset('images/sub-gothic-hull.webp') }}?v={{ filemtime(public_path('images/sub-gothic-hull.webp')) }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
                         <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
                     </g>
 
                     {{-- Jackpot Reef sub: its propeller hub on the same wake origin (22,64). --}}
                     <g class="sub-jackpot" aria-hidden="true">
-                        <image href="{{ asset('images/sub-jackpot.webp') }}" x="14.2" y="-34.3" width="200" height="145.8" preserveAspectRatio="xMidYMid meet"/>
+                        <image class="sub-prop" href="{{ asset('images/sub-jackpot-prop.webp') }}?v={{ filemtime(public_path('images/sub-jackpot-prop.webp')) }}" x="14.2" y="35.53" width="12.85" height="56.42" style="--axis: 52%" preserveAspectRatio="none"/>
+                        <image href="{{ asset('images/sub-jackpot-hull.webp') }}?v={{ filemtime(public_path('images/sub-jackpot-hull.webp')) }}" x="14.2" y="-34.3" width="200" height="145.8" preserveAspectRatio="xMidYMid meet"/>
                     </g>
                 </svg>
                 {{-- Gothic implosion sprite; shares .sub-svg so it tilts exactly like the sub. --}}
