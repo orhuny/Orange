@@ -3077,6 +3077,8 @@
         <div id="log" class="log"></div>
     </div>
 
+    {{-- The Gothic theme's own sounds (used by the audio engine below while that theme is on). --}}
+    <script src="{{ asset('js/orange/sound-gothic.js') }}?v={{ filemtime(public_path('js/orange/sound-gothic.js')) }}"></script>
     <script type="module">
         const $stage = document.getElementById('stage');
         const $mult = document.getElementById('multiplier');
@@ -3475,13 +3477,24 @@
         })();
 
         // ----------------------------------------------------------------------
-        // Audio engine — procedural SFX + 8-bit chiptune background music.
-        // No external assets. AudioContext is gated behind first user gesture
-        // (browser autoplay policy); a persistent mute toggle lives top-right.
+        // Audio engine — procedural SFX + background ambience, per theme: the
+        // Gothic theme ("burton") plays its own pack (js/orange/sound-gothic.js),
+        // every other theme the underwater set below. No external assets.
+        // AudioContext is gated behind first user gesture (browser autoplay
+        // policy); a persistent mute toggle lives top-right.
         // ----------------------------------------------------------------------
         const audio = (function () {
             let ctx, master, musicTimer, musicStep = 0, musicEnabled = true, started = false;
             const STORAGE_KEY = 'orange.audio.muted';
+            let themeAmbience = null; // the running ambience of a theme pack, if any
+            let gothicPack = null;
+
+            /** The current theme's sound pack, or null for the built-in underwater set. */
+            function themePack() {
+                if (document.documentElement.getAttribute('data-theme') !== 'burton' || !window.OrangeSound?.gothic) return null;
+                init();
+                return gothicPack ??= window.OrangeSound.gothic(ctx, master);
+            }
 
             function init() {
                 if (ctx) return;
@@ -3538,6 +3551,11 @@
             function sfx(name) {
                 if (!started || master?.gain.value === 0) return;
                 init();
+                const pack = themePack();
+                if (pack) {
+                    pack.sfx(name);
+                    return;
+                }
                 switch (name) {
                     case 'bet':       // short ascending blip
                         tone({ freq: midi(72), slideTo: midi(79), type: 'square', gain: 0.20, dur: 0.10 });
@@ -3602,6 +3620,7 @@
             function addTimer(t) { ambientTimers.push(t); return t; }
 
             function stopMusic() {
+                if (themeAmbience) { themeAmbience.stop(); themeAmbience = null; }
                 if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; } // legacy guard
                 ambientTimers.forEach(t => clearTimeout(t));
                 ambientTimers = [];
@@ -3621,8 +3640,13 @@
 
             function startMusic() {
                 if (!musicEnabled) return;
-                if (ambientNodes.length) return; // already running
+                if (ambientNodes.length || themeAmbience) return; // already running
                 init();
+                const pack = themePack();
+                if (pack) {
+                    themeAmbience = pack.ambience();
+                    return;
+                }
 
                 // === Layer 1: low drone cluster ====================================
                 [37, 55.5, 74].forEach((freq, i) => {
@@ -3782,6 +3806,16 @@
 
             // Reflect initial mute state in icon
             document.getElementById('audio-btn')?.classList.toggle('is-muted', isMuted());
+
+            // A theme brings its own sounds: swap the background when the skin changes.
+            new MutationObserver((records) => {
+                const now = document.documentElement.getAttribute('data-theme');
+                if (records.every((r) => r.oldValue === now)) return;
+                if (started && musicEnabled) {
+                    stopMusic();
+                    startMusic();
+                }
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'], attributeOldValue: true });
 
             return { sfx, startMusic, stopMusic };
         })();
