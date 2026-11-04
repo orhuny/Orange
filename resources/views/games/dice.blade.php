@@ -87,6 +87,14 @@
     // Integer arithmetic in hundredths so the page shows exactly what the server pays.
     const hundredths = (s) => Math.round(parseFloat(s) * 100);
     const fmt = (h) => (h / 100).toFixed(2);
+    // Money is always shown with two decimals ("701.14000000" → "701.14", "10" → "10.00");
+    // the extra digits are cut, never rounded up past what the player has.
+    function money(value) {
+        if (value === null || value === undefined || value === '') return '';
+        const m = /^(-?\d+)(?:\.(\d*))?$/.exec(String(value).trim());
+        if (!m) return Number.isFinite(Number(value)) ? Number(value).toFixed(2) : String(value);
+        return `${m[1]}.${((m[2] || '') + '00').slice(0, 2)}`;
+    }
     function chanceH() {
         const t = hundredths($('target').value);
         return direction === 'under' ? t : 10000 - t;
@@ -122,10 +130,10 @@
         onMessage(type, payload) {
             if (type === 'player_info') {
                 currency = payload.currency || '';
-                $('balance').textContent = payload.balance ? `${payload.balance} ${currency}` : currency;
+                $('balance').textContent = payload.balance ? `${money(payload.balance)} ${currency}` : currency;
                 setStatus('Ready.');
             } else if (type === 'balance_update') {
-                $('balance').textContent = `${payload.balance} ${currency}`.trim();
+                $('balance').textContent = `${money(payload.balance)} ${currency}`.trim();
             } else if (type === 'bet_placed_result') {
                 rolling = false;
                 if (!payload.success) {
@@ -134,7 +142,7 @@
                     const won = payload.outcome.win === true;
                     $('roll').textContent = payload.outcome.roll;
                     $('roll').className = 'roll ' + (won ? 'win' : 'loss');
-                    $('verdict').textContent = won ? `Won ${payload.payout_amount} ${currency}` : 'No win this time';
+                    $('verdict').textContent = won ? `Won ${money(payload.payout_amount)} ${currency}` : 'No win this time';
                     const chip = document.createElement('span');
                     chip.className = won ? 'win' : 'loss';
                     chip.textContent = payload.outcome.roll;
@@ -143,7 +151,7 @@
                     if (payload.fairness) {
                         $('fair').textContent = `Server seed hash ${payload.fairness.server_seed_hash} · client seed ${payload.fairness.client_seed} · nonce ${payload.fairness.nonce}`;
                     }
-                    if (payload.player_balance) $('balance').textContent = `${payload.player_balance} ${currency}`;
+                    if (payload.player_balance) $('balance').textContent = `${money(payload.player_balance)} ${currency}`;
                     setStatus('');
                 }
                 render();
@@ -152,6 +160,15 @@
     });
 
     $('target').addEventListener('input', render);
+    // Stakes have two decimals: typing stops at the second, and the field settles on "0.00" form.
+    $('amount').addEventListener('input', () => {
+        const v = $('amount').value;
+        const cut = v.replace(/[^\d.]/g, '').replace(/^(\d*\.\d{2})\d+$/, '$1');
+        if (cut !== v) $('amount').value = cut;
+    });
+    $('amount').addEventListener('change', () => {
+        if (parseFloat($('amount').value) > 0) $('amount').value = money($('amount').value);
+    });
     $('under').addEventListener('click', () => { direction = 'under'; render(); });
     $('over').addEventListener('click', () => { direction = 'over'; render(); });
     $('roll-btn').addEventListener('click', () => {
@@ -159,7 +176,7 @@
         rolling = true;
         render();
         setStatus('Rolling…');
-        bridge.send('place_bet', { amount: $('amount').value.trim(), params: { target: fmt(hundredths($('target').value)), direction } });
+        bridge.send('place_bet', { amount: money($('amount').value), params: { target: fmt(hundredths($('target').value)), direction } });
     });
 
     render();

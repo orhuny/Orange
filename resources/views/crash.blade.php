@@ -3160,7 +3160,7 @@
             <div class="op-bet-row">
                 <div class="op-stepper">
                     <button id="op-stake-down" class="op-step" type="button" aria-label="Decrease stake">−</button>
-                    <input id="op-stake" class="op-input" data-kind="stake" type="number" step="0.01" min="0.01" value="10" inputmode="decimal" aria-label="Stake">
+                    <input id="op-stake" class="op-input" data-kind="stake" type="number" step="0.01" min="0.01" value="10.00" inputmode="decimal" aria-label="Stake">
                     <button id="op-stake-up"   class="op-step" type="button" aria-label="Increase stake">+</button>
                 </div>
                 <div class="op-stepper op-stepper-auto">
@@ -4076,16 +4076,18 @@
                 $last.classList.toggle('loss', kind === 'loss');
                 const m = Number(multiplier);
                 $lastMult.textContent = Number.isFinite(m) ? m.toFixed(2) + '×' : '—';
-                $lastPay.textContent = kind === 'win' ? '+' + trimAmount(payout) : 'lost';
+                $lastPay.textContent = kind === 'win' ? '+' + money(payout) : 'lost';
             }
 
-            // Strip trailing zeros after the decimal point so "673.99000000"
-            // renders as "673.99" — the operator's wallet returns 8-decimal
-            // precision but the tail is just noise to the player.
-            function trimAmount(value) {
-                if (value === null || value === undefined) return '—';
-                const s = String(value);
-                return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s;
+            // Money is always shown with two decimals: "673.99000000" → "673.99",
+            // "10" → "10.00". Wallets answer with 8-decimal precision; the extra
+            // digits are cut (never rounded up past what the player has).
+            function money(value) {
+                if (value === null || value === undefined || value === '') return '—';
+                const s = String(value).trim();
+                const m = /^(-?\d+)(?:\.(\d*))?$/.exec(s);
+                if (!m) return Number.isFinite(Number(s)) ? Number(s).toFixed(2) : s;
+                return `${m[1]}.${((m[2] || '') + '00').slice(0, 2)}`;
             }
 
             // Spawn a "× 1.30   +10.30 EUR" toast over the stage that drifts
@@ -4101,7 +4103,7 @@
                 multSpan.textContent = `× ${m.toFixed(2)}`;
                 const amtSpan = document.createElement('div');
                 amtSpan.className = 'fly-win-amount';
-                amtSpan.textContent = `+${trimAmount(payout)}${opState.currency ? ' ' + opState.currency : ''}`;
+                amtSpan.textContent = `+${money(payout)}${opState.currency ? ' ' + opState.currency : ''}`;
                 node.append(multSpan, amtSpan);
                 $stage.appendChild(node);
                 node.addEventListener('animationend', () => node.remove(), { once: true });
@@ -4184,13 +4186,13 @@
                         $player.textContent = payload.username && payload.username !== String(payload.id)
                             ? `#${payload.id} ${payload.username}`
                             : `#${payload.id}`;
-                        $balance.textContent = `${trimAmount(payload.balance)} ${payload.currency}`;
+                        $balance.textContent = `${money(payload.balance)} ${payload.currency}`;
                         setStatus('connected to operator', 'ok');
                         updateButtons();
                         break;
 
                     case 'balance_update':
-                        $balance.textContent = `${trimAmount(payload.balance)} ${opState.currency || ''}`.trim();
+                        $balance.textContent = `${money(payload.balance)} ${opState.currency || ''}`.trim();
                         break;
 
                     case 'bet_placed_result':
@@ -4199,7 +4201,7 @@
                             opState.betRoundUuid = payload.round_uuid;
                             opState.autoCashoutAt = payload.auto_cashout_at ?? opState.autoCashoutAt ?? null;
                             opState.autoCashoutFired = false;
-                            setStatus(`bet #${payload.bet_id} placed @ ${payload.amount}`, 'ok');
+                            setStatus(`bet #${payload.bet_id} placed @ ${money(payload.amount)}`, 'ok');
                         } else {
                             opState.autoCashoutAt = null;
                             // Pause auto-bet on failure — otherwise an insufficient-balance
@@ -4211,13 +4213,13 @@
                                 setStatus(`bet failed: ${payload.error || 'unknown'}`, 'err');
                             }
                         }
-                        if (payload.player_balance) $balance.textContent = trimAmount(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
+                        if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
                         updateButtons();
                         break;
 
                     case 'cashout_result':
                         if (payload.success) {
-                            setStatus(`cashed out @ ${payload.multiplier}× · payout ${payload.payout}`, 'ok');
+                            setStatus(`cashed out @ ${payload.multiplier}× · payout ${money(payload.payout)}`, 'ok');
                             showLast('win', payload.multiplier, payload.payout);
                             spawnFlyWin(payload.multiplier, payload.payout);
                             opState.betId = null;
@@ -4236,7 +4238,7 @@
                         } else {
                             setStatus(`cashout failed: ${payload.error || 'unknown'}`, 'err');
                         }
-                        if (payload.player_balance) $balance.textContent = trimAmount(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
+                        if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
                         updateButtons();
                         break;
 
@@ -4321,9 +4323,19 @@
                 const base = Number.isFinite(cur) && cur > 0 ? cur : 0;
                 const step = base >= 100 ? 10 : base >= 20 ? 5 : 1;
                 const next = Math.max(0.01, +(base + direction * step).toFixed(2));
-                $stake.value = next;
+                $stake.value = next.toFixed(2);
                 $stake.dispatchEvent(new Event('input', { bubbles: true }));
             }
+            // Stakes have two decimals, like the money they come out of: typing
+            // stops at the second decimal, and the field settles on "0.00" form.
+            $stake.addEventListener('input', () => {
+                const cut = $stake.value.replace(/^(\d*\.\d{2})\d+$/, '$1');
+                if (cut !== $stake.value) $stake.value = cut;
+            });
+            $stake.addEventListener('change', () => {
+                const v = parseFloat($stake.value);
+                if (Number.isFinite(v) && v > 0) $stake.value = money($stake.value);
+            });
             $stakeDown?.addEventListener('click', () => stepStake(-1));
             $stakeUp  ?.addEventListener('click', () => stepStake(+1));
 
@@ -4365,7 +4377,7 @@
                 postToParent({
                     type: 'place_bet',
                     payload: {
-                        amount: $stake.value,
+                        amount: money($stake.value),
                         auto_cashout_at: opState.autoCashoutAt,
                         round_uuid: opState.roundUuid,
                     },
