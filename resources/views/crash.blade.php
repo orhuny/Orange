@@ -54,11 +54,12 @@
             'panel' => '#05253a', 'text' => '#f0fdfa', 'muted' => '#8cc5cf',
         ],
     ];
-    // Only these skins are offered (picker, CSS, ?theme=, saved choice).
-    // The rest stay defined above so they can be re-enabled by adding
-    // their key here.
-    $enabledThemes = ['burton', 'jackpot'];
-    $themes = array_intersect_key($themes, array_flip($enabledThemes));
+    // Only these skins are offered (picker, CSS, ?theme=, saved choice), in
+    // this order; the first is the default (and the one the intro shows to
+    // players who haven't picked a skin). The rest stay defined above so they
+    // can be re-enabled by adding their key here.
+    $enabledThemes = ['jackpot', 'burton'];
+    $themes = array_replace(array_flip($enabledThemes), array_intersect_key($themes, array_flip($enabledThemes)));
     $rgb = static fn (string $hex): string => implode(',', sscanf($hex, '#%02x%02x%02x'));
 
     // Studio intro frames (see config('crash.intro')): every image in the
@@ -2369,6 +2370,21 @@
         :root[data-theme="jackpot"] .is-tag { color: #fcd34d; text-shadow: 0 0 12px rgba(252, 211, 77, 0.6); }
         :root[data-theme="jackpot"] .is-tag b { background: linear-gradient(90deg, transparent, #fcd34d); }
         :root[data-theme="jackpot"] .is-tag b:last-child { background: linear-gradient(270deg, transparent, #fcd34d); }
+        /* Gold instead of the gothic lime: sonar rings, motes, flash, a burst of coins. */
+        :root[data-theme="jackpot"] .is-pings i {
+            border-color: rgba(252, 211, 77, 0.85);
+            box-shadow: 0 0 24px rgba(252, 211, 77, 0.5), inset 0 0 24px rgba(252, 211, 77, 0.3);
+        }
+        :root[data-theme="jackpot"] .is-motes i { background: rgba(255, 247, 214, 0.8); box-shadow: 0 0 6px rgba(252, 211, 77, 0.6); }
+        :root[data-theme="jackpot"] .is-flash {
+            background: radial-gradient(circle at 50% 58%, rgba(255, 251, 230, 0.95), rgba(252, 211, 77, 0.35) 40%, transparent 75%);
+        }
+        :root[data-theme="jackpot"] .is-burst i {
+            border-color: rgba(180, 83, 9, 0.9);
+            background: radial-gradient(circle at 35% 30%, #fffbe6 0 15%, #fcd34d 45%, #d97706 100%);
+        }
+        :root[data-theme="jackpot"] .intro.play .is-sub { animation-name: is-sub-clear-gold; }
+        @keyframes is-sub-clear-gold { to { filter: blur(0) brightness(1) drop-shadow(0 0 18px rgba(252, 211, 77, 0.35)); } }
     </style>
 </head>
 <body>
