@@ -3950,7 +3950,10 @@
                     case 'player_info':
                         opState.playerId = payload.id;
                         opState.currency = payload.currency;
-                        $player.textContent = `#${payload.id} ${payload.username}`;
+                        // Orange's own host knows no username and sends the id twice: show it once.
+                        $player.textContent = payload.username && payload.username !== String(payload.id)
+                            ? `#${payload.id} ${payload.username}`
+                            : `#${payload.id}`;
                         $balance.textContent = `${trimAmount(payload.balance)} ${payload.currency}`;
                         setStatus('connected to operator', 'ok');
                         updateButtons();
