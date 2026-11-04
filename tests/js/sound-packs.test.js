@@ -43,24 +43,29 @@ class FakeAudioContext {
 }
 
 let ctx;
-let pack;
 
 beforeAll(async () => {
     await import('../../public/js/orange/sound-gothic.js');
+    await import('../../public/js/orange/sound-jackpot.js');
 });
 
 beforeEach(() => {
     vi.useFakeTimers();
     ctx = new FakeAudioContext();
-    const master = ctx.createGain();
-    pack = window.OrangeSound.gothic(ctx, master);
 });
 
 afterEach(() => {
     vi.useRealTimers();
 });
 
-describe('Gothic sound pack', () => {
+// Each illustrated theme's pack: Gothic Nightmare ("burton") and Jackpot Reef ("jackpot").
+describe.each(['gothic', 'jackpot'])('%s sound pack', (name) => {
+    let pack;
+
+    beforeEach(() => {
+        pack = window.OrangeSound[name](ctx, ctx.createGain());
+    });
+
     it.each(['tick', 'bet', 'start', 'win', 'loss', 'crash'])('plays the %s effect', (name) => {
         pack.sfx(name);
 

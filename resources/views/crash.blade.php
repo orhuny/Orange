@@ -44,11 +44,20 @@
             'hud' => '#e7e1d2', 'hudBright' => '#ffffff', 'hudDark' => '#8b7fa8',
             'panel' => '#0b0910', 'text' => '#ece6d8', 'muted' => '#9c93ad',
         ],
+        // Treasure-hunt cartoon skin: sunlit turquoise reef, gold HUD, the
+        // *-jackpot pictures. Extras live in the `:root[data-theme="jackpot"]`
+        // blocks below the token loop.
+        'jackpot' => [
+            'label' => 'Jackpot Reef',
+            'shallow' => '#22d3ee', 'mid' => '#0891b2', 'depth1' => '#0e5a7a', 'depth2' => '#083a5a', 'abyss' => '#04192e',
+            'hud' => '#fcd34d', 'hudBright' => '#fff7d6', 'hudDark' => '#d97706',
+            'panel' => '#05253a', 'text' => '#f0fdfa', 'muted' => '#8cc5cf',
+        ],
     ];
     // Only these skins are offered (picker, CSS, ?theme=, saved choice).
     // The rest stay defined above so they can be re-enabled by adding
     // their key here.
-    $enabledThemes = ['burton'];
+    $enabledThemes = ['burton', 'jackpot'];
     $themes = array_intersect_key($themes, array_flip($enabledThemes));
     $rgb = static fn (string $hex): string => implode(',', sscanf($hex, '#%02x%02x%02x'));
 
@@ -70,8 +79,10 @@
             'tagline' => (string) config('crash.intro.tagline', ''),
             'landscape' => $landscape,
             'portrait' => $portrait,
-            'bgLandscape' => asset('images/bg-gothic-landscape.jpg'),
-            'bgPortrait' => asset('images/bg-gothic-portrait.jpg'),
+            'bg' => [
+                'burton' => ['landscape' => asset('images/bg-gothic-landscape.jpg'), 'portrait' => asset('images/bg-gothic-portrait.jpg')],
+                'jackpot' => ['landscape' => asset('images/bg-jackpot-landscape.jpg'), 'portrait' => asset('images/bg-jackpot-portrait.jpg')],
+            ],
             'frameMs' => (int) config('crash.intro.frame_ms', 550),
             'fadeMs' => (int) config('crash.intro.fade_ms', 400),
             'holdMs' => (array) config('crash.intro.hold_ms', []),
@@ -86,8 +97,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deep Dive — Orange Crash</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    {{-- Implosion sprite must be decoded before the first crash, not fetched during it. --}}
-    <link rel="preload" as="image" href="{{ asset('images/sub-explosion.webp') }}">
     {{-- Apply the theme before first paint so the page never flashes the
          default palette. Priority: player's saved choice → ?theme= (operator
          default on the embed URL) → first entry of $themes. --}}
@@ -99,6 +108,15 @@
             if (valid.indexOf(t) === -1) t = new URLSearchParams(location.search).get('theme');
             if (valid.indexOf(t) === -1) t = valid[0];
             document.documentElement.setAttribute('data-theme', t);
+            // The skin's implosion sprite must be decoded before the first crash, not fetched during it.
+            var sprites = @json(['burton' => asset('images/sub-explosion.webp'), 'jackpot' => asset('images/sub-explosion-jackpot.webp')]);
+            if (sprites[t]) {
+                var preload = document.createElement('link');
+                preload.rel = 'preload';
+                preload.as = 'image';
+                preload.href = sprites[t];
+                document.head.appendChild(preload);
+            }
         })();
     </script>
     <style>
@@ -234,20 +252,57 @@
             }
             :root[data-theme="burton"] .scene::before { display: none; }
         }
-        /* Illustrated gothic fish + octopi replace the SVG silhouettes. */
-        .gothic-art { display: none; }
-        :root[data-theme="burton"] .fish > svg,
-        :root[data-theme="burton"] .creature.octopus > svg,
-        :root[data-theme="burton"] .creature.whale > svg,
-        :root[data-theme="burton"] .creature.angler-deep > svg { display: none; }
-        :root[data-theme="burton"] .fish > .gothic-art,
-        :root[data-theme="burton"] .creature.octopus > .gothic-art,
-        :root[data-theme="burton"] .creature.whale > .gothic-art { display: block; }
+        /* ---------- Jackpot Reef extras (jackpot skin only) ----------
+           Sunlit reef backdrops (they carry their own rays and seabed), gold
+           HUD from the tokens, a chunky rounded face for the numbers. */
+        :root[data-theme="jackpot"] .scene {
+            background: url("{{ asset('images/bg-jackpot-landscape.jpg') }}") center bottom / cover no-repeat, var(--abyss);
+        }
+        @media (orientation: portrait) {
+            :root[data-theme="jackpot"] .scene {
+                background: url("{{ asset('images/bg-jackpot-portrait.jpg') }}") center top / cover no-repeat, var(--abyss);
+            }
+        }
+        :root[data-theme="jackpot"] .scene::after,
+        :root[data-theme="jackpot"] .rays { display: none; }
+        :root[data-theme="jackpot"] .particle { background: rgba(255, 244, 200, 0.6); }
+        :root[data-theme="jackpot"] .multiplier,
+        :root[data-theme="jackpot"] .gauge-value,
+        :root[data-theme="jackpot"] .depth-chip b {
+            font-family: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-weight: 800;
+        }
+        :root[data-theme="jackpot"] .stage:not(.deep):not(.critical):not(.crashed) .multiplier {
+            text-shadow: 0 4px 0 rgba(120, 53, 15, 0.55), 0 0 36px rgba(252, 211, 77, 0.5);
+        }
+        /* Small captions sit on the brightest water: give them a solid dark outline. */
+        :root[data-theme="jackpot"] .history-label,
+        :root[data-theme="jackpot"] .depth-meter::before {
+            color: #ffffff; opacity: 1;
+            text-shadow: 0 0 2px #04192e, 0 0 3px #04192e, 0 1px 4px #04192e, 0 0 12px rgba(4, 25, 46, 0.9);
+        }
+        :root[data-theme="jackpot"] .cashout {
+            box-shadow: 0 0 0 3px #05253a, 0 0 0 6px #fcd34d, 0 0 30px rgba(252, 211, 77, 0.55);
+        }
+
+        /* Illustrated skins (Gothic Nightmare, Jackpot Reef): painted fish,
+           octopi, whale, anglerfish and jellyfish replace the SVG silhouettes.
+           Each skin's pictures carry its .art-<skin> class; the other's stay hidden. */
+        .skin-art { display: none; }
+        :root[data-theme="burton"] .art-jackpot,
+        :root[data-theme="jackpot"] .art-burton { display: none !important; }
+        :root:not([data-theme="jackpot"]) .intro .art-jackpot { display: none; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .fish > svg,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.octopus > svg,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.whale > svg,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.angler-deep > svg { display: none; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .fish > .skin-art,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.octopus > .skin-art,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.whale > .skin-art { display: block; }
         /* Same scale-up as the whale SVG so it reads at distance. The
            cross-reverse path mirrors the creature (scaleX(-1)) while it
            swims right → left, so pre-flip the head-left art to keep the
            head leading. */
-        :root[data-theme="burton"] .creature.whale > .gothic-art {
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.whale > .skin-art {
             transform: scale(-1.55, 1.55);
             animation: whale-glide 6s ease-in-out infinite;
         }
@@ -255,17 +310,20 @@
             0%, 100% { transform: scale(-1.55, 1.55) translateY(0)    rotate(0deg); }
             50%      { transform: scale(-1.55, 1.55) translateY(-4px) rotate(1deg); }
         }
-        :root[data-theme="burton"] .fish > .gothic-art { animation: bob 2.4s ease-in-out infinite; }
-        :root[data-theme="burton"] .creature.octopus > .gothic-art {
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .fish > .skin-art { animation: bob 2.4s ease-in-out infinite; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.octopus > .skin-art {
             transform-origin: 50% 30%;
             animation: octopus-sway 3.6s ease-in-out infinite;
         }
-        :root[data-theme="burton"] .creature.octopus.mini > .gothic-art { animation-duration: 2.4s; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.octopus.mini > .skin-art { animation-duration: 2.4s; }
         :root[data-theme="burton"] .fish,
         :root[data-theme="burton"] .creature.octopus,
         :root[data-theme="burton"] .creature.whale { filter: brightness(0.92) drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
-        /* Deep anglerfish: illustrated art with a flickering lure bulb. */
-        :root[data-theme="burton"] .creature.angler-deep > .gothic-art {
+        :root[data-theme="jackpot"] .fish,
+        :root[data-theme="jackpot"] .creature.octopus,
+        :root[data-theme="jackpot"] .creature.whale { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35)); }
+        /* Deep anglerfish: illustrated art with a flickering lure glow. */
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .creature.angler-deep > .skin-art {
             display: block; position: relative;
             animation: bob 3.2s ease-in-out infinite;
         }
@@ -277,23 +335,28 @@
             background: radial-gradient(circle, rgba(255,244,194,0.9) 0%, rgba(245,224,138,0.35) 40%, transparent 70%);
             animation: lantern-flicker 2.1s ease-in-out infinite;
         }
-        /* Illustrated gothic jellyfish replace the CSS glow blobs. */
-        :root[data-theme="burton"] .jelly::before,
-        :root[data-theme="burton"] .jelly::after { display: none; }
-        :root[data-theme="burton"] .jelly > .gothic-art {
-            display: block;
-            filter: drop-shadow(0 0 10px rgba(236,230,216,0.45));
+        /* Jackpot's lure is a diamond further in: its glow sits on it, a little cooler. */
+        .creature.angler-deep .art-jackpot .bulb-glow {
+            left: 86.4%; top: 27.2%;
+            background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(165,243,252,0.35) 40%, transparent 70%);
         }
-        :root[data-theme="burton"] .deep .jelly,
-        :root[data-theme="burton"] .abyss .jelly { opacity: 0.7; }
-        /* Swap the cartoon hull for the illustrated gothic sub. */
-        .sub-gothic { display: none; }
-        :root[data-theme="burton"] .sub-body   { display: none; }
-        :root[data-theme="burton"] .sub-gothic { display: inline; }
-        /* Tall lantern mast: sit a little lower before the dive so it clears
-           the recent-crashes bar and the status pill under it (short screens). */
-        :root[data-theme="burton"] .waiting .sub-wrap,
-        :root[data-theme="burton"] .betting .sub-wrap { top: max(35%, 310px); }
+        /* Illustrated jellyfish replace the CSS glow blobs. */
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .jelly::before,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .jelly::after { display: none; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .jelly > .skin-art { display: block; }
+        :root[data-theme="burton"] .jelly > .skin-art { filter: drop-shadow(0 0 10px rgba(236,230,216,0.45)); }
+        :root[data-theme="jackpot"] .jelly > .skin-art { filter: drop-shadow(0 0 12px rgba(94,234,212,0.55)); }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .deep .jelly,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .abyss .jelly { opacity: 0.7; }
+        /* Swap the cartoon hull for the skin's illustrated sub. */
+        .sub-gothic, .sub-jackpot { display: none; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .sub-body { display: none; }
+        :root[data-theme="burton"] .sub-gothic,
+        :root[data-theme="jackpot"] .sub-jackpot { display: inline; }
+        /* Tall lantern mast / periscope: sit a little lower before the dive so it
+           clears the recent-crashes bar and the status pill under it (short screens). */
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .waiting .sub-wrap,
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .betting .sub-wrap { top: max(35%, 310px); }
         :root[data-theme="burton"] .sub-wake,
         :root[data-theme="burton"] .sub-wake-core { filter: grayscale(0.8); }
         :root[data-theme="burton"] .sub-bubbles { fill: rgba(236,230,216,0.6); }
@@ -303,6 +366,11 @@
             40%      { opacity: 0.65; }
             55%      { opacity: 1; }
             70%      { opacity: 0.75; }
+        }
+        .theme-opt[data-theme="jackpot"] .theme-swatch {
+            background:
+              radial-gradient(circle at 60% 38%, #fff7d6 0 9%, #fcd34d 11% 22%, #d97706 24%, transparent 26%),
+              linear-gradient(180deg, #22d3ee 0%, #0891b2 55%, #083a5a 100%);
         }
         .theme-opt[data-theme="burton"] .theme-swatch {
             background:
@@ -1819,7 +1887,7 @@
             animation: crash-flash 0.9s ease-out var(--boom-at) forwards;
         }
         /* The gothic sprite has its own burst glow — keep the screen flash a quick punch. */
-        :root[data-theme="burton"] .crashed .crash-flash {
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .crashed .crash-flash {
             animation: crash-flash-soft 0.45s ease-out var(--boom-at) forwards;
         }
         @keyframes crash-flash-soft {
@@ -1965,7 +2033,7 @@
            wait for the burst frame (--boom-at) so the sub visibly cracks first.
            `translate` (not transform) so the embed offset on .sub-wrap is kept. */
         :root { --boom-at: 0s; }
-        :root[data-theme="burton"] { --boom-at: 0.17s; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) { --boom-at: 0.17s; }
         .crashed .sub-wrap { animation: sub-collapse 1.7s ease-in forwards; }
         @keyframes sub-collapse {
             0%, 55% { translate: 0 0; opacity: 1; }
@@ -1978,9 +2046,15 @@
             background: url("{{ asset('images/sub-explosion.webp') }}") 0 0 / 700% 100% no-repeat;
             opacity: 0;
         }
-        :root[data-theme="burton"] .sub-boom { display: block; }
-        :root[data-theme="burton"] .crashed .sub-gothic { opacity: 0; }
-        :root[data-theme="burton"] .crashed .sub-boom span { opacity: 1; animation: sub-boom 1.25s step-end forwards; }
+        /* Jackpot's sprite: same 7-frame timing, a wider cell (the halves fly apart). */
+        :root[data-theme="jackpot"] .sub-boom span {
+            left: -25.11%; top: -24.95%; width: 160.18%; height: 132.13%;
+            background-image: url("{{ asset('images/sub-explosion-jackpot.webp') }}");
+        }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .sub-boom { display: block; }
+        :root[data-theme="burton"] .crashed .sub-gothic,
+        :root[data-theme="jackpot"] .crashed .sub-jackpot { opacity: 0; }
+        :root:is([data-theme="burton"], [data-theme="jackpot"]) .crashed .sub-boom span { opacity: 1; animation: sub-boom 1.25s step-end forwards; }
         @keyframes sub-boom {
             0%        { background-position-x: 0%; }
             5%        { background-position-x: 16.667%; }
@@ -2059,6 +2133,10 @@
         }
         @media (orientation: portrait) {
             .is-bg { background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}"); }
+        }
+        :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}"); }
+        @media (orientation: portrait) {
+            :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}"); }
         }
         .intro.play .is-bg { animation: is-fade-in 0.6s ease-out forwards, is-bg-drift 4.4s cubic-bezier(.2, .7, .3, 1) forwards; }
         @keyframes is-fade-in { to { opacity: 1; } }
@@ -2272,6 +2350,25 @@
         @keyframes is-speed { from { opacity: 0; transform: scale(1.4); } to { opacity: 0.9; transform: scale(1); } }
 
         .is-vignette { background: radial-gradient(ellipse at 50% 45%, transparent 35%, rgba(0, 0, 0, 0.85) 100%); }
+
+        /* Jackpot Reef intro: the colourful art needs no deep-sea wash; a gold title. */
+        :root[data-theme="jackpot"] .is-tint { opacity: 0.3; }
+        :root[data-theme="jackpot"] .is-whale { width: min(20vw, 240px); }
+        :root[data-theme="jackpot"] .is-beam,
+        :root[data-theme="jackpot"] .is-lantern { display: none; }
+        :root[data-theme="jackpot"] .is-title {
+            font-family: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-weight: 900;
+            filter: drop-shadow(0 5px 0 #7c2d12) drop-shadow(0 0 22px rgba(252, 211, 77, 0.55));
+        }
+        :root[data-theme="jackpot"] .is-title span {
+            background-image: linear-gradient(100deg, #fde68a 0%, #fcd34d 40%, #fffbe6 46%, #ffffff 50%, #fffbe6 54%, #fcd34d 60%, #d97706 100%);
+            -webkit-text-stroke: 1px rgba(124, 45, 18, 0.6);
+        }
+        :root[data-theme="jackpot"] .intro.play .is-title { animation-name: is-glow-gold, is-out; }
+        @keyframes is-glow-gold { to { filter: drop-shadow(0 5px 0 #7c2d12) drop-shadow(0 0 40px rgba(252, 211, 77, 0.9)); } }
+        :root[data-theme="jackpot"] .is-tag { color: #fcd34d; text-shadow: 0 0 12px rgba(252, 211, 77, 0.6); }
+        :root[data-theme="jackpot"] .is-tag b { background: linear-gradient(90deg, transparent, #fcd34d); }
+        :root[data-theme="jackpot"] .is-tag b:last-child { background: linear-gradient(270deg, transparent, #fcd34d); }
     </style>
 </head>
 <body>
@@ -2283,14 +2380,18 @@
             <div class="is-layer is-tint"></div>
             <div class="is-rays"></div>
             <div class="is-layer is-motes">@for ($m = 0; $m < 18; $m++)<i style="--x: {{ ($m * 37) % 100 }}%; --s: {{ 2 + $m % 4 }}px; --t: {{ 2.2 + ($m % 5) * 0.45 }}s; --d: -{{ fmod($m * 0.61, 3) }}s"></i>@endfor</div>
-            <img class="is-whale" src="{{ asset('images/whale-gothic.png') }}" alt="">
-            <img class="is-fish is-fish-1" src="{{ asset('images/fish-gothic.png') }}" alt="">
-            <img class="is-fish is-fish-2" src="{{ asset('images/fish-puffer-gothic.png') }}" alt="">
+            <img class="is-whale art-burton" src="{{ asset('images/whale-gothic.png') }}" alt="">
+            <img class="is-whale art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}" alt="">
+            <img class="is-fish is-fish-1 art-burton" src="{{ asset('images/fish-gothic.png') }}" alt="">
+            <img class="is-fish is-fish-1 art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" alt="">
+            <img class="is-fish is-fish-2 art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" alt="">
+            <img class="is-fish is-fish-2 art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" alt="">
             <div class="is-layer is-pings"><i style="--n: 0"></i><i style="--n: 1"></i><i style="--n: 2"></i><i style="--n: 3.3"></i></div>
             <div class="is-layer is-sub-path">
                 <div class="is-sub-fly">
                     <div class="is-sub-bob">
-                        <img class="is-sub" src="{{ asset('images/sub-gothic.png') }}" width="856" height="507" alt="">
+                        <img class="is-sub art-burton" src="{{ asset('images/sub-gothic.png') }}" width="856" height="507" alt="">
+                        <img class="is-sub art-jackpot" src="{{ asset('images/sub-jackpot.webp') }}" width="716" height="522" alt="">
                         <span class="is-beam"></span>
                         <div class="is-bubbles">
                             <i style="--s:9px;  --d:0s;    --t:1.5s; --x:-70px"></i>
@@ -2385,8 +2486,9 @@
 
             // Scene: wait for the artwork (incl. the CSS background) so nothing pops in mid-animation.
             const bg = new Image();
-            bg.src = portrait ? cfg.bgPortrait : cfg.bgLandscape;
-            const art = [bg, ...$intro.querySelectorAll('img')];
+            const backdrop = cfg.bg[document.documentElement.getAttribute('data-theme')] ?? cfg.bg.burton;
+            bg.src = portrait ? backdrop.portrait : backdrop.landscape;
+            const art = [bg, ...[...$intro.querySelectorAll('img')].filter((img) => img.getClientRects().length)];
             Promise.race([Promise.allSettled(art.map(decode)), timeout]).then(() => {
                 if (finished) return;
                 $intro.classList.add('play');
@@ -2458,7 +2560,8 @@
                         <circle cx="34" cy="11" r="1.6" fill="#fff"/>
                         <circle cx="34.4" cy="11.2" r="0.9" fill="#0f172a"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/fish-gothic.png') }}" width="69" height="39" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/fish-gothic.png') }}" width="69" height="39" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" width="54" height="50" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Yellow & black striped fish, right → left -->
@@ -2473,7 +2576,8 @@
                         <circle cx="29" cy="9" r="1.3" fill="#fff"/>
                         <circle cx="29.3" cy="9.2" r="0.7" fill="#0f172a"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/fish-puffer-gothic.png') }}" width="50" height="39" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" width="50" height="39" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" width="47" height="41" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Pink fish, left → right -->
@@ -2486,7 +2590,8 @@
                         <circle cx="28" cy="9" r="1.4" fill="#fff"/>
                         <circle cx="28.3" cy="9.2" r="0.8" fill="#0f172a"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/fish-angler-gothic.png') }}" width="61" height="36" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/fish-angler-gothic.png') }}" width="61" height="36" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-angler-jackpot.webp') }}" width="53" height="41" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Cyan fish, right → left, smaller -->
@@ -2498,7 +2603,8 @@
                         <circle cx="22" cy="7.5" r="1.2" fill="#fff"/>
                         <circle cx="22.3" cy="7.7" r="0.7" fill="#0f172a"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/fish-gothic.png') }}" width="48" height="27" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/fish-gothic.png') }}" width="48" height="27" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" width="37" height="35" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Purple fish, left → right -->
@@ -2511,7 +2617,8 @@
                         <circle cx="31" cy="10" r="1.5" fill="#fff"/>
                         <circle cx="31.3" cy="10.2" r="0.8" fill="#0f172a"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/fish-puffer-gothic.png') }}" width="52" height="40" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" width="52" height="40" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" width="49" height="42" alt="" aria-hidden="true" loading="lazy">
                 </div>
             </div>
 
@@ -2561,7 +2668,8 @@
                         <!-- Blowhole -->
                         <ellipse cx="92" cy="22" rx="3" ry="1.2" fill="rgba(15,23,42,0.7)"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/whale-gothic.png') }}" width="340" height="106" alt="" aria-hidden="true">
+                    <img class="skin-art art-burton" src="{{ asset('images/whale-gothic.png') }}" width="340" height="106" alt="" aria-hidden="true">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}" width="207" height="174" alt="" aria-hidden="true">
                 </div>
 
                 <!-- Anglerfish-style silhouette, right → left -->
@@ -2580,8 +2688,12 @@
                         <circle cx="115" cy="30" r="7" fill="rgba(252,211,77,0.18)"/>
                         <circle cx="22" cy="28" r="1" fill="rgba(186,230,253,0.7)"/>
                     </svg>
-                    <span class="gothic-art" aria-hidden="true">
+                    <span class="skin-art art-burton" aria-hidden="true">
                         <img src="{{ asset('images/angler-deep-gothic.png') }}" width="170" height="81" alt="" loading="lazy">
+                        <i class="bulb-glow"></i>
+                    </span>
+                    <span class="skin-art art-jackpot" aria-hidden="true">
+                        <img src="{{ asset('images/angler-deep-jackpot.webp') }}" width="130" height="106" alt="" loading="lazy">
                         <i class="bulb-glow"></i>
                     </span>
                 </div>
@@ -2647,7 +2759,8 @@
                         <circle cx="155" cy="80" r="1" fill="rgba(186,230,253,0.5)"/>
                         <circle cx="65" cy="82" r="1" fill="rgba(186,230,253,0.5)"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/octopus-gothic.png') }}" width="190" height="143" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/octopus-gothic.png') }}" width="190" height="143" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/octopus-jackpot.webp') }}" width="162" height="168" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 {{-- Mini octopi — five silhouettes swimming upward at random
@@ -2678,14 +2791,15 @@
                         <circle  cx="20" cy="34" r="0.9" fill="rgba(186,230,253,0.55)"/>
                         <circle  cx="52" cy="32" r="0.9" fill="rgba(186,230,253,0.55)"/>
                     </svg>
-                    <img class="gothic-art" src="{{ asset('images/octopus-gothic.png') }}" width="{{ (int) ($o['size'] * 1.4) }}" height="{{ (int) ($o['size'] * 1.05) }}" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/octopus-gothic.png') }}" width="{{ (int) ($o['size'] * 1.4) }}" height="{{ (int) ($o['size'] * 1.05) }}" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/octopus-jackpot.webp') }}" width="{{ (int) ($o['size'] * 1.19) }}" height="{{ (int) ($o['size'] * 1.23) }}" alt="" aria-hidden="true" loading="lazy">
                 </div>
                 @endforeach
             </div>
 
-            <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"><img class="gothic-art" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"></div>
-            <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"><img class="gothic-art" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"></div>
-            <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"><img class="gothic-art" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"></div>
+            <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
+            <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
+            <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
 
             <div class="sub-wrap">
                 <svg class="sub-svg" viewBox="0 0 240 130" xmlns="http://www.w3.org/2000/svg">
@@ -2897,6 +3011,11 @@
                         <image href="{{ asset('images/sub-gothic.png') }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
                         <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
                     </g>
+
+                    {{-- Jackpot Reef sub: its propeller hub on the same wake origin (22,64). --}}
+                    <g class="sub-jackpot" aria-hidden="true">
+                        <image href="{{ asset('images/sub-jackpot.webp') }}" x="14.2" y="-34.3" width="200" height="145.8" preserveAspectRatio="xMidYMid meet"/>
+                    </g>
                 </svg>
                 {{-- Gothic implosion sprite; shares .sub-svg so it tilts exactly like the sub. --}}
                 <div class="sub-svg sub-boom" aria-hidden="true"><span></span></div>
@@ -3077,8 +3196,9 @@
         <div id="log" class="log"></div>
     </div>
 
-    {{-- The Gothic theme's own sounds (used by the audio engine below while that theme is on). --}}
+    {{-- Each illustrated skin's own sounds (used by the audio engine below while that skin is on). --}}
     <script src="{{ asset('js/orange/sound-gothic.js') }}?v={{ filemtime(public_path('js/orange/sound-gothic.js')) }}"></script>
+    <script src="{{ asset('js/orange/sound-jackpot.js') }}?v={{ filemtime(public_path('js/orange/sound-jackpot.js')) }}"></script>
     <script type="module">
         const $stage = document.getElementById('stage');
         const $mult = document.getElementById('multiplier');
@@ -3478,8 +3598,9 @@
 
         // ----------------------------------------------------------------------
         // Audio engine — procedural SFX + background ambience, per theme: the
-        // Gothic theme ("burton") plays its own pack (js/orange/sound-gothic.js),
-        // every other theme the underwater set below. No external assets.
+        // Gothic ("burton") and Jackpot Reef ("jackpot") skins play their own
+        // packs (js/orange/sound-*.js), every other theme the underwater set
+        // below. No external assets.
         // AudioContext is gated behind first user gesture (browser autoplay
         // policy); a persistent mute toggle lives top-right.
         // ----------------------------------------------------------------------
@@ -3487,13 +3608,15 @@
             let ctx, master, musicTimer, musicStep = 0, musicEnabled = true, started = false;
             const STORAGE_KEY = 'orange.audio.muted';
             let themeAmbience = null; // the running ambience of a theme pack, if any
-            let gothicPack = null;
+            const PACKS = { burton: 'gothic', jackpot: 'jackpot' };
+            const packs = {};
 
             /** The current theme's sound pack, or null for the built-in underwater set. */
             function themePack() {
-                if (document.documentElement.getAttribute('data-theme') !== 'burton' || !window.OrangeSound?.gothic) return null;
+                const name = PACKS[document.documentElement.getAttribute('data-theme')];
+                if (!name || !window.OrangeSound?.[name]) return null;
                 init();
-                return gothicPack ??= window.OrangeSound.gothic(ctx, master);
+                return packs[name] ??= window.OrangeSound[name](ctx, master);
             }
 
             function init() {
@@ -3795,8 +3918,9 @@
                 if (!isMuted()) startMusic();
             }
 
+            // Capture phase: controls that stop their clicks (the theme picker) still unlock audio.
             ['click', 'touchstart', 'keydown'].forEach(ev =>
-                document.addEventListener(ev, unlock, { once: false, passive: true }));
+                document.addEventListener(ev, unlock, { capture: true, passive: true }));
 
             document.getElementById('audio-btn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
