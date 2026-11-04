@@ -54,7 +54,7 @@
     <div class="expired" id="expired" role="alert">This session has ended. Please open the games again.</div>
 
     <script type="module">
-        import { startPlayHost } from @json(asset('js/orange/play-host.js'));
+        import { startPlayHost } from @json(asset('js/orange/play-host.js').'?v='.filemtime(public_path('js/orange/play-host.js')));
 
         const $ = (id) => document.getElementById(id);
         let lobby = { categories: [], games: [], recent: [], popular: [] };

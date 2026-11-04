@@ -71,7 +71,7 @@
 </main>
 
 <script type="module">
-    import { createGameBridge } from @json(asset('js/orange/bridge.js'));
+    import { createGameBridge } from @json(asset('js/orange/bridge.js').'?v='.filemtime(public_path('js/orange/bridge.js')));
 
     const RTP = @json($rtp ?? '0.9900');
     const MIN_CHANCE = @json($config['min_chance'] ?? '0.01');

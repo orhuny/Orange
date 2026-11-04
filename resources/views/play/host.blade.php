@@ -18,7 +18,7 @@
     <div class="expired" id="expired" role="alert">This game session has ended. Please open the game again.</div>
 
     <script type="module">
-        import { startPlayHost } from @json(asset('js/orange/play-host.js'));
+        import { startPlayHost } from @json(asset('js/orange/play-host.js').'?v='.filemtime(public_path('js/orange/play-host.js')));
 
         const frame = document.getElementById('game');
         startPlayHost({
