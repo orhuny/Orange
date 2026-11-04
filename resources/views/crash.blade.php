@@ -176,7 +176,7 @@
         /* ---------- Gothic Nightmare extras (burton skin only) ----------
            Pale spiral moon, drained colours, crooked stripes. Semantic
            colours (warn/gold/good) are untouched so game states still read. */
-        :root[data-theme="burton"] .scene::before {
+        :root[data-theme="burton"] .backdrop::after {
             content: ""; position: absolute; pointer-events: none;
             top: 6%; right: 12%; width: 150px; height: 150px; border-radius: 50%;
             background:
@@ -184,11 +184,10 @@
               radial-gradient(circle at 40% 40%, #fbf8ef 0%, #e2dccb 55%, #b9b1c4 100%);
             box-shadow: 0 0 60px 18px rgba(236,230,216,0.28), 0 0 160px 40px rgba(139,127,168,0.25);
             opacity: 0.85; transition: opacity 1.5s ease;
-            transform: translateY(calc(var(--dive, 0) * -100vh)); /* rises with the backdrop */
         }
-        :root[data-theme="burton"] .deep .scene::before  { opacity: 0.35; }
-        :root[data-theme="burton"] .abyss .scene::before,
-        :root[data-theme="burton"] .critical .scene::before { opacity: 0.12; }
+        :root[data-theme="burton"] .deep .backdrop::after  { opacity: 0.35; }
+        :root[data-theme="burton"] .abyss .backdrop::after,
+        :root[data-theme="burton"] .critical .backdrop::after { opacity: 0.12; }
         /* Curly silhouette hills along the bottom of the water. */
         :root[data-theme="burton"] .scene::after {
             content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
@@ -253,7 +252,7 @@
                 background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}");
                 background-position: center top;
             }
-            :root[data-theme="burton"] .scene::before { display: none; }
+            :root[data-theme="burton"] .backdrop::after { display: none; }
         }
         /* ---------- Jackpot Reef extras (jackpot skin only) ----------
            Sunlit reef backdrops (they carry their own rays and seabed), gold
@@ -415,7 +414,7 @@
 
         /* ---------- Painted backdrop (illustrated skins) ----------
            Its own layer, so it rises past the sub as it dives: --dive (set on
-           #stage from the multiplier) goes from 0 at the surface towards ~0.9
+           it from the multiplier) goes from 0 at the surface towards ~0.9
            deep down, and the scene's own gradient, the deep water, shows below
            it. Its bottom edge fades into that water. Between rounds it glides
            back up to the surface. */
@@ -428,8 +427,35 @@
         }
         .waiting .backdrop,
         .betting .backdrop { transition: transform 1.6s cubic-bezier(.3, .7, .3, 1); }
+
+        /* ---------- Trench walls (illustrated skins) ----------
+           Rock walls down both edges that loop forever while diving: each strip
+           tiles vertically and scrolls up by --fall (grows with the multiplier,
+           unbounded; a little faster than the backdrop, as they are nearer).
+           They are hidden above the reef's lower edge, so the trench opens up
+           just below the reef as it rises away. Between rounds they rewind. */
+        .walls {
+            position: absolute; inset: 0; pointer-events: none;
+            -webkit-mask-image: linear-gradient(to bottom, transparent calc((1 - var(--dive, 0)) * 100%), #000 calc((1 - var(--dive, 0)) * 100% + 18%));
+            mask-image: linear-gradient(to bottom, transparent calc((1 - var(--dive, 0)) * 100%), #000 calc((1 - var(--dive, 0)) * 100% + 18%));
+        }
+        .wall {
+            position: absolute; top: 0; bottom: 0; width: clamp(64px, 16vw, 260px);
+            background-repeat: repeat-y; background-size: 100% auto;
+            background-position-y: calc(var(--fall, 0) * -1vh);
+        }
+        .wall-l { left: 0; }
+        .wall-r { right: 0; }
+        .waiting .wall,
+        .betting .wall { transition: background-position-y 1.6s cubic-bezier(.3, .7, .3, 1); }
+        :root[data-theme="burton"] .wall-l { background-image: url("{{ asset('images/wall-gothic-left.webp') }}"); }
+        :root[data-theme="burton"] .wall-r { background-image: url("{{ asset('images/wall-gothic-right.webp') }}"); }
+        :root[data-theme="jackpot"] .wall-l { background-image: url("{{ asset('images/wall-jackpot-left.webp') }}"); }
+        :root[data-theme="jackpot"] .wall-r { background-image: url("{{ asset('images/wall-jackpot-right.webp') }}"); }
+
         @media (prefers-reduced-motion: reduce) {
             .backdrop { transform: none; }
+            .walls { display: none; }
         }
 
         /* ---------- God rays ---------- */
@@ -2607,6 +2633,7 @@
         <!-- Filtered scene (depth darkening lives here) -->
         <div class="scene">
             <div class="backdrop"></div>
+            <div class="walls" aria-hidden="true"><i class="wall wall-l"></i><i class="wall wall-r"></i></div>
             <div class="rays"></div>
             <div id="particles" class="particles"></div>
             <div id="bubbles-far" class="bubbles bubbles-far"></div>
@@ -3399,6 +3426,8 @@
         const DIVE_MAX_X = @json((float) config('crash.depth_max_multiplier', 1000));
         const diveProgress = (m) => Math.min(1, Math.max(0, Math.log(m) / Math.log(DIVE_MAX_X)));
         const $depthMeter = document.getElementById('depth-meter');
+        const $backdrop = document.querySelector('.backdrop');
+        const $walls = document.querySelector('.walls');
         const $depthVal = document.getElementById('depth-value');
         const $depthZone = document.getElementById('depth-zone');
         const MAX_DEPTH_M = 10994;
@@ -3409,7 +3438,13 @@
             $depthMeter.style.setProperty('--p', p.toFixed(4));
             // The painted backdrop rises as the sub sinks: steadily at first (about
             // 3% of the screen a second), easing off deep down, never quite gone.
-            $stage.style.setProperty('--dive', (0.9 * (1 - Math.pow(Math.max(1, m), -1 / 1.8))).toFixed(4));
+            // Set on the two layers only: on #stage, every descendant's style would be
+            // recomputed each frame.
+            const dive = (0.9 * (1 - Math.pow(Math.max(1, m), -1 / 1.8))).toFixed(4);
+            $backdrop?.style.setProperty('--dive', dive);
+            $walls?.style.setProperty('--dive', dive);
+            // The trench walls keep scrolling (in vh) for as long as the dive goes on.
+            $walls?.style.setProperty('--fall', (60 * Math.log(Math.max(1, m))).toFixed(2));
             $depthVal.textContent = depthFmt.format(metres) + ' m';
             $depthZone.textContent = metres === 0 ? 'SURFACE'
                 : metres < 200 ? 'SUNLIGHT ZONE'
