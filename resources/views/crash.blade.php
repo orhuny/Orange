@@ -412,49 +412,68 @@
         .stage.abyss   .scene { filter: brightness(0.5) saturate(0.85) contrast(1.1); }
         .stage.critical .scene { filter: brightness(0.45) saturate(0.75) contrast(1.25) hue-rotate(-15deg); }
 
-        /* ---------- Painted backdrop (illustrated skins) ----------
-           Its own layer, so it rises past the sub as it dives: --dive (set on
-           it from the descent, in screen heights) goes from 0 at the surface
-           past 1 once the reef has left the screen (~1.6x), and the scene's own
-           gradient, the deep water, shows below it. Its bottom edge fades into
-           that water. Between rounds it glides back up to the surface. */
+        /* ---------- Painted backdrop + trench walls (illustrated skins) ----------
+           The descent: the backdrop rises past the sub as it dives, and rock
+           walls down both edges carry on looping for as long as the dive lasts.
+           Moved only by transforms set from JS each frame (setScenery), so the
+           browser composites them without repainting: smooth at any speed.
+
+           The walls hang from the backdrop's lower edge (they move with it) and
+           their strips scroll inside that, so reef and trench stay joined; both
+           edges fade over only a few percent. Between rounds all of it glides
+           back up to the surface. */
         .backdrop {
             position: absolute; inset: 0; pointer-events: none;
             background: no-repeat center bottom / cover;
-            transform: translateY(calc(var(--dive, 0) * -100%));
-            -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
-            mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, #000 95%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 95%, transparent 100%);
+            will-change: transform;
         }
-        .waiting .backdrop,
-        .betting .backdrop { transition: transform 1.6s cubic-bezier(.3, .7, .3, 1); }
-
-        /* ---------- Trench walls (illustrated skins) ----------
-           Rock walls down both edges that loop forever while diving: each strip
-           tiles vertically and scrolls up by --fall (the descent in vh: faster as
-           the multiplier climbs; 25% faster than the backdrop, as they are nearer).
-           They are hidden above the reef's lower edge, so the trench opens up
-           just below the reef as it rises away. Between rounds they rewind. */
+        /* The water below the painting continues from its lower edge (--seabed, the
+           painting's own colour there) and darkens into the abyss as you descend. */
         .walls {
-            position: absolute; inset: 0; pointer-events: none;
-            -webkit-mask-image: linear-gradient(to bottom, transparent calc((1 - var(--dive, 0)) * 100%), #000 calc((1 - var(--dive, 0)) * 100% + 18%));
-            mask-image: linear-gradient(to bottom, transparent calc((1 - var(--dive, 0)) * 100%), #000 calc((1 - var(--dive, 0)) * 100% + 18%));
+            position: absolute; left: 0; right: 0; top: 95%; height: 170%; pointer-events: none;
+            background: linear-gradient(to bottom, var(--seabed, var(--depth-2)) 3%, var(--abyss) 55%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 2.5%);
+            mask-image: linear-gradient(to bottom, transparent, #000 2.5%);
+            will-change: transform;
         }
-        .wall {
-            position: absolute; top: 0; bottom: 0; width: clamp(64px, 16vw, 260px);
-            background-repeat: repeat-y; background-size: 100% auto;
-            background-position-y: calc(var(--fall, 0) * -1vh);
+        :root[data-theme="jackpot"] .walls { --seabed: #255c7e; }
+        /* Gothic's lower band alternates black hills and grey water: blend over that
+           band, so the ground meets the dark instead of a cut. */
+        :root[data-theme="burton"] .walls {
+            --seabed: #29272d; top: 80%;
+            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 8%);
+            mask-image: linear-gradient(to bottom, transparent, #000 8%);
         }
+        :root[data-theme="burton"] .backdrop {
+            -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+        }
+        .wall { position: absolute; top: 0; bottom: 0; width: clamp(64px, 16vw, 260px); overflow: hidden; }
         .wall-l { left: 0; }
         .wall-r { right: 0; }
-        .waiting .wall,
-        .betting .wall { transition: background-position-y 1.6s cubic-bezier(.3, .7, .3, 1); }
-        :root[data-theme="burton"] .wall-l { background-image: url("{{ asset('images/wall-gothic-left.webp') }}"); }
-        :root[data-theme="burton"] .wall-r { background-image: url("{{ asset('images/wall-gothic-right.webp') }}"); }
-        :root[data-theme="jackpot"] .wall-l { background-image: url("{{ asset('images/wall-jackpot-left.webp') }}"); }
-        :root[data-theme="jackpot"] .wall-r { background-image: url("{{ asset('images/wall-jackpot-right.webp') }}"); }
+        /* One tall strip per side: the art repeats down it, and it is shifted up by
+           the descent modulo one tile (its width × --tile-ratio, the art's h/w). */
+        .wall b {
+            position: absolute; left: 0; right: 0; top: 0; height: 400%;
+            background: repeat-y 0 0 / 100% auto;
+            will-change: transform;
+        }
+        .waiting .backdrop, .betting .backdrop,
+        .waiting .walls, .betting .walls,
+        .waiting .wall b, .betting .wall b { transition: transform 1.6s cubic-bezier(.3, .7, .3, 1); }
+        :root[data-theme="burton"] .wall-l { --tile-ratio: 3.566; }
+        :root[data-theme="burton"] .wall-r { --tile-ratio: 4.014; }
+        :root[data-theme="jackpot"] .wall-l { --tile-ratio: 3.327; }
+        :root[data-theme="jackpot"] .wall-r { --tile-ratio: 3.726; }
+        :root[data-theme="burton"] .wall-l b { background-image: url("{{ asset('images/wall-gothic-left.webp') }}?v={{ filemtime(public_path('images/wall-gothic-left.webp')) }}"); }
+        :root[data-theme="burton"] .wall-r b { background-image: url("{{ asset('images/wall-gothic-right.webp') }}?v={{ filemtime(public_path('images/wall-gothic-right.webp')) }}"); }
+        :root[data-theme="jackpot"] .wall-l b { background-image: url("{{ asset('images/wall-jackpot-left.webp') }}?v={{ filemtime(public_path('images/wall-jackpot-left.webp')) }}"); }
+        :root[data-theme="jackpot"] .wall-r b { background-image: url("{{ asset('images/wall-jackpot-right.webp') }}?v={{ filemtime(public_path('images/wall-jackpot-right.webp')) }}"); }
 
         @media (prefers-reduced-motion: reduce) {
-            .backdrop { transform: none; }
+            .backdrop { transform: none !important; }
             .walls { display: none; }
         }
 
@@ -2633,7 +2652,7 @@
         <!-- Filtered scene (depth darkening lives here) -->
         <div class="scene">
             <div class="backdrop"></div>
-            <div class="walls" aria-hidden="true"><i class="wall wall-l"></i><i class="wall wall-r"></i></div>
+            <div class="walls" aria-hidden="true"><i class="wall wall-l"><b></b></i><i class="wall wall-r"><b></b></i></div>
             <div class="rays"></div>
             <div id="particles" class="particles"></div>
             <div id="bubbles-far" class="bubbles bubbles-far"></div>
@@ -3431,31 +3450,89 @@
         const $depthVal = document.getElementById('depth-value');
         const $depthZone = document.getElementById('depth-zone');
         const MAX_DEPTH_M = 10994;
-        // How far the camera has descended, in vh, at multiplier m. Distance grows with
-        // m - 1, so the speed grows with the multiplier itself (it rises by e^(g·t)):
-        // ~13 vh/s at 1x, ~26 at 2x, ~53 at 4x. From DESCENT_CAP_X on the speed holds
-        // (~92 vh/s) so the looping walls never strobe.
-        const DESCENT_PER_X = 220;
+        // How far the camera has descended, in % of the screen height, at multiplier m.
+        // Distance grows with m - 1, so the speed grows with the multiplier itself (it
+        // rises by e^(g·t)): ~11%/s at 1x, ~21 at 2x, ~42 at 4x. From DESCENT_CAP_X on
+        // the speed holds (~74%/s) so the looping walls never strobe.
+        const DESCENT_PER_X = 176;
         const DESCENT_CAP_X = 7;
         function descent(m) {
             const x = Math.max(1, m);
             if (x <= DESCENT_CAP_X) return DESCENT_PER_X * (x - 1);
             return DESCENT_PER_X * (DESCENT_CAP_X - 1 + DESCENT_CAP_X * Math.log(x / DESCENT_CAP_X));
         }
+
+        // Moves the backdrop and the trench walls to the descent at multiplier m: the
+        // walls fall by it, the reef (further away) by 80% of it until it has left the
+        // screen; the walls hang from the reef's lower edge and scroll inside that.
+        const $scene = document.querySelector('.scene');
+        const $wallStrips = [...document.querySelectorAll('.wall b')];
+        let tileHeights = null; // px per repeat of each strip's art
+        function tiles() {
+            tileHeights ??= $wallStrips.map((b) => b.clientWidth * (parseFloat(getComputedStyle(b.parentNode).getPropertyValue('--tile-ratio')) || 0));
+            return tileHeights;
+        }
+        window.addEventListener('resize', () => { tileHeights = null; });
+        new MutationObserver(() => { tileHeights = null; })
+            .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        function setScenery(m) {
+            const h = $scene?.clientHeight || window.innerHeight;
+            const fall = descent(m) / 100 * h;
+            const rise = Math.min(1.25 * h, fall * 0.8);
+            const lift = `translate3d(0, ${(-rise).toFixed(2)}px, 0)`;
+            if ($backdrop) $backdrop.style.transform = lift;
+            if ($walls) $walls.style.transform = lift;
+            tiles().forEach((tile, i) => {
+                const y = tile > 0 ? (fall - rise) % tile : 0;
+                $wallStrips[i].style.transform = `translate3d(0, ${(-y).toFixed(2)}px, 0)`;
+            });
+        }
+
+        // The descent runs on its own clock, not on the ticks: ticks carry multipliers
+        // rounded to 0.01 (early in a dive several in a row repeat the same value)
+        // and can arrive late, which made the scenery stutter. The clock computes
+        // m = e^(g·t) every frame; ticks only keep t in step with the server.
+        const descentClock = { g: @json((float) config('crash.growth_rate', 0.06)), start: 0, target: 0, synced: 0, on: false, raf: 0 };
+        function descentFrame(now) {
+            if (!descentClock.on) return;
+            // No tick for a while (connection lost): hold still rather than run away.
+            if (now - descentClock.synced > 2500) { descentClock.on = false; return; }
+            // Ease toward the server's clock by at most 0.5 ms a frame (a ~3% speed
+            // change nobody sees), never in one step.
+            const gap = descentClock.target - descentClock.start;
+            descentClock.start += Math.max(-0.5, Math.min(0.5, gap * 0.05));
+            setScenery(Math.exp(descentClock.g * Math.max(0, now - descentClock.start) / 1000));
+            descentClock.raf = requestAnimationFrame(descentFrame);
+        }
+        function syncDescent(elapsedSeconds, growthRate) {
+            if (growthRate > 0) descentClock.g = growthRate;
+            const now = performance.now();
+            const measured = now - Math.max(0, Number(elapsedSeconds) || 0) * 1000;
+            descentClock.synced = now;
+            if (!descentClock.on) {
+                descentClock.start = descentClock.target = measured;
+                descentClock.on = true;
+                descentClock.raf = requestAnimationFrame(descentFrame);
+                return;
+            }
+            // A gap of over a second (a device waking from sleep) is caught up at once;
+            // otherwise the target is averaged so network jitter cancels out, and the
+            // frames ease toward it.
+            if (Math.abs(measured - descentClock.target) > 1000) {
+                descentClock.start = descentClock.target = measured;
+            } else {
+                descentClock.target += (measured - descentClock.target) * 0.1;
+            }
+        }
+        function stopDescent() {
+            descentClock.on = false;
+            cancelAnimationFrame(descentClock.raf);
+        }
         const depthFmt = new Intl.NumberFormat('en-US');
         function setDepth(m) {
             const p = diveProgress(m);
             const metres = Math.round(p * MAX_DEPTH_M);
             $depthMeter.style.setProperty('--p', p.toFixed(4));
-            // The camera's descent: the trench walls scroll by it, the reef backdrop
-            // (further away) by 80% of it until it has left the screen. Set on the
-            // two layers only: on #stage, every descendant's style would be
-            // recomputed each frame.
-            const fall = descent(m);
-            const rise = Math.min(1.25, fall * 0.8 / 100).toFixed(4);
-            $backdrop?.style.setProperty('--dive', rise);
-            $walls?.style.setProperty('--dive', rise);
-            $walls?.style.setProperty('--fall', fall.toFixed(2));
             $depthVal.textContent = depthFmt.format(metres) + ' m';
             $depthZone.textContent = metres === 0 ? 'SURFACE'
                 : metres < 200 ? 'SUNLIGHT ZONE'
@@ -3531,6 +3608,8 @@
 
         function resetIdleVisuals() {
             stopTween(1);
+            stopDescent();
+            setScenery(1); // glides back up to the surface (the betting state's transition)
             setDepth(1);
             rebuildDebris(); // fresh vectors for the next crash, built while nothing is animating
             $mult.textContent = '1.00x';
@@ -3559,6 +3638,7 @@
                     $state.textContent = 'DIVING';
                     $cashout.disabled = false;
                     $cashoutHint.textContent = 'cash out at current x';
+                    syncDescent(0, Number(e.growth_rate));
                     log(`dive started · growth ${e.growth_rate}/s`);
                 })
                 .listen('.round.tick', (e) => {
@@ -3566,6 +3646,7 @@
                     const m = Number(e.multiplier ?? e.data?.multiplier ?? NaN);
                     if (!Number.isFinite(m)) return;
                     tweenMultiplier(m);
+                    syncDescent(e.elapsed_seconds, NaN);
                     // Tick implies running. If user opened the page mid-round and
                     // missed betting_opened/started, sync state text + cashout button.
                     const elapsed = Number(e.elapsed_seconds ?? 0).toFixed(1);
@@ -3580,6 +3661,7 @@
                         log('💥 raw: ' + JSON.stringify(e));
                         const cp = Number(e.crash_point ?? e.crashPoint ?? e.data?.crash_point ?? NaN);
                         stopTween(Number.isFinite(cp) ? cp : tween.to);
+                        stopDescent(); // the scenery holds where the sub imploded
                         setStage(['crashed', 'critical']);
                         if (Number.isFinite(cp)) {
                             $mult.textContent = cp.toFixed(2) + 'x';
