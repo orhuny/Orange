@@ -24,6 +24,8 @@ use App\Filament\Widgets\GameKpiTable;
 use App\Models\User;
 use App\Support\AccessControl;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -255,4 +257,19 @@ it('reports one currency at a time, the most bet one by default', function (): v
 
     Livewire::test(GameKpiTable::class)->assertTableColumnStateSet('ggr', '1500.00', $dice);
     Livewire::test(GameKpiTable::class, ['pageFilters' => ['currency' => 'EUR']])->assertTableColumnStateSet('ggr', '10.00', $dice);
+});
+
+it('saves an uploaded thumbnail on the game, where the lobby shows it', function (): void {
+    Storage::fake('public');
+    $game = Game::factory()->create(['code' => 'crash']);
+    actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create());
+
+    Livewire::test(EditGame::class, ['record' => $game->getRouteKey()])
+        ->fillForm(['thumbnail' => UploadedFile::fake()->image('deepdive.png', 800, 600)])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $thumbnail = $game->fresh()?->getAttribute('thumbnail');
+    expect($thumbnail)->toBeString()->toStartWith('thumbs/');
+    Storage::disk('public')->assertExists((string) $thumbnail);
 });
