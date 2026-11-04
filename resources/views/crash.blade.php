@@ -473,7 +473,10 @@
             /* Smoothly interpolate the parallax target + speed so state
                transitions don't yank every bubble onto a new path at once. */
             transition: --drift-x 2s ease-out, --speed 2s ease-out;
-            animation: rise calc(var(--base) * var(--speed)) linear infinite;
+            /* --layer (set per bubble in JS) is its depth: far < 1 < near. It
+               scales both speed and sideways drift, which is what makes the
+               layers read as parallax. */
+            animation: rise calc(var(--base) * var(--speed) / var(--layer, 1)) linear infinite;
         }
         .waiting  .bubble { --speed: 1.7; --drift-x: -15px; }
         .betting  .bubble { --speed: 1.3; --drift-x: -25px; }
@@ -483,10 +486,32 @@
         .critical .bubble { --speed: 0.10; --drift-x: -100vw; }
         @keyframes rise {
             0%   { transform: translate(0, 110vh) scale(0.6);  opacity: 0; }
-            8%   { opacity: 0.85; }
-            50%  { transform: translate(calc(var(--drift-x) * 0.5), 50vh) scale(1.0); }
-            92%  { opacity: 0.7; }
-            100% { transform: translate(var(--drift-x), -10vh) scale(1.15); opacity: 0; }
+            8%   { opacity: var(--peak, 0.85); }
+            50%  { transform: translate(calc(var(--drift-x) * var(--layer, 1) * 0.5), 50vh) scale(1.0); }
+            92%  { opacity: calc(var(--peak, 0.85) * 0.82); }
+            100% { transform: translate(calc(var(--drift-x) * var(--layer, 1)), -10vh) scale(1.15); opacity: 0; }
+        }
+        /* Depth layers. Far: many small, faint, slow bubbles (always on). */
+        .bubbles-far { z-index: 1; }
+        .bubbles-far .bubble {
+            background: radial-gradient(circle, rgba(220, 240, 255, 0.75) 0%, rgba(186, 230, 253, 0.25) 45%, transparent 72%);
+            box-shadow: none;
+            --peak: 0.5;
+        }
+        /* While diving only: extra density in the main field, and near bubbles
+           rushing past in front of the sub. They fade in and out with the dive. */
+        .bubbles-dive,
+        .bubbles-near { opacity: 0; transition: opacity 1.2s ease; }
+        .running .bubbles-dive, .deep .bubbles-dive, .abyss .bubbles-dive, .critical .bubbles-dive,
+        .running .bubbles-near, .deep .bubbles-near, .abyss .bubbles-near, .critical .bubbles-near { opacity: 1; }
+        /* Near: large, soft, out-of-focus bubbles; same layer as the sub but after it. */
+        .bubbles-near { z-index: 7; }
+        .bubbles-near .bubble {
+            background:
+              radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0 7%, transparent 16%),
+              radial-gradient(circle at 50% 50%, rgba(186, 230, 253, 0.06) 0 58%, rgba(224, 242, 254, 0.35) 68%, transparent 71%);
+            box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.3), 0 0 10px rgba(186, 230, 253, 0.25);
+            --peak: 0.8;
         }
 
         /* ---------- Caustic light shimmer (surface zone) ---------- */
@@ -2561,8 +2586,10 @@
         <div class="scene">
             <div class="rays"></div>
             <div id="particles" class="particles"></div>
+            <div id="bubbles-far" class="bubbles bubbles-far"></div>
             <div class="caustics"></div>
             <div id="bubbles"  class="bubbles"></div>
+            <div id="bubbles-dive" class="bubbles bubbles-dive"></div>
             <div class="fishes">
                 <!-- Orange tropical fish, left → right -->
                 <div class="fish" style="left:0; top:18%; --dur:18s; animation-delay:-3s;">
@@ -3036,6 +3063,7 @@
                 {{-- Gothic implosion sprite; shares .sub-svg so it tilts exactly like the sub. --}}
                 <div class="sub-svg sub-boom" aria-hidden="true"><span></span></div>
             </div>
+            <div id="bubbles-near" class="bubbles bubbles-near"></div>
         </div>
 
         <!-- Strobe sits above the scene but below the UI -->
@@ -3242,23 +3270,35 @@
         const $cashout = document.getElementById('cashout');
         const $cashoutHint = document.getElementById('cashoutHint');
 
-        // rising bubbles (64, varying size + base speed). --base is read by
-        // the .bubble animation rule via calc(--base * --speed); the parent
-        // stage class drives --speed, so the whole field accelerates upward
-        // during deeper dive states without resetting individual bubbles.
-        const bubbleHost = document.getElementById('bubbles');
-        for (let i = 0; i < 64; i++) {
-            const b = document.createElement('div');
-            b.className = 'bubble';
-            const size = 4 + Math.random() * 14;
-            b.style.width = b.style.height = size + 'px';
-            // Spawn from a wider band including offscreen-right so the leftward
-            // dive drift keeps the visible area populated; without this the
-            // right side empties out as soon as the sub starts moving.
-            b.style.left = (-10 + Math.random() * 150) + 'vw';
-            b.style.setProperty('--base', (6 + Math.random() * 10) + 's');
-            b.style.animationDelay = (-Math.random() * 12) + 's';
-            bubbleHost.appendChild(b);
+        // Rising bubbles in depth layers, for parallax. --base is a bubble's own
+        // speed and --layer its depth (see .bubble): far ones crawl, near ones
+        // rush past. The parent stage class drives --speed / --drift-x, so all
+        // layers speed up together in deeper dive states without resetting a
+        // bubble. Fewer on phones; only the main field with reduced motion.
+        const fewer = window.matchMedia('(max-width: 600px)').matches ? 0.6 : 1;
+        const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function spawnBubbles(id, count, { min, max, layer, band }) {
+            const host = document.getElementById(id);
+            for (let i = 0; i < count; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble';
+                const size = min + Math.random() * (max - min);
+                b.style.width = b.style.height = size + 'px';
+                // Spawn across a band reaching offscreen right (wider for faster
+                // layers) so the leftward dive drift keeps the screen populated;
+                // without this the right side empties as soon as the sub moves.
+                b.style.left = (-10 + Math.random() * band) + 'vw';
+                b.style.setProperty('--layer', layer);
+                b.style.setProperty('--base', (6 + Math.random() * 10) + 's');
+                b.style.animationDelay = (-Math.random() * 12) + 's';
+                host.appendChild(b);
+            }
+        }
+        spawnBubbles('bubbles', 64, { min: 4, max: 18, layer: 1, band: 150 });
+        if (!calm) {
+            spawnBubbles('bubbles-far', Math.round(90 * fewer), { min: 2, max: 6, layer: 0.45, band: 150 });
+            spawnBubbles('bubbles-dive', Math.round(90 * fewer), { min: 3, max: 14, layer: 1.2, band: 230 });
+            spawnBubbles('bubbles-near', Math.round(18 * fewer), { min: 24, max: 56, layer: 2, band: 300 });
         }
 
         // ambient silt particles. Spawn slightly past the right edge so the
