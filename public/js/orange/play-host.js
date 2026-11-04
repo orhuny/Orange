@@ -33,19 +33,33 @@ export function startPlayHost(config) {
         return null;
     }
 
+    /**
+     * 32 random hex characters. Not crypto.randomUUID(): browsers only offer it in secure
+     * contexts, and this page isn't one inside an http casino page, even though it is https.
+     */
+    function idempotencyKey() {
+        return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
     async function api(path, { method = 'GET', body, idempotent = false } = {}) {
         const headers = { Accept: 'application/json', Authorization: `Bearer ${token}` };
         if (body !== undefined) {
             headers['Content-Type'] = 'application/json';
         }
         if (idempotent) {
-            headers['Idempotency-Key'] = crypto.randomUUID().replaceAll('-', '');
+            headers['Idempotency-Key'] = idempotencyKey();
         }
-        const response = await fetch(config.playApi + path, {
-            method,
-            headers,
-            body: body === undefined ? undefined : JSON.stringify(body),
-        });
+        let response;
+        try {
+            response = await fetch(config.playApi + path, {
+                method,
+                headers,
+                body: body === undefined ? undefined : JSON.stringify(body),
+            });
+        } catch (_) {
+            // No answer at all: the game still gets one (a failed bet or cashout), never silence.
+            return { ok: false, status: 0, data: { error: 'network_error' } };
+        }
         let data = {};
         try {
             data = await response.json();

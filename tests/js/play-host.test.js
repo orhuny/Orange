@@ -119,6 +119,31 @@ describe('startPlayHost', () => {
         });
     });
 
+    it('places bets inside an http casino page, where crypto.randomUUID does not exist', async () => {
+        // An https page framed by an http one is not a secure context: no randomUUID there.
+        const real = globalThis.crypto;
+        vi.stubGlobal('crypto', { getRandomValues: (bytes) => real.getRandomValues(bytes) });
+        fetchMock.mockReturnValueOnce(json(201, { bet_id: 9, round_uuid: 'r-1', amount: '2.00000000', player_balance: '96.00' }));
+        start();
+
+        await intent('place_bet', { amount: '2.00', round_uuid: 'r-1' });
+
+        expect(fetchMock.mock.calls[0][1].headers['Idempotency-Key']).toMatch(/^[0-9a-f]{32}$/);
+        expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ success: true, bet_id: 9 });
+    });
+
+    it('tells the game when a bet could not be sent at all', async () => {
+        fetchMock.mockReturnValueOnce(Promise.reject(new TypeError('Failed to fetch')));
+        start();
+
+        await intent('place_bet', { amount: '2.00', round_uuid: 'r-1' });
+
+        expect(frame.contentWindow.posted.at(-1).data).toEqual({
+            type: 'bet_placed_result',
+            payload: { success: false, error: 'network_error', round_uuid: 'r-1' },
+        });
+    });
+
     it('passes the operator\'s refusal reason to the game', async () => {
         fetchMock.mockReturnValueOnce(json(402, { error: 'wallet_rejected', reason: 'insufficient_funds' }));
         start();
