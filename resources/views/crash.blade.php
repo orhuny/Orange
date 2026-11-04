@@ -184,6 +184,7 @@
               radial-gradient(circle at 40% 40%, #fbf8ef 0%, #e2dccb 55%, #b9b1c4 100%);
             box-shadow: 0 0 60px 18px rgba(236,230,216,0.28), 0 0 160px 40px rgba(139,127,168,0.25);
             opacity: 0.85; transition: opacity 1.5s ease;
+            transform: translateY(calc(var(--dive, 0) * -100vh)); /* rises with the backdrop */
         }
         :root[data-theme="burton"] .deep .scene::before  { opacity: 0.35; }
         :root[data-theme="burton"] .abyss .scene::before,
@@ -242,26 +243,28 @@
            on phones. Both already carry light rays and a seabed, so the CSS
            rays and hills step aside; the portrait art also has its own moon.
            Depth darkening still comes from the .scene filter. */
-        :root[data-theme="burton"] .scene {
-            background: url("{{ asset('images/bg-gothic-landscape.jpg') }}?v=2") center bottom / cover no-repeat, var(--abyss);
+        :root[data-theme="burton"] .backdrop {
+            background-image: url("{{ asset('images/bg-gothic-landscape.jpg') }}?v=2");
         }
         :root[data-theme="burton"] .scene::after,
         :root[data-theme="burton"] .rays { display: none; }
         @media (orientation: portrait) {
-            :root[data-theme="burton"] .scene {
-                background: url("{{ asset('images/bg-gothic-portrait.jpg') }}") center top / cover no-repeat, var(--abyss);
+            :root[data-theme="burton"] .backdrop {
+                background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}");
+                background-position: center top;
             }
             :root[data-theme="burton"] .scene::before { display: none; }
         }
         /* ---------- Jackpot Reef extras (jackpot skin only) ----------
            Sunlit reef backdrops (they carry their own rays and seabed), gold
            HUD from the tokens, a chunky rounded face for the numbers. */
-        :root[data-theme="jackpot"] .scene {
-            background: url("{{ asset('images/bg-jackpot-landscape.jpg') }}") center bottom / cover no-repeat, var(--abyss);
+        :root[data-theme="jackpot"] .backdrop {
+            background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}");
         }
         @media (orientation: portrait) {
-            :root[data-theme="jackpot"] .scene {
-                background: url("{{ asset('images/bg-jackpot-portrait.jpg') }}") center top / cover no-repeat, var(--abyss);
+            :root[data-theme="jackpot"] .backdrop {
+                background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}");
+                background-position: center top;
             }
         }
         :root[data-theme="jackpot"] .scene::after,
@@ -409,6 +412,25 @@
         .stage.deep    .scene { filter: brightness(0.7) saturate(1.1); }
         .stage.abyss   .scene { filter: brightness(0.5) saturate(0.85) contrast(1.1); }
         .stage.critical .scene { filter: brightness(0.45) saturate(0.75) contrast(1.25) hue-rotate(-15deg); }
+
+        /* ---------- Painted backdrop (illustrated skins) ----------
+           Its own layer, so it rises past the sub as it dives: --dive (set on
+           #stage from the multiplier) goes from 0 at the surface towards ~0.9
+           deep down, and the scene's own gradient, the deep water, shows below
+           it. Its bottom edge fades into that water. Between rounds it glides
+           back up to the surface. */
+        .backdrop {
+            position: absolute; inset: 0; pointer-events: none;
+            background: no-repeat center bottom / cover;
+            transform: translateY(calc(var(--dive, 0) * -100%));
+            -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+        }
+        .waiting .backdrop,
+        .betting .backdrop { transition: transform 1.6s cubic-bezier(.3, .7, .3, 1); }
+        @media (prefers-reduced-motion: reduce) {
+            .backdrop { transform: none; }
+        }
 
         /* ---------- God rays ---------- */
         .rays {
@@ -2584,6 +2606,7 @@
     <div id="stage" class="stage waiting">
         <!-- Filtered scene (depth darkening lives here) -->
         <div class="scene">
+            <div class="backdrop"></div>
             <div class="rays"></div>
             <div id="particles" class="particles"></div>
             <div id="bubbles-far" class="bubbles bubbles-far"></div>
@@ -3384,6 +3407,9 @@
             const p = diveProgress(m);
             const metres = Math.round(p * MAX_DEPTH_M);
             $depthMeter.style.setProperty('--p', p.toFixed(4));
+            // The painted backdrop rises as the sub sinks: steadily at first (about
+            // 3% of the screen a second), easing off deep down, never quite gone.
+            $stage.style.setProperty('--dive', (0.9 * (1 - Math.pow(Math.max(1, m), -1 / 1.8))).toFixed(4));
             $depthVal.textContent = depthFmt.format(metres) + ' m';
             $depthZone.textContent = metres === 0 ? 'SURFACE'
                 : metres < 200 ? 'SUNLIGHT ZONE'
