@@ -99,6 +99,7 @@ it('lists the operator\'s playable games by category, with recent and popular', 
     $tiles = array_column((array) $response->json('games'), null, 'code');
     expect($tiles['dice']['frame_url'])->toBe(url('/games/dice').'?game=dice')
         ->and($tiles['crash']['frame_url'])->toBe(url('/crash').'?game=crash')
+        ->and($tiles['crash']['rtp'])->toBe('0.9700')
         ->and($tiles['rocket']['playable'])->toBeFalse()
         ->and($tiles['dice']['playable'])->toBeTrue();
 });

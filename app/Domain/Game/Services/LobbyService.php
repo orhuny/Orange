@@ -32,6 +32,7 @@ final class LobbyService
                 'type' => $game['type'],
                 'category' => $game['category'],
                 'thumbnail_url' => $game['thumbnail_url'],
+                'rtp' => $game['rtp'],
                 'playable' => $game['status'] === 'active',
                 'frame_url' => url((string) $frontends[$game['type']]).'?game='.rawurlencode($game['code']),
             ])
