@@ -2347,6 +2347,7 @@
                 setTimeout(() => $intro.remove(), cfg.fadeMs + 50);
             }
 
+            const giveUp = (e) => { console.info('[intro] skipped: ' + (e && e.message === 'intro timeout' ? 'artwork not loaded within 5 s' : 'artwork failed to load')); finish(); };
             $intro.style.setProperty('--intro-fade', cfg.fadeMs + 'ms');
             $intro.hidden = false;
             $intro.addEventListener('click', finish);
@@ -2378,7 +2379,7 @@
                         at += cfg.holdMs[i + 1] ?? cfg.frameMs;
                     });
                     timers.push(setTimeout(finish, at));
-                }).catch(finish);
+                }).catch(giveUp);
                 return;
             }
 
@@ -2390,7 +2391,7 @@
                 if (finished) return;
                 $intro.classList.add('play');
                 timers.push(setTimeout(finish, SCENE_MS));
-            }).catch(finish);
+            }).catch(giveUp);
         })(@json($intro));
     </script>
     @endif
