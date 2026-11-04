@@ -414,10 +414,10 @@
 
         /* ---------- Painted backdrop (illustrated skins) ----------
            Its own layer, so it rises past the sub as it dives: --dive (set on
-           it from the multiplier) goes from 0 at the surface towards ~0.9
-           deep down, and the scene's own gradient, the deep water, shows below
-           it. Its bottom edge fades into that water. Between rounds it glides
-           back up to the surface. */
+           it from the descent, in screen heights) goes from 0 at the surface
+           past 1 once the reef has left the screen (~1.6x), and the scene's own
+           gradient, the deep water, shows below it. Its bottom edge fades into
+           that water. Between rounds it glides back up to the surface. */
         .backdrop {
             position: absolute; inset: 0; pointer-events: none;
             background: no-repeat center bottom / cover;
@@ -430,8 +430,8 @@
 
         /* ---------- Trench walls (illustrated skins) ----------
            Rock walls down both edges that loop forever while diving: each strip
-           tiles vertically and scrolls up by --fall (grows with the multiplier,
-           unbounded; a little faster than the backdrop, as they are nearer).
+           tiles vertically and scrolls up by --fall (the descent in vh: faster as
+           the multiplier climbs; 25% faster than the backdrop, as they are nearer).
            They are hidden above the reef's lower edge, so the trench opens up
            just below the reef as it rises away. Between rounds they rewind. */
         .walls {
@@ -3431,20 +3431,31 @@
         const $depthVal = document.getElementById('depth-value');
         const $depthZone = document.getElementById('depth-zone');
         const MAX_DEPTH_M = 10994;
+        // How far the camera has descended, in vh, at multiplier m. Distance grows with
+        // m - 1, so the speed grows with the multiplier itself (it rises by e^(g·t)):
+        // ~13 vh/s at 1x, ~26 at 2x, ~53 at 4x. From DESCENT_CAP_X on the speed holds
+        // (~92 vh/s) so the looping walls never strobe.
+        const DESCENT_PER_X = 220;
+        const DESCENT_CAP_X = 7;
+        function descent(m) {
+            const x = Math.max(1, m);
+            if (x <= DESCENT_CAP_X) return DESCENT_PER_X * (x - 1);
+            return DESCENT_PER_X * (DESCENT_CAP_X - 1 + DESCENT_CAP_X * Math.log(x / DESCENT_CAP_X));
+        }
         const depthFmt = new Intl.NumberFormat('en-US');
         function setDepth(m) {
             const p = diveProgress(m);
             const metres = Math.round(p * MAX_DEPTH_M);
             $depthMeter.style.setProperty('--p', p.toFixed(4));
-            // The painted backdrop rises as the sub sinks: steadily at first (about
-            // 3% of the screen a second), easing off deep down, never quite gone.
-            // Set on the two layers only: on #stage, every descendant's style would be
+            // The camera's descent: the trench walls scroll by it, the reef backdrop
+            // (further away) by 80% of it until it has left the screen. Set on the
+            // two layers only: on #stage, every descendant's style would be
             // recomputed each frame.
-            const dive = (0.9 * (1 - Math.pow(Math.max(1, m), -1 / 1.8))).toFixed(4);
-            $backdrop?.style.setProperty('--dive', dive);
-            $walls?.style.setProperty('--dive', dive);
-            // The trench walls keep scrolling (in vh) for as long as the dive goes on.
-            $walls?.style.setProperty('--fall', (60 * Math.log(Math.max(1, m))).toFixed(2));
+            const fall = descent(m);
+            const rise = Math.min(1.25, fall * 0.8 / 100).toFixed(4);
+            $backdrop?.style.setProperty('--dive', rise);
+            $walls?.style.setProperty('--dive', rise);
+            $walls?.style.setProperty('--fall', fall.toFixed(2));
             $depthVal.textContent = depthFmt.format(metres) + ' m';
             $depthZone.textContent = metres === 0 ? 'SURFACE'
                 : metres < 200 ? 'SUNLIGHT ZONE'
