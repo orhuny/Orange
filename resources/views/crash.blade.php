@@ -2422,7 +2422,7 @@
             <div class="is-rays"></div>
             <div class="is-layer is-motes">@for ($m = 0; $m < 18; $m++)<i style="--x: {{ ($m * 37) % 100 }}%; --s: {{ 2 + $m % 4 }}px; --t: {{ 2.2 + ($m % 5) * 0.45 }}s; --d: -{{ fmod($m * 0.61, 3) }}s"></i>@endfor</div>
             <img class="is-whale art-burton" src="{{ asset('images/whale-gothic.png') }}" alt="">
-            <img class="is-whale art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}" alt="">
+            <img class="is-whale art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}?v={{ filemtime(public_path('images/whale-jackpot.webp')) }}" alt="">
             <img class="is-fish is-fish-1 art-burton" src="{{ asset('images/fish-gothic.png') }}" alt="">
             <img class="is-fish is-fish-1 art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" alt="">
             <img class="is-fish is-fish-2 art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" alt="">
@@ -2712,7 +2712,7 @@
                         <ellipse cx="92" cy="22" rx="3" ry="1.2" fill="rgba(15,23,42,0.7)"/>
                     </svg>
                     <img class="skin-art art-burton" src="{{ asset('images/whale-gothic.png') }}" width="340" height="106" alt="" aria-hidden="true">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}" width="207" height="174" alt="" aria-hidden="true">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}?v={{ filemtime(public_path('images/whale-jackpot.webp')) }}" width="196" height="184" alt="" aria-hidden="true">
                 </div>
 
                 <!-- Anglerfish-style silhouette, right → left -->
@@ -3824,6 +3824,7 @@
                 const pack = themePack();
                 if (pack) {
                     themeAmbience = pack.ambience();
+                    themeAmbience.intensity?.(diveLevel());
                     return;
                 }
 
@@ -3996,6 +3997,21 @@
                     startMusic();
                 }
             }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'], attributeOldValue: true });
+
+            // A pack's music may follow the dive (Jackpot's band builds as it deepens):
+            // 0 betting/waiting/crashed · 1 diving · 2 deep · 3 abyss or critical.
+            function diveLevel() {
+                const c = document.getElementById('stage')?.classList;
+                if (!c || c.contains('crashed')) return 0;
+                if (c.contains('abyss') || c.contains('critical')) return 3;
+                if (c.contains('deep')) return 2;
+                return c.contains('running') ? 1 : 0;
+            }
+            const $stageForMusic = document.getElementById('stage');
+            if ($stageForMusic) {
+                new MutationObserver(() => themeAmbience?.intensity?.(diveLevel()))
+                    .observe($stageForMusic, { attributes: true, attributeFilter: ['class'] });
+            }
 
             return { sfx, startMusic, stopMusic };
         })();

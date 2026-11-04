@@ -36,6 +36,10 @@ class FakeAudioContext {
 
     createConvolver() { return this.node({ buffer: null }); }
 
+    createDynamicsCompressor() {
+        return this.node({ threshold: param(-24), knee: param(30), ratio: param(12), attack: param(0.003), release: param(0.25) });
+    }
+
     createBuffer(channels, length) {
         const data = Array.from({ length: channels }, () => new Float32Array(length));
         return { getChannelData: (c) => data[c] };
@@ -95,5 +99,30 @@ describe.each(['gothic', 'jackpot'])('%s sound pack', (name) => {
 
         expect(ctx.started).toHaveLength(afterTenSeconds); // nothing new after stop()
         expect(ctx.started.every((n) => n.stopped)).toBe(true);
+    });
+});
+
+describe('jackpot music', () => {
+    it('builds as the dive deepens and calms down again', () => {
+        const background = window.OrangeSound.jackpot(ctx, ctx.createGain()).ambience();
+        const notesIn = (seconds) => {
+            const before = ctx.started.length;
+            ctx.currentTime += seconds;
+            vi.advanceTimersByTime(seconds * 1000);
+            return ctx.started.length - before;
+        };
+
+        notesIn(2);
+        const betting = notesIn(4);
+        background.intensity(3);
+        notesIn(2);
+        const abyss = notesIn(4);
+        background.intensity(0);
+        notesIn(2);
+        const calmAgain = notesIn(4);
+
+        expect(abyss).toBeGreaterThan(betting * 1.5); // drums, arpeggio, faster tempo
+        expect(calmAgain).toBeLessThan(abyss);
+        background.stop();
     });
 });
