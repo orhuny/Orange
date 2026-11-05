@@ -110,7 +110,7 @@
             if (valid.indexOf(t) === -1) t = valid[0];
             document.documentElement.setAttribute('data-theme', t);
             // The skin's implosion sprite must be decoded before the first crash, not fetched during it.
-            var sprites = @json(['burton' => asset('images/sub-explosion.webp'), 'jackpot' => asset('images/sub-explosion-jackpot.webp')]);
+            var sprites = @json(['burton' => asset('images/sub-explosion.webp'), 'jackpot' => asset('images/sub-explosion-jackpot.webp').'?v='.filemtime(public_path('images/sub-explosion-jackpot.webp'))]);
             if (sprites[t]) {
                 var preload = document.createElement('link');
                 preload.rel = 'preload';
@@ -2145,8 +2145,11 @@
            wait for the burst frame (--boom-at) so the sub visibly cracks first.
            `translate` (not transform) so the embed offset on .sub-wrap is kept. */
         :root { --boom-at: 0s; }
-        :root:is([data-theme="burton"], [data-theme="jackpot"]) { --boom-at: 0.17s; }
+        :root[data-theme="burton"] { --boom-at: 0.17s; }
+        :root[data-theme="jackpot"] { --boom-at: 0.32s; }
         .crashed .sub-wrap { animation: sub-collapse 1.7s ease-in forwards; }
+        /* Jackpot's sprite runs longer (its halves sink): fade the sub out later. */
+        :root[data-theme="jackpot"] .crashed .sub-wrap { animation-duration: 2.2s; }
         @keyframes sub-collapse {
             0%, 55% { translate: 0 0; opacity: 1; }
             100%    { translate: 0 6vh; opacity: 0; }
@@ -2158,10 +2161,12 @@
             background: url("{{ asset('images/sub-explosion.webp') }}") 0 0 / 700% 100% no-repeat;
             opacity: 0;
         }
-        /* Jackpot's sprite: same 7-frame timing, a wider cell (the halves fly apart). */
+        /* Jackpot's sprite: 16 frames (strain, cracks, coins squeezed out, beams, the
+           flash, the halves bursting apart in coins and bills, then sinking). */
         :root[data-theme="jackpot"] .sub-boom span {
-            left: -25.11%; top: -24.95%; width: 160.18%; height: 132.13%;
-            background-image: url("{{ asset('images/sub-explosion-jackpot.webp') }}");
+            left: 5.34%; top: -33.13%; width: 84.13%; height: 156.59%;
+            background-image: url("{{ asset('images/sub-explosion-jackpot.webp') }}?v={{ filemtime(public_path('images/sub-explosion-jackpot.webp')) }}");
+            background-size: 1600% 100%;
         }
         :root:is([data-theme="burton"], [data-theme="jackpot"]) .sub-boom { display: block; }
         :root[data-theme="burton"] .crashed .sub-gothic,
@@ -2175,6 +2180,26 @@
             28%       { background-position-x: 66.667%; }
             44%       { background-position-x: 83.333%; }
             62%, 100% { background-position-x: 100%; }
+        }
+        /* Frame n (0-15) at n/15 of the strip; the flash (frame 8) at 0.32s = --boom-at. */
+        :root[data-theme="jackpot"] .crashed .sub-boom span { animation: sub-boom-jackpot 1.75s step-end forwards; }
+        @keyframes sub-boom-jackpot {
+            0%        { background-position-x: 0%; }
+            2.29%     { background-position-x: 6.667%; }
+            5.14%     { background-position-x: 13.333%; }
+            8%        { background-position-x: 20%; }
+            10.86%    { background-position-x: 26.667%; }
+            13.71%    { background-position-x: 33.333%; }
+            16%       { background-position-x: 40%; }
+            18.29%    { background-position-x: 46.667%; }   /* the flash: 0.32s */
+            24%       { background-position-x: 53.333%; }
+            29.71%    { background-position-x: 60%; }
+            36.57%    { background-position-x: 66.667%; }
+            44.57%    { background-position-x: 73.333%; }
+            53.71%    { background-position-x: 80%; }
+            62.86%    { background-position-x: 86.667%; }
+            73.14%    { background-position-x: 93.333%; }
+            83.43%, 100% { background-position-x: 100%; }
         }
 
         /* ---------- Log ---------- */

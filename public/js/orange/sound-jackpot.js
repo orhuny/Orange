@@ -419,15 +419,23 @@
                     [58, 57, 56].forEach((n, i) => trombone(midi(n), { at: t + i * 0.3, bus, gain: 0.1, dur: 0.26 }));
                     trombone(midi(55), { at: t + 0.9, bus, gain: 0.1, dur: 0.95, vibrato: 0.02 });
                     break;
-                case 'crash': // BOOM, a crack, cymbal, coins everywhere and a slide whistle down
-                    boom({ at: t, bus, gain: 0.32 });
-                    kick({ at: t, bus, gain: 0.45 });
-                    cymbal({ at: t, bus, gain: 0.1 });
-                    hiss({ at: t, bus, gain: 0.18, dur: 0.15, freq: 3000 });
-                    for (let i = 0; i < 22; i++) coin({ at: t + 0.05 + Math.random() * 0.9, bus, gain: 0.025 + Math.random() * 0.035 });
-                    slide(1400, 180, { at: t + 0.15, bus, gain: 0.06, dur: 1.1 });
-                    for (let i = 0; i < 6; i++) bubble({ at: t + 0.4 + i * 0.12, bus, gain: 0.04 });
+                case 'crash': { // the hull strains and cracks, coins pop out, then BOOM, cymbal, coins everywhere, a slide whistle down
+                    const b = t + 0.32; // the implosion sprite's flash (the page's --boom-at)
+                    riser({ at: t, bus, gain: 0.05, dur: 0.32 });
+                    tom(95, { at: t, bus, gain: 0.14 });
+                    tom(70, { at: t + 0.14, bus, gain: 0.14 });
+                    hiss({ at: t + 0.09, bus, gain: 0.07, dur: 0.04, freq: 5000 });
+                    hiss({ at: t + 0.16, bus, gain: 0.09, dur: 0.05, freq: 4200 });
+                    for (let i = 0; i < 4; i++) coin({ at: t + 0.19 + i * 0.03, bus, gain: 0.03 });
+                    boom({ at: b, bus, gain: 0.32 });
+                    kick({ at: b, bus, gain: 0.45 });
+                    cymbal({ at: b, bus, gain: 0.1 });
+                    hiss({ at: b, bus, gain: 0.18, dur: 0.15, freq: 3000 });
+                    for (let i = 0; i < 22; i++) coin({ at: b + 0.05 + Math.random() * 0.9, bus, gain: 0.025 + Math.random() * 0.035 });
+                    slide(1400, 180, { at: b + 0.15, bus, gain: 0.06, dur: 1.1 });
+                    for (let i = 0; i < 6; i++) bubble({ at: b + 0.4 + i * 0.12, bus, gain: 0.04 });
                     break;
+                }
             }
         }
 
