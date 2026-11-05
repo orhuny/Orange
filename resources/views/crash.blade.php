@@ -758,7 +758,7 @@
         /* ---------- Submarine ---------- */
         .sub-wrap {
             position: absolute; left: 50%; top: 30%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, calc(-50% - var(--lift, 0px)));
             width: 346px; height: 187px;
             /* Faster, punchier plunge — ease-in so each depth threshold feels
                like gravity pulls the sub down rather than a uniform drift. */
@@ -766,15 +766,23 @@
             filter: drop-shadow(0 26px 36px rgba(0,0,0,0.55));
             z-index: 7;  /* always above sea life (creatures z:4, fish z:4, jellyfish, bubbles), below HUD (z:8+) */
         }
-        .running .sub-wrap   { top: 55%; }
-        .deep .sub-wrap      { top: 65%; }
-        .abyss .sub-wrap     { top: 70%; }
-        .critical .sub-wrap  { top: 72%; animation: shake 0.18s linear infinite; }
+        /* Diving, the sub sinks a little on screen (the scenery carries the real
+           descent) but never behind the multiplier: --hud-room is the height the
+           multiplier row takes at the bottom of the screen (measured in JS),
+           --sink how far the tilted hull reaches below its centre at that tier. */
+        :is(.running, .critical) .sub-wrap {
+            top: min(var(--dip), calc(100% - var(--hud-room, 240px) - var(--sink) - 12px + var(--lift, 0px)));
+        }
+        .running .sub-wrap   { --dip: 50%; --sink: 80px; }
+        .deep .sub-wrap      { --dip: 56%; --sink: 92px; }
+        .abyss .sub-wrap     { --dip: 60%; --sink: 104px; }
+        .critical .sub-wrap  { --dip: 62%; --sink: 114px; animation: shake 0.18s linear infinite; }
+        /* `translate`, so the embed's lift in `transform` is kept while it shakes. */
         @keyframes shake {
-            0%,100% { transform: translate(-50%,-50%); }
-            20%     { transform: translate(-52%,-49%); }
-            50%     { transform: translate(-48%,-51%); }
-            80%     { transform: translate(-51%,-50%); }
+            0%,100% { translate: 0 0; }
+            20%     { translate: -2% 1%; }
+            50%     { translate: 2% -1%; }
+            80%     { translate: -1% 0; }
         }
         /* Inner SVG handles nose-down tilt independently of the shake/translate
            on the wrap. Sub bow points right (x=225 in viewBox), so positive
@@ -1235,14 +1243,13 @@
         .critical .state, .crashed .state { --dot: var(--warn); border-color: rgba(239,68,68,0.45); }
         @keyframes state-live { 50% { opacity: 0.35; transform: scale(0.7); } }
 
-        /* ---------- Warnings (only critical) ---------- */
+        /* ---------- Warnings (only critical) ----------
+           Right under the status pill, in the top HUD: clear of the sub, which
+           sits high on short screens to stay clear of the multiplier. */
         .warnings {
-            position: absolute; top: 30%; left: 50%;
-            transform: translate(-50%, 0);
             display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
-            width: max-content; max-width: calc(100vw - 32px);
+            margin-top: 4px; max-width: calc(100vw - 32px);
             pointer-events: none;
-            z-index: 9;
         }
         .warnings > div {
             display: inline-flex; align-items: center; gap: 8px;
@@ -1749,7 +1756,7 @@
 
         /* Hide legacy cashout button + nudge the in-game submarine HUD up. */
         body.embedded .cashout-wrap { display: none; }
-        body.embedded .sub-wrap { transform: translate(-50%, calc(-50% - var(--op-bar-h) * 0.45)); }
+        body.embedded .sub-wrap { --lift: calc(var(--op-bar-h) * 0.45); }
         body.embedded .sonar    { bottom: calc(110px + var(--op-bar-h)); }
 
         /* Mobile (<720px) — bar wraps into rows so 360-414px screens can
@@ -3167,6 +3174,10 @@
             <div id="history" class="history"></div>
             {{-- Round status sits under the rail, clear of the diving sub. --}}
             <div id="state" class="state">Awaiting next dive…</div>
+            <div class="warnings">
+                <div><i>!</i>Pressure critical</div>
+                <div><i>!</i>Hull damage detected</div>
+            </div>
         </div>
 
         <!-- State + multiplier with cockpit gauges flanking the readout -->
@@ -3205,12 +3216,6 @@
                     </svg>
                 </div>
             </div>
-        </div>
-
-        <!-- Critical warnings -->
-        <div class="warnings">
-            <div><i>!</i>Pressure critical</div>
-            <div><i>!</i>Hull damage detected</div>
         </div>
 
         <!-- Sonar -->
@@ -3442,6 +3447,17 @@
             $log.prepend(line);
             while ($log.children.length > 6) $log.lastChild.remove();
         };
+
+        // How much of the screen's bottom the multiplier row takes up: the diving
+        // sub stays clear of it (see the .sub-wrap diving rules).
+        const $subWrap = document.querySelector('.sub-wrap');
+        const $center = document.querySelector('.center');
+        const hudRoom = new ResizeObserver(() => {
+            const room = $stage.getBoundingClientRect().bottom - $center.getBoundingClientRect().top;
+            $subWrap.style.setProperty('--hud-room', `${Math.round(room)}px`);
+        });
+        hudRoom.observe($stage);
+        hudRoom.observe($center);
 
         let stageKey = '';
         function setStage(state) {
