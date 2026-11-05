@@ -1076,6 +1076,11 @@
         }
 
         /* ---------- Recent crashes history ---------- */
+        /* The rail stays clear of the theme / sound / fullscreen buttons at the top
+           right (--ctl-reserve: their width plus margins): centred with that much room
+           on both sides, and on phones in the space to the left of them. */
+        :root { --ctl-reserve: 146px; }
+        :root.no-fullscreen { --ctl-reserve: 104px; }
         .history-wrap {
             position: absolute;
             top: 18px; left: 50%;
@@ -1083,7 +1088,17 @@
             display: flex; flex-direction: column; align-items: center;
             gap: 4px;
             z-index: 9;
-            max-width: 96vw;
+            max-width: calc(100vw - 2 * var(--ctl-reserve));
+        }
+        .history-wrap .history { max-width: 100%; }
+        @media (max-width: 640px) {
+            .history-wrap { left: 10px; right: var(--ctl-reserve); transform: none; max-width: none; }
+            /* The status pill under it stays centred on the screen, on one line. */
+            .history-wrap .state {
+                position: relative; left: calc((var(--ctl-reserve) - 10px) / 2);
+                width: max-content; max-width: calc(100vw - 20px);
+                gap: 9px; padding: 7px 16px 7px 13px; font-size: 12px; letter-spacing: 0.16em;
+            }
         }
         .history-label {
             font-size: 10px; letter-spacing: 0.32em;
@@ -1133,7 +1148,7 @@
                 flex-wrap: nowrap;
             }
             .history-chip {
-                font-size: 11px; padding: 3px 7px;
+                font-size: 11px; padding: 3px 6px;
                 flex: 0 0 auto;
             }
             /* Show only the most recent few — anything past the 6th gets
@@ -1349,6 +1364,11 @@
         .fs-btn:active { transform: translateY(1px); }
         .fs-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
         .fs-btn .fs-icon-exit { display: none; }
+        /* No fullscreen to be had (the page on its own on an iPhone): the button goes
+           and the other two close up. */
+        .no-fullscreen .fs-btn { display: none; }
+        .no-fullscreen .audio-btn { right: 14px; }
+        .no-fullscreen .theme-btn { right: 56px; }
         :fullscreen .fs-btn .fs-icon-enter,
         body.is-fullscreen .fs-btn .fs-icon-enter { display: none; }
         :fullscreen .fs-btn .fs-icon-exit,
@@ -1437,6 +1457,19 @@
             border-radius: 50%;
             background: linear-gradient(160deg, var(--sw-top) 0%, var(--sw-deep) 100%);
             box-shadow: inset 0 0 0 2px var(--sw-hud), 0 0 6px var(--sw-hud);
+        }
+        /* Phones: the theme / sound / fullscreen buttons a little smaller and closer,
+           leaving the recent-crashes rail more room. */
+        @media (max-width: 640px) {
+            :root { --ctl-reserve: 112px; }
+            :root.no-fullscreen { --ctl-reserve: 78px; }
+            .theme-btn, .audio-btn, .fs-btn { top: 12px; width: 30px; height: 30px; }
+            .fs-btn { right: 10px; }
+            .audio-btn { right: 44px; }
+            .theme-btn { right: 78px; }
+            .no-fullscreen .audio-btn { right: 10px; }
+            .no-fullscreen .theme-btn { right: 44px; }
+            .theme-menu { top: 48px; right: 10px; }
         }
         /* ---------- Operator HUD bar (slim — only when /crash is iframe-embedded) ---------- */
         .operator-panel { display: none; }
@@ -3467,7 +3500,19 @@
             $history.innerHTML = history.map((cp, i) =>
                 `<span class="history-chip ${tierClassFor(cp)}${highlightFirst && i === 0 ? ' is-new' : ''}">${cp.toFixed(2)}x</span>`
             ).join('');
+            fitHistory();
         }
+        // Only whole chips: the rail stays clear of the buttons at the top right, and a
+        // chip that doesn't fit is left out rather than cut in half. (Offsets, not rects:
+        // a new chip is still popping in, scaled.)
+        function fitHistory() {
+            const chips = [...$history.children];
+            chips.forEach((c) => { c.style.display = ''; });
+            const edge = $history.offsetLeft + $history.clientWidth - parseFloat(getComputedStyle($history).paddingRight);
+            chips.forEach((c) => { if (c.offsetLeft + c.offsetWidth > edge + 0.5) c.style.display = 'none'; });
+        }
+        window.addEventListener('resize', fitHistory);
+        document.fonts?.ready.then(fitHistory);
         function pushHistory(cp) {
             history.unshift(cp);
             if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
@@ -3773,6 +3818,14 @@
             if (!$btn) return;
 
             const isEmbedded = window.self !== window.top;
+            // On its own, the page can't go fullscreen where the browser has no Fullscreen
+            // API for pages (iPhones: video only), so the button goes. Embedded, the operator
+            // page decides (fullscreen, or where there is none, expanding the game).
+            if (!isEmbedded && !(document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+                document.documentElement.classList.add('no-fullscreen');
+                fitHistory();
+                return;
+            }
 
             function isFullscreen() {
                 return !!(document.fullscreenElement || document.webkitFullscreenElement);

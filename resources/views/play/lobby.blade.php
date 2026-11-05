@@ -139,6 +139,9 @@
         .gamebar strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gamebar .balance { margin-left: auto; flex-direction: row; align-items: center; gap: 8px; padding: 4px 10px; }
         .stage { position: relative; flex: 1; }
+        /* The operator page expanded the game (fullscreen, or where there is none, as on
+           iPhones, filling the window): the bar steps aside too. */
+        body.game-expanded .gamebar { display: none; }
         .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
         .spinner { position: absolute; inset: 0; display: grid; place-items: center; background: #000; transition: opacity .3s; }
         .spinner i { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(255,255,255,.15); border-top-color: var(--primary); animation: spin .8s linear infinite; }
@@ -240,6 +243,8 @@
         }
 
         function showLobby() {
+            // Expanded for the game: give the operator page its header (and close button) back.
+            if (document.body.classList.contains('game-expanded')) host?.outer.send('exit_fullscreen', {});
             host?.close();
             $('game').classList.remove('shown');
             $('lobby').hidden = false;
@@ -260,6 +265,9 @@
                 $('expired').classList.add('shown');
             },
             onBackToLobby: showLobby,
+            onFullscreen(active) {
+                document.body.classList.toggle('game-expanded', active);
+            },
         });
 
         function open(game) {

@@ -192,6 +192,24 @@ describe('startPlayHost', () => {
         expect(frame.src).toBe('about:blank');
     });
 
+    it('tells a lobby when the operator page expands or shrinks the game, and passes it on', () => {
+        const onFullscreen = vi.fn();
+        startPlayHost({
+            gameCode: null, frameUrl: null, bearer: 'ps_lobby', storageKey: 'orange.lobby',
+            outerOrigins: ['https://op.example'], playApi: 'https://orange.example/play-api', frame, onExpired: expired, onFullscreen,
+        });
+
+        for (const active of [true, false]) {
+            const event = new MessageEvent('message', { data: { type: 'fullscreen_state', payload: { active } }, origin: 'https://op.example' });
+            Object.defineProperty(event, 'source', { value: window.parent });
+            window.dispatchEvent(event);
+        }
+
+        expect(onFullscreen.mock.calls).toEqual([[true], [false]]);
+        expect(frame.contentWindow.posted.filter((p) => p.data.type === 'fullscreen_state').map((p) => p.data.payload.active))
+            .toEqual([true, false]);
+    });
+
     it('ends the page when the session is no longer accepted', async () => {
         fetchMock.mockReturnValueOnce(json(401, { error: 'session_expired' }));
         start();

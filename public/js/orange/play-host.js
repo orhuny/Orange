@@ -10,7 +10,8 @@ import { createGameBridge, createHostBridge } from './bridge.js';
 /**
  * @param {{ gameCode: string|null, frameUrl: string|null, bearer: string|null, storageKey: string,
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
- *           onExpired: () => void, onBackToLobby?: () => void }} config
+ *           onExpired: () => void, onBackToLobby?: () => void,
+ *           onFullscreen?: (active: boolean) => void }} config
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
 export function startPlayHost(config) {
@@ -78,6 +79,9 @@ export function startPlayHost(config) {
             // The operator page may still drive fullscreen and push balance updates.
             if (type === 'fullscreen_state' || type === 'balance_update') {
                 inner.send(type, payload);
+            }
+            if (type === 'fullscreen_state') {
+                config.onFullscreen?.(!!payload?.active);
             }
         },
     });
