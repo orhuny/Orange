@@ -2358,9 +2358,16 @@
         @media (orientation: portrait) { .is-sub-bob { width: min(80vw, 560px); } }
         .intro.play .is-sub-bob { animation: is-bob 1.6s ease-in-out 1.2s infinite alternate; }
         @keyframes is-bob { from { transform: translateY(-6px) rotate(-1.5deg); } to { transform: translateY(6px) rotate(1.5deg); } }
-        .is-sub { position: relative; display: block; width: 100%; height: auto; filter: blur(4px) brightness(0.2); }
-        .intro.play .is-sub { animation: is-sub-clear 0.8s ease-out 0.3s forwards; }
-        @keyframes is-sub-clear { to { filter: blur(0) brightness(1) drop-shadow(0 0 18px rgba(214, 236, 120, 0.25)); } }
+        /* Rises out of the dark: fades up from a dim silhouette, a soft glow coming up
+           behind it. No CSS filter on the picture: animating one made Safari (every
+           iPhone browser) draw the sub as a white box. */
+        .is-sub { position: relative; display: block; width: 100%; height: auto; opacity: 0.2; }
+        .intro.play .is-sub { animation: is-fade-in 0.8s ease-out 0.3s forwards; }
+        .is-sub-bob::before {
+            content: ''; position: absolute; inset: -8% -6%; opacity: 0;
+            background: radial-gradient(closest-side, rgba(214, 236, 120, 0.25), transparent);
+        }
+        .intro.play .is-sub-bob::before { animation: is-fade-in 0.8s ease-out 0.3s forwards; }
 
         /* Headlight cone from the nose lamp, flickers on after the flash. */
         .is-beam {
@@ -2522,8 +2529,7 @@
             border-color: rgba(180, 83, 9, 0.9);
             background: radial-gradient(circle at 35% 30%, #fffbe6 0 15%, #fcd34d 45%, #d97706 100%);
         }
-        :root[data-theme="jackpot"] .intro.play .is-sub { animation-name: is-sub-clear-gold; }
-        @keyframes is-sub-clear-gold { to { filter: blur(0) brightness(1) drop-shadow(0 0 18px rgba(252, 211, 77, 0.35)); } }
+        :root[data-theme="jackpot"] .is-sub-bob::before { background: radial-gradient(closest-side, rgba(252, 211, 77, 0.35), transparent); }
     </style>
 </head>
 <body>
