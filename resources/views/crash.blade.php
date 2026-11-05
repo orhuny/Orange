@@ -2436,8 +2436,11 @@
             font-weight: 700; font-size: clamp(48px, 12vw, 168px); letter-spacing: 0.02em;
             filter: drop-shadow(0 4px 0 #0b0910) drop-shadow(0 0 20px rgba(214, 236, 120, 0.5));
         }
+        /* The gradient fills only a letter's box: pad it so descenders (the p) are
+           painted too, and take the padding back so nothing moves. */
         .is-title span {
             display: inline-block; opacity: 0; color: transparent;
+            padding: 0.1em 0 0.25em; margin: -0.1em 0 -0.25em;
             background: linear-gradient(100deg, #ece6d8 0%, #ece6d8 40%, #fffdf0 46%, #e8fb9a 50%, #fffdf0 54%, #ece6d8 60%, #c9c0ae 100%);
             background-size: 400% 100%; background-position: 100% 0;
             -webkit-background-clip: text; background-clip: text;
