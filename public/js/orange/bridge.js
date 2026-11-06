@@ -15,6 +15,7 @@ export const FROM_GAME = Object.freeze([
     'exit_fullscreen',
     'launch_game',
     'back_to_lobby',
+    'bet_history',
 ]);
 
 /** Messages the embedding page sends to a game. */
@@ -26,6 +27,7 @@ export const TO_GAME = Object.freeze([
     'balance_update',
     'round_state',
     'auto_cashout_fired',
+    'bet_history_result',
 ]);
 
 function isMessage(data, names) {

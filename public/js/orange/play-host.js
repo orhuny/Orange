@@ -101,7 +101,19 @@ export function startPlayHost(config) {
                         username: r.data.player.id,
                         currency: r.data.player.currency,
                         balance: balance ?? '',
+                        // We answer bet_history, so the game may offer its bet history.
+                        bet_history: true,
                     });
+                    break;
+                }
+                case 'bet_history': {
+                    if (!gameCode) {
+                        return;
+                    }
+                    const r = await api(`/games/${encodeURIComponent(gameCode)}/bets`);
+                    inner.send('bet_history_result', r.ok
+                        ? { success: true, bets: r.data.bets ?? [] }
+                        : { success: false, error: r.data.error || `http_${r.status}` });
                     break;
                 }
                 case 'place_bet': {

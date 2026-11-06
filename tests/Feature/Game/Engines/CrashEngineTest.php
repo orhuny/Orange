@@ -14,6 +14,7 @@ use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\ProvablyFair\Models\RngSeed;
 use App\Domain\ProvablyFair\Services\ProvablyFairService;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 
 use function Pest\Laravel\postJson;
@@ -63,13 +64,17 @@ it('verifies exactly like POST /v1/fairness/verify, using the game house edge by
 
     $verified = crashEngine()->verifier()->verify($game, 'a-revealed-server-seed', 'house-client-seed', 7, $params);
 
-    expect($verified)->toBe([
+    // Plus the steps in between (hex, decimal, instant_crash), which the legacy endpoint doesn't give.
+    expect(Arr::except($verified, ['hex', 'decimal', 'instant_crash']))->toBe([
         'algorithm' => $legacy['algorithm'],
         'house_edge_divisor' => $legacy['house_edge_divisor'],
         'server_seed_hash' => $legacy['server_seed_hash'],
         'hmac' => $legacy['hmac'],
         'crash_point' => (float) $legacy['crash_point'],
-    ])->and($verified['house_edge_divisor'])->toBe($houseEdge === null ? 100 : 20);
+    ])->and($verified['house_edge_divisor'])->toBe($houseEdge === null ? 100 : 20)
+        ->and($verified['hex'])->toBe(substr($legacy['hmac'], 0, 13))
+        ->and($verified['decimal'])->toBe(hexdec(substr($legacy['hmac'], 0, 13)))
+        ->and($verified['instant_crash'])->toBe(hexdec(substr($legacy['hmac'], 0, 8)) % $verified['house_edge_divisor'] === 0);
 })->with([null, 0.05]);
 
 it('accepts only house edges the verifier can compute with', function (): void {

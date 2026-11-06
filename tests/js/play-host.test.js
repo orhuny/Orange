@@ -80,8 +80,30 @@ describe('startPlayHost', () => {
         expect(init.headers.Authorization).toBe('Bearer ps_test');
         expect(frame.contentWindow.posted.at(-1).data).toEqual({
             type: 'player_info',
-            payload: { id: '12*3456', username: '12*3456', currency: 'EUR', balance: '98.00' },
+            payload: { id: '12*3456', username: '12*3456', currency: 'EUR', balance: '98.00', bet_history: true },
         });
+    });
+
+    it('answers bet_history with the player\'s bets on the open game', async () => {
+        const bets = [{ bet_id: 4, status: 'won', amount: '10.00000000', multiplier: '2.5000', round_uuid: 'r-1', crash_point: 4.1 }];
+        fetchMock.mockReturnValueOnce(json(200, { bets }));
+        start();
+
+        await intent('bet_history');
+
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe('https://orange.example/play-api/games/crash/bets');
+        expect(init.method).toBe('GET');
+        expect(frame.contentWindow.posted.at(-1).data).toEqual({ type: 'bet_history_result', payload: { success: true, bets } });
+    });
+
+    it('tells the game when its bet history could not be loaded', async () => {
+        fetchMock.mockReturnValueOnce(json(404, { error: 'unknown_game' }));
+        start();
+
+        await intent('bet_history');
+
+        expect(frame.contentWindow.posted.at(-1).data).toEqual({ type: 'bet_history_result', payload: { success: false, error: 'unknown_game' } });
     });
 
     it('turns place_bet into an idempotent player-API bet and reports the result', async () => {

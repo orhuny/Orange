@@ -34,6 +34,9 @@ it('verifies a crash round from its revealed seed with the game\'s house edge', 
     ]))->assertOk()
         ->assertJsonPath('game', 'crash')
         ->assertJsonPath('hmac', 'e03468f7285b30a96ddf4b181c2181f70cfc2416eca9e2341f4af03a990d2b17')
+        ->assertJsonPath('hex', 'e03468f7285b3')
+        ->assertJsonPath('decimal', 3944251263190451)
+        ->assertJsonPath('instant_crash', false)
         ->assertJsonPath('crash_point', 7.98)
         ->assertJsonPath('expected_hash_matches', true);
 });

@@ -54,6 +54,11 @@ final class CrashVerifier implements FairnessVerifier
             'house_edge_divisor' => $divisor,
             'server_seed_hash' => $this->math->hashSeed($serverSeed),
             'hmac' => $hmac,
+            // The steps in between, as a player would redo them by hand: the first 13 hex
+            // digits and their value, and whether the first 8 hit the 1-in-N edge.
+            'hex' => substr($hmac, 0, 13),
+            'decimal' => (int) hexdec(substr($hmac, 0, 13)),
+            'instant_crash' => (int) hexdec(substr($hmac, 0, 8)) % $divisor === 0,
             'crash_point' => $this->math->crashFromHmac($hmac, $divisor),
         ];
     }

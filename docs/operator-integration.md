@@ -286,17 +286,22 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `exit_fullscreen` | `{}` | User clicked the toggle while in fullscreen |
 | `launch_game` | `{ code }` | (new, informational) The player opened another game from the lobby |
 | `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it |
+| `bet_history` | `{}` | (new, optional) The player opened My bets. Sent only if your `player_info` said `bet_history: true` |
 
 #### Messages **parent → iframe**
 
 | `type` | `payload` | Purpose |
 |---|---|---|
-| `player_info` | `{ id, username, currency, balance }` | Identify the logged-in player to the iframe HUD |
+| `player_info` | `{ id, username, currency, balance, bet_history? }` | Identify the logged-in player to the iframe HUD. `bet_history: true` (optional) shows the My bets button; only send it if you answer `bet_history` |
 | `round_state` | `{ phase, round_uuid }` | Sync state machine — phase ∈ `waiting`/`betting`/`running`/`crashed` |
 | `bet_placed_result` | `{ success, bet_id, round_uuid, amount, auto_cashout_at, player_balance, error?, error_message? }` | Echo of your `/v1/bets` response |
 | `cashout_result` | `{ success, bet_id, multiplier?, payout?, player_balance, error?, error_message? }` | Echo of your `/v1/bets/{id}/cashout` response |
 | `auto_cashout_fired` | `{ multiplier, threshold }` | Tell the iframe HUD that auto-cashout has been triggered server-side |
 | `fullscreen_state` | `{ active: bool }` | Sync the iframe's fullscreen icon state |
+| `bet_history_result` | `{ success, bets?, error? }` | (new, optional) Answer to `bet_history`: the player's latest bets on this game, newest first, each `{ bet_id, placed_at, amount, currency, status, multiplier, payout_amount, round_id, round_uuid, crash_point }`. `multiplier` is the cash-out multiplier (won bets only). `crash_point` is `null` until the round is over |
+
+The recent-crashes rail needs nothing from you. Each chip opens that round's details (seeds,
+HMAC and the result worked out from them) from the public `GET /v1/rounds/{uuid}`.
 
 **Security**
 
@@ -528,7 +533,14 @@ Public, no HMAC, 60 requests a minute per IP.
   algorithm, the game's house edge and, for crash, the public `house_client_seed`.
 - `GET /v1/fairness/{code}/verify?server_seed=…&client_seed=…&nonce=…[&expected_server_seed_hash=…]`
   recomputes an outcome with the game's own parameters, so you don't need to pass `house_edge`.
-  Games that are no longer offered stay verifiable.
+  Games that are no longer offered stay verifiable. For crash, the answer also gives the steps:
+  `hex` (the HMAC's first 13 hex digits), `decimal` (their value) and `instant_crash` (whether
+  the first 8 hit the house edge).
+- `GET /v1/rounds/{uuid}` returns one round's details: `round_id`, `game`, `state`, its times,
+  `result` (`{ crash_point }`, `null` while the round is live) and `fairness`
+  (`server_seed_hash`, `server_seed`, `client_seed`, `nonce`, and `verification`, the outcome
+  recomputed as by the verify endpoint above). `server_seed` and `verification` are `null` until
+  the round settles. The game page's round details use this endpoint.
 
 ### Direct play: `/play/{code}`
 
@@ -564,6 +576,9 @@ What you need:
   `back_to_lobby` to you.
 
 Reloading the page keeps the session. A launch token can't be reused.
+
+The game page has a **My bets** list (the player's latest bets on that game). Orange's host
+page serves it from the player API, so you don't need to do anything for it.
 
 ### The lobby: `/lobby`
 

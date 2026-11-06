@@ -33,6 +33,7 @@ use App\Domain\Wallet\Models\WalletTransaction;
 use App\Http\Controllers\Api\OperatorApi\GameErrors;
 use App\Http\Controllers\Api\OperatorApi\InstantBetResponse;
 use App\Http\Controllers\Api\OperatorApi\SeedResponse;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -43,6 +44,9 @@ use Illuminate\Http\Request;
  */
 class PlayController
 {
+    /** How many of a player's bets the bet history shows. */
+    private const BET_HISTORY_SIZE = 30;
+
     public function __construct(
         private readonly EngineRegistry $engines,
         private readonly BetPlacementService $roundBets,
@@ -157,6 +161,48 @@ class PlayController
             'auto_cashout_at' => $bet->auto_cashout_at === null ? null : (string) $bet->auto_cashout_at,
             'player_balance' => $this->lastKnownBalance($session),
         ], 201);
+    }
+
+    /** GET /play-api/games/{code}/bets — the player's latest bets on the game, newest first. */
+    public function bets(Request $request, string $code): JsonResponse
+    {
+        $session = $this->playSession($request);
+        $game = $this->playableGame($session, $code);
+        if ($game === null) {
+            return GameErrors::unknownGame();
+        }
+
+        $bets = Bet::query()
+            ->with('round')
+            ->where('operator_id', $session->operator_id)
+            ->where('player_id', $session->player_id)
+            ->where('game_id', $game->id)
+            // Only bets that counted: not stakes declined, rolled back or still being debited.
+            ->whereIn('status', [BetStatus::Placed->value, BetStatus::Won->value, BetStatus::Lost->value, BetStatus::Refunded->value])
+            ->latest('id')
+            ->limit(self::BET_HISTORY_SIZE)
+            ->get();
+
+        return response()->json(['bets' => $bets->map(function (Bet $bet): array {
+            $status = $bet->getAttribute('status');
+            $placedAt = $bet->getAttribute('placed_at');
+            $round = $bet->round;
+
+            return [
+                'bet_id' => $bet->id,
+                'placed_at' => $placedAt instanceof CarbonInterface ? $placedAt->toIso8601String() : null,
+                'amount' => (string) $bet->amount,
+                'currency' => $bet->currency,
+                'status' => $status instanceof BetStatus ? $status->value : null,
+                // What the player cashed out at; a lost bet has none.
+                'multiplier' => $status === BetStatus::Won ? (string) $bet->multiplier : null,
+                'payout_amount' => $bet->payout_amount === null ? null : (string) $bet->payout_amount,
+                'round_id' => $round?->id,
+                'round_uuid' => $round?->round_uuid,
+                // Only once the round is over: a bet on the live round must not reveal it.
+                'crash_point' => $round?->publicCrashPoint(),
+            ];
+        })->all()]);
     }
 
     /** POST /play-api/bets/{bet}/cashout */

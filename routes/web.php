@@ -19,8 +19,9 @@ Route::get('/crash', function () {
         ->whereNotNull('crash_point')
         ->latest('id')
         ->limit(8)
-        ->pluck('crash_point')
-        ->map(fn ($c) => (float) $c)
+        ->get(['round_uuid', 'crash_point'])
+        // Each chip opens its round's details (GET /v1/rounds/{uuid}).
+        ->map(fn (GameRound $round) => ['round_uuid' => $round->round_uuid, 'crash_point' => (float) $round->crash_point])
         ->values()
         ->all();
 

@@ -1121,10 +1121,17 @@
             letter-spacing: 0.04em;
             transition: transform 0.3s ease;
         }
-        .history-chip.tier-low  { background: rgba(239,68,68,0.20);  color: #fecaca; }
-        .history-chip.tier-mid  { background: rgba(251,191,36,0.20); color: #fef3c7; }
-        .history-chip.tier-high { background: rgba(34,197,94,0.20);  color: #bbf7d0; }
-        .history-chip.tier-epic {
+        /* A chip opens its round's details. */
+        button.history-chip {
+            border: 0; font-family: inherit; line-height: inherit; cursor: pointer;
+        }
+        button.history-chip:hover { filter: brightness(1.25); }
+        button.history-chip:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+        /* The same tier colours mark multipliers in the round details and My bets. */
+        :is(.history-chip, .x-chip).tier-low  { background: rgba(239,68,68,0.20);  color: #fecaca; }
+        :is(.history-chip, .x-chip).tier-mid  { background: rgba(251,191,36,0.20); color: #fef3c7; }
+        :is(.history-chip, .x-chip).tier-high { background: rgba(34,197,94,0.20);  color: #bbf7d0; }
+        :is(.history-chip, .x-chip).tier-epic {
             background: rgba(168,85,247,0.30);
             color: #f3e8ff;
             box-shadow: 0 0 12px rgba(168,85,247,0.45);
@@ -1455,17 +1462,199 @@
             background: linear-gradient(160deg, var(--sw-top) 0%, var(--sw-deep) 100%);
             box-shadow: inset 0 0 0 2px var(--sw-hud), 0 0 6px var(--sw-hud);
         }
+        /* ---------- My bets (top-right, left of the theme picker) ----------
+           Only when the page hosting the game answers bet_history (Orange's host
+           pages say so in player_info); the rail then keeps clear of it too. */
+        .bets-btn {
+            display: none;
+            position: fixed;
+            top: 14px; right: 140px;
+            z-index: 40;
+            width: 34px; height: 34px;
+            align-items: center; justify-content: center;
+            background: rgba(var(--panel-rgb),0.7);
+            border: 1px solid rgba(var(--hud-rgb),0.32);
+            border-radius: 6px;
+            color: var(--hud);
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 0 10px rgba(var(--hud-rgb),0.10);
+            transition: box-shadow 0.18s, transform 0.12s, background 0.18s, color 0.18s;
+        }
+        .has-bets .bets-btn { display: inline-flex; }
+        .bets-btn:hover {
+            background: rgba(var(--panel-rgb),0.85);
+            box-shadow: 0 0 18px rgba(var(--hud-rgb),0.45);
+            color: var(--hud-bright);
+        }
+        .bets-btn:active { transform: translateY(1px); }
+        .bets-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+        .no-fullscreen .bets-btn { right: 98px; }
+        :root.has-bets { --ctl-reserve: 188px; }
+        :root.has-bets.no-fullscreen { --ctl-reserve: 146px; }
         /* Phones: the theme / sound / fullscreen buttons a little smaller, stacked down
            the right edge, so the recent-crashes rail can stay centred; the theme menu
            opens beside them. */
         @media (max-width: 640px) {
-            :root, :root.no-fullscreen { --ctl-reserve: 46px; }
-            .theme-btn, .audio-btn, .fs-btn,
-            .no-fullscreen .theme-btn, .no-fullscreen .audio-btn { right: 10px; width: 30px; height: 30px; }
+            :root, :root.no-fullscreen, :root.has-bets, :root.has-bets.no-fullscreen { --ctl-reserve: 46px; }
+            .theme-btn, .audio-btn, .fs-btn, .bets-btn,
+            .no-fullscreen .theme-btn, .no-fullscreen .audio-btn, .no-fullscreen .bets-btn { right: 10px; width: 30px; height: 30px; }
             .theme-btn { top: 12px; }
             .audio-btn { top: 46px; }
             .fs-btn { top: 80px; }
+            .bets-btn { top: 114px; }
+            .no-fullscreen .bets-btn { top: 80px; }
             .theme-menu { top: 12px; right: 48px; }
+        }
+
+        /* ---------- Round details and My bets: one dialog over the game ---------- */
+        .sheet {
+            position: fixed; inset: 0; z-index: 60;
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+            background: rgba(0,0,0,0.55);
+            animation: sheet-fade 0.16s ease-out;
+        }
+        .sheet[hidden] { display: none; }
+        @keyframes sheet-fade { from { opacity: 0; } }
+        .sheet-card {
+            display: flex; flex-direction: column;
+            width: min(600px, 100%);
+            max-height: 100%;
+            background: rgba(var(--panel-rgb),0.97);
+            border: 1px solid rgba(var(--hud-rgb),0.32);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 24px rgba(var(--hud-rgb),0.12);
+            overflow: hidden;
+            animation: theme-menu-in 0.18s ease-out;
+        }
+        .sheet-head {
+            display: flex; align-items: center; gap: 10px;
+            min-height: 52px;
+            padding: 9px 10px 9px 16px;
+            border-bottom: 1px solid rgba(var(--hud-rgb),0.18);
+        }
+        .sheet-head .sheet-back:not([hidden]) + .sheet-title { margin-left: -6px; }
+        .sheet-title {
+            margin: 0;
+            font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--hud-bright);
+            white-space: nowrap;
+        }
+        .sheet-time { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+        .sheet-btn {
+            flex: 0 0 auto;
+            width: 32px; height: 32px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: transparent; border: 0; border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .sheet-btn:hover { color: var(--hud-bright); background: rgba(var(--hud-rgb),0.12); }
+        .sheet-btn:focus-visible { outline: 2px solid var(--hud); outline-offset: -2px; }
+        .sheet-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+        .sheet-back { margin-left: -8px; }
+        .sheet-close { margin-left: auto; }
+        .sheet-body {
+            padding: 16px;
+            overflow-y: auto; overscroll-behavior: contain;
+            font-size: 13px;
+        }
+        .sheet-note { margin: 18px 0; text-align: center; color: var(--text-muted); }
+        .sheet-note .sheet-retry {
+            margin-left: 8px; padding: 4px 10px;
+            background: transparent; border: 1px solid rgba(var(--hud-rgb),0.4); border-radius: 6px;
+            color: var(--hud); font: inherit; cursor: pointer;
+        }
+        .x-chip {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        /* Round details: each input to the result, then the result worked out from them. */
+        .pf-section {
+            display: grid; grid-template-columns: 26px 1fr; align-items: center;
+            column-gap: 10px;
+            margin-bottom: 16px;
+        }
+        .pf-section > svg { grid-row: span 2; width: 24px; height: 24px; color: var(--hud); }
+        .pf-label { font-weight: 700; }
+        .pf-sub { font-size: 11px; color: var(--text-muted); }
+        .pf-value {
+            grid-column: 1 / -1;
+            margin-top: 8px;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(var(--hud-rgb),0.12);
+            border-radius: 8px;
+            font-size: 12px; line-height: 1.5;
+            overflow-wrap: anywhere;
+            user-select: text;
+        }
+        .pf-value.is-pending { color: var(--text-muted); font-style: italic; user-select: none; }
+        .pf-value mark { background: rgba(var(--hud-rgb),0.25); color: var(--hud-bright); border-radius: 3px; }
+        .pf-calc {
+            /* The decimal is 16 digits: it gets the room. */
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 0.75fr);
+            margin: 0; padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(var(--hud-rgb),0.12);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .pf-calc dt { font-size: 11px; color: var(--text-muted); }
+        .pf-calc dd { margin: 5px 0 0; font-weight: 700; overflow-wrap: anywhere; user-select: text; }
+        .pf-calc > div + div { border-left: 1px solid rgba(var(--hud-rgb),0.12); padding-left: 8px; }
+        .pf-edge { margin: 10px 2px 0; font-size: 11px; color: var(--text-muted); }
+        .pf-check { margin: 12px 2px 0; font-size: 12px; }
+        .pf-check.ok { color: var(--good); }
+        .pf-check.bad { color: var(--warn); }
+        .pf-how {
+            margin-top: 16px; padding-top: 12px;
+            border-top: 1px solid rgba(var(--hud-rgb),0.18);
+            font-size: 12px; color: var(--text-muted);
+        }
+        .pf-how summary { cursor: pointer; color: var(--hud); }
+        .pf-how summary:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+        .pf-how ol { margin: 10px 0 2px; padding-left: 18px; line-height: 1.6; }
+        .pf-how li + li { margin-top: 4px; }
+
+        /* My bets: one row a bet, newest first; a row opens its round. */
+        .bets-list { display: flex; flex-direction: column; gap: 4px; }
+        .bets-row {
+            display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr 14px;
+            align-items: center; gap: 8px;
+            padding: 9px 10px;
+            font-size: 12.5px;
+            text-align: right;
+        }
+        .bets-row > :first-child { text-align: left; }
+        .bets-row.is-head { padding-top: 0; padding-bottom: 4px; font-size: 11px; color: var(--text-muted); }
+        button.bets-row {
+            width: 100%;
+            background: rgba(0,0,0,0.22);
+            border: 1px solid transparent; border-radius: 8px;
+            color: var(--text); font-family: inherit;
+            cursor: pointer;
+        }
+        button.bets-row:hover { border-color: rgba(var(--hud-rgb),0.35); background: rgba(var(--hud-rgb),0.08); }
+        button.bets-row:focus-visible { outline: 2px solid var(--hud); outline-offset: -2px; }
+        button.bets-row:disabled { cursor: default; }
+        .bets-row.is-won { background: rgba(34,197,94,0.10); }
+        .bets-row .bets-when small { display: block; font-size: 10px; color: var(--text-muted); }
+        .bets-row .is-muted { color: var(--text-muted); }
+        .bets-row .is-win { color: var(--good); font-weight: 700; }
+        .bets-row svg { width: 12px; height: 12px; color: var(--text-muted); }
+        @media (max-width: 500px) {
+            .sheet { padding: 10px; }
+            .sheet-head { padding-left: 12px; gap: 8px; }
+            .sheet-title { font-size: 13px; letter-spacing: 0.1em; }
+            .sheet-body { padding: 12px; }
+            .bets-row { gap: 6px; padding: 8px; font-size: 12px; grid-template-columns: 1.2fr 1fr 1fr 1fr 10px; }
+            .pf-calc dd { font-size: 12px; }
         }
         /* ---------- Operator HUD bar (slim — only when /crash is iframe-embedded) ---------- */
         .operator-panel { display: none; }
@@ -2750,6 +2939,32 @@
         </svg>
     </button>
 
+    <button id="bets-btn" class="bets-btn" type="button" title="My bets" aria-label="My bets" aria-haspopup="dialog">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.85"/>
+            <path d="M2.4 2.4v2.8h2.8"/>
+            <path d="M8 5v3.2l2.2 1.4"/>
+        </svg>
+    </button>
+
+    {{-- Round details (a recent crash, or a bet's round) and My bets. Filled in by the script. --}}
+    <div id="sheet" class="sheet" hidden>
+        <section class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+            <header class="sheet-head">
+                <button id="sheet-back" class="sheet-btn sheet-back" type="button" title="Back to my bets" aria-label="Back to my bets" hidden>
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+                </button>
+                <h2 id="sheet-title" class="sheet-title"></h2>
+                <span id="sheet-pill" hidden></span>
+                <span id="sheet-time" class="sheet-time"></span>
+                <button id="sheet-close" class="sheet-btn sheet-close" type="button" title="Close" aria-label="Close">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                </button>
+            </header>
+            <div id="sheet-body" class="sheet-body"></div>
+        </section>
+    </div>
+
     <div id="stage" class="stage waiting">
         <!-- Filtered scene (depth darkening lives here) -->
         <div class="scene">
@@ -3505,7 +3720,9 @@
         // ---------- Recent crash history (top chip rail) ----------
         const HISTORY_MAX = 8;
         const $history = document.getElementById('history');
-        const history = @json($recentCrashes ?? []);
+        // Newest first: { uuid, cp }. A chip with a round id opens that round's details.
+        const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const history = @json($recentCrashes ?? []).map((r) => ({ uuid: r.round_uuid, cp: r.crash_point }));
 
         function tierClassFor(cp) {
             if (cp >= 10) return 'tier-epic';
@@ -3514,11 +3731,18 @@
             return 'tier-low';
         }
         function renderHistory(highlightFirst = false) {
-            $history.innerHTML = history.map((cp, i) =>
-                `<span class="history-chip ${tierClassFor(cp)}${highlightFirst && i === 0 ? ' is-new' : ''}">${cp.toFixed(2)}x</span>`
-            ).join('');
+            $history.innerHTML = history.map(({ uuid, cp }, i) => {
+                const cls = `history-chip ${tierClassFor(cp)}${highlightFirst && i === 0 ? ' is-new' : ''}`;
+                return UUID.test(uuid ?? '')
+                    ? `<button type="button" class="${cls}" data-round="${uuid}" title="Round details">${cp.toFixed(2)}x</button>`
+                    : `<span class="${cls}">${cp.toFixed(2)}x</span>`;
+            }).join('');
             fitHistory();
         }
+        $history.addEventListener('click', (e) => {
+            const chip = e.target.closest('[data-round]');
+            if (chip) sheet.openRound(chip.dataset.round);
+        });
         // Only whole chips: the rail stays clear of the buttons at the top right, and a
         // chip that doesn't fit is left out rather than cut in half. (Offsets, not rects:
         // a new chip is still popping in, scaled.)
@@ -3530,12 +3754,282 @@
         }
         window.addEventListener('resize', fitHistory);
         document.fonts?.ready.then(fitHistory);
-        function pushHistory(cp) {
-            history.unshift(cp);
+        function pushHistory(cp, uuid) {
+            history.unshift({ uuid, cp });
             if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
             renderHistory(true);
         }
         renderHistory();
+
+        // ---------- Round details and My bets (one dialog over the game) ----------
+        // Round details come from the public GET /v1/rounds/{uuid}; My bets from the page
+        // hosting the game (bet_history → bet_history_result), wired by the operator bridge.
+        const sheet = (function roundSheet() {
+            const ROUNDS_URL = @json(url('/v1/rounds'));
+            const $sheet = document.getElementById('sheet');
+            const $title = document.getElementById('sheet-title');
+            const $pill  = document.getElementById('sheet-pill');
+            const $time  = document.getElementById('sheet-time');
+            const $body  = document.getElementById('sheet-body');
+            const $back  = document.getElementById('sheet-back');
+            const $close = document.getElementById('sheet-close');
+
+            const settledRounds = new Map(); // uuid → details; a settled round no longer changes
+            let view = null;                 // 'round' | 'bets' while open
+            let token = 0;                   // answers for a view that has since changed are dropped
+            let lastFocus = null;
+            let bets = { request: null, list: null, pending: false, timer: null, money: (v) => String(v) };
+
+            function el(tag, attrs = {}, ...children) {
+                const node = document.createElement(tag);
+                for (const [k, v] of Object.entries(attrs)) {
+                    if (v === null || v === undefined || v === false) continue;
+                    if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+                    else if (k === 'html') node.innerHTML = v; // only ever our own markup (icons)
+                    else node.setAttribute(k, v === true ? '' : v);
+                }
+                node.append(...children.flat().filter((c) => c !== null && c !== undefined && c !== false));
+                return node;
+            }
+            const note = (...children) => el('p', { class: 'sheet-note' }, ...children);
+            const x = (cp) => `${Number(cp).toFixed(2)}x`;
+            const chip = (cp) => el('span', { class: `x-chip ${tierClassFor(Number(cp))}` }, x(cp));
+            const clock = (iso, withDate = false) => {
+                const d = iso ? new Date(iso) : null;
+                if (!d || Number.isNaN(d.getTime())) return '';
+                const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                return withDate ? `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${time}` : time;
+            };
+            const isToday = (iso) => new Date(iso).toDateString() === new Date().toDateString();
+
+            function show(name, { back = false } = {}) {
+                if ($sheet.hidden) {
+                    lastFocus = document.activeElement;
+                    $sheet.hidden = false;
+                    $close.focus({ preventScroll: true });
+                }
+                view = name;
+                $back.hidden = !back;
+                return ++token;
+            }
+            function close() {
+                if ($sheet.hidden) return;
+                $sheet.hidden = true;
+                view = null;
+                token++;
+                lastFocus?.focus?.({ preventScroll: true });
+            }
+            function head(title, cp = null, time = '') {
+                $title.textContent = title;
+                $pill.hidden = cp === null;
+                if (cp !== null) $pill.replaceChildren(chip(cp));
+                $time.textContent = time;
+            }
+
+            $close.addEventListener('click', close);
+            $back.addEventListener('click', () => openBets());
+            $sheet.addEventListener('click', (e) => { if (e.target === $sheet) close(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+            // ----- Round details -----
+            const ICONS = {
+                server: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="7" rx="1.5"/><rect x="3" y="13.5" width="18" height="7" rx="1.5"/><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6"/></svg>',
+                lock:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.5"/></svg>',
+                client: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4.5" width="16" height="11" rx="1.5"/><path d="M2 19.5h20M9 15.5l-.5 4M15 15.5l.5 4"/></svg>',
+                hash:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 4.5 6v5.5c0 4.6 3.1 8.4 7.5 9.7 4.4-1.3 7.5-5.1 7.5-9.7V6L12 2.8Z"/><path d="M10 9.5 9 15.5M15 9.5l-1 6M8.5 11.5h7.5M8 13.5h7.5"/></svg>',
+            };
+            function svgIcon(name) {
+                const t = document.createElement('template');
+                t.innerHTML = ICONS[name];
+                const svg = t.content.firstElementChild;
+                svg.setAttribute('aria-hidden', 'true');
+                return svg;
+            }
+            function section(icon, label, sub, value) {
+                return el('div', { class: 'pf-section' },
+                    svgIcon(icon),
+                    el('div', { class: 'pf-label' }, label),
+                    el('div', { class: 'pf-sub' }, sub),
+                    value);
+            }
+            const value = (text, pending = false) => el('div', { class: `pf-value${pending ? ' is-pending' : ''}` }, text);
+
+            // The same maths as the server (ProvablyFairService), redone here from the
+            // revealed seed. Needs WebCrypto, which browsers only offer in secure contexts
+            // (not inside an http casino page): without it there's no check, not a failed one.
+            function crashFromHmac(hmac, divisor) {
+                if (parseInt(hmac.slice(0, 8), 16) % divisor === 0) return 1;
+                const h = parseInt(hmac.slice(0, 13), 16);
+                const e = 2 ** 52;
+                return Math.max(1, Math.floor((100 * e - h) / (e - h)) / 100);
+            }
+            async function checkInBrowser(f) {
+                const subtle = window.crypto?.subtle;
+                if (!subtle || !f.server_seed || !f.verification) return null;
+                try {
+                    const enc = new TextEncoder();
+                    const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+                    const key = await subtle.importKey('raw', enc.encode(f.server_seed), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+                    const [hash, hmac] = await Promise.all([
+                        subtle.digest('SHA-256', enc.encode(f.server_seed)).then(hex),
+                        subtle.sign('HMAC', key, enc.encode(`${f.client_seed}:${f.nonce}`)).then(hex),
+                    ]);
+                    return hash === f.server_seed_hash
+                        && hmac === f.verification.hmac
+                        && crashFromHmac(hmac, f.verification.house_edge_divisor) === Number(f.verification.crash_point);
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            function renderRound(d, my) {
+                const f = d.fairness ?? {};
+                const v = f.verification;
+                const cp = d.result?.crash_point ?? null;
+                head(`Round ${d.round_id}`, cp, clock(d.crashed_at ?? d.started_at ?? d.betting_opened_at, !isToday(d.crashed_at ?? d.betting_opened_at ?? Date.now())));
+
+                const hmac = v ? el('div', { class: 'pf-value' }, el('mark', {}, v.hmac.slice(0, 13)), v.hmac.slice(13)) : value('Worked out once the round is over', true);
+                const parts = [
+                    section('server', 'Server seed', f.server_seed ? 'Made by us before the round, revealed after it' : 'Made by us before the round, revealed once it is over',
+                        f.server_seed ? value(f.server_seed) : value('Revealed once the round is over', true)),
+                    section('lock', 'Server seed SHA-256', 'Published before betting opened, so the seed could not change',
+                        value(f.server_seed_hash ?? '—')),
+                    section('client', 'Client seed : nonce', 'Public, the same for every player in the round',
+                        value(`${f.client_seed}:${f.nonce}`)),
+                    section('hash', 'HMAC-SHA256', 'The client seed and nonce, keyed with the server seed. This is the round result', hmac),
+                ];
+                if (v) {
+                    parts.push(el('dl', { class: 'pf-calc' },
+                        el('div', {}, el('dt', {}, 'Hex'), el('dd', {}, v.hex)),
+                        el('div', {}, el('dt', {}, 'Decimal'), el('dd', {}, String(v.decimal))),
+                        el('div', {}, el('dt', {}, 'Result'), el('dd', {}, x(v.crash_point)))));
+                    if (v.instant_crash) {
+                        parts.push(el('p', { class: 'pf-edge' },
+                            `The first 8 hex digits (${v.hmac.slice(0, 8)}) are a multiple of ${v.house_edge_divisor}: the round ends at 1.00x. That is the house edge.`));
+                    }
+                    const $check = el('p', { class: 'pf-check', 'aria-live': 'polite' });
+                    parts.push($check);
+                    checkInBrowser(f).then((ok) => {
+                        if (my !== token || ok === null) return;
+                        $check.classList.add(ok ? 'ok' : 'bad');
+                        $check.textContent = ok
+                            ? '✓ Checked in your browser: the seed matches the hash published before the round, and gives this result.'
+                            : '✗ Your browser could not confirm this result from the seeds above.';
+                    });
+                }
+                parts.push(el('details', { class: 'pf-how' },
+                    el('summary', {}, 'How is the result worked out?'),
+                    el('ol', {},
+                        el('li', {}, 'Before betting opens we publish the SHA-256 of the round’s server seed, so the seed (and the result) is fixed before anyone bets.'),
+                        el('li', {}, 'Once the round is over we reveal the seed: its SHA-256 matches the published one.'),
+                        el('li', {}, 'HMAC-SHA256 of “client seed:nonce”, keyed with the server seed, gives the hash above.'),
+                        el('li', {}, `If its first 8 hex digits are a multiple of ${v?.house_edge_divisor ?? 'N'} (the house edge), the round ends at 1.00x.`),
+                        el('li', {}, 'Otherwise its first 13 hex digits, as a decimal h, give the result: floor((100 × 2^52 − h) / (2^52 − h)) / 100.'))));
+                $body.replaceChildren(...parts);
+            }
+
+            async function openRound(uuid, { back = false } = {}) {
+                if (!UUID.test(uuid ?? '')) return;
+                const my = show('round', { back });
+                const cached = settledRounds.get(uuid);
+                if (cached) return renderRound(cached, my);
+
+                head('Round');
+                $body.replaceChildren(note('Loading…'));
+                let d = null;
+                try {
+                    const r = await fetch(`${ROUNDS_URL}/${uuid}`, { headers: { Accept: 'application/json' } });
+                    d = r.ok ? await r.json() : null;
+                } catch (_) { /* offline: said below */ }
+                if (my !== token) return;
+                if (!d) {
+                    $body.replaceChildren(note('Couldn’t load this round.', el('button', { class: 'sheet-retry', type: 'button', onclick: () => openRound(uuid, { back }) }, 'Retry')));
+                    return;
+                }
+                if (d.state === 'settled' && d.fairness?.server_seed) settledRounds.set(uuid, d);
+                renderRound(d, my);
+            }
+
+            // ----- My bets -----
+            function renderBets() {
+                const list = bets.list ?? [];
+                if (list.length === 0) {
+                    $body.replaceChildren(note('No bets yet. Your bets in this game will show up here.'));
+                    return;
+                }
+                const currency = list[0].currency;
+                const one = list.every((b) => b.currency === currency);
+                const amount = (b, v) => one ? bets.money(v) : `${bets.money(v)} ${b.currency}`;
+                const chevron = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>';
+                const rows = list.map((b) => {
+                    const won = b.status === 'won';
+                    const cashout = won ? chip(b.multiplier)
+                        : b.status === 'placed' ? el('span', { class: 'is-muted' }, 'in play')
+                        : b.status === 'refunded' ? el('span', { class: 'is-muted' }, 'refunded')
+                        : el('span', { class: 'is-muted' }, '—');
+                    const win = won ? el('span', { class: 'is-win' }, amount(b, b.payout_amount))
+                        : el('span', { class: 'is-muted' }, b.status === 'lost' ? amount(b, '0') : '—');
+                    const when = isToday(b.placed_at) ? el('span', { class: 'bets-when' }, clock(b.placed_at))
+                        : el('span', { class: 'bets-when' }, clock(b.placed_at), el('small', {}, new Date(b.placed_at).toLocaleDateString([], { day: 'numeric', month: 'short' })));
+                    const opens = UUID.test(b.round_uuid ?? '');
+                    return el('button', {
+                        type: 'button',
+                        class: `bets-row${won ? ' is-won' : ''}`,
+                        disabled: !opens,
+                        title: opens ? 'Round details' : null,
+                        onclick: opens ? () => openRound(b.round_uuid, { back: true }) : null,
+                    }, when, el('span', {}, amount(b, b.amount)), el('span', {}, cashout), win, el('span', { html: opens ? chevron : '' }));
+                });
+                $body.replaceChildren(el('div', { class: 'bets-list' },
+                    el('div', { class: 'bets-row is-head', 'aria-hidden': 'true' },
+                        el('span', {}, 'Time'), el('span', {}, one ? `Bet ${currency}` : 'Bet'), el('span', {}, 'Cash out'), el('span', {}, one ? `Win ${currency}` : 'Win'), el('span')),
+                    rows));
+            }
+            function failBets() {
+                $body.replaceChildren(note('Couldn’t load your bets.', el('button', { class: 'sheet-retry', type: 'button', onclick: () => { $body.replaceChildren(note('Loading…')); askForBets(); } }, 'Retry')));
+            }
+            function askForBets() {
+                if (!bets.request) return;
+                bets.pending = true;
+                clearTimeout(bets.timer);
+                bets.timer = setTimeout(() => {
+                    bets.pending = false;
+                    if (view === 'bets' && bets.list === null) failBets();
+                }, 8000);
+                bets.request();
+            }
+            function openBets() {
+                if (!bets.request) return;
+                show('bets');
+                head('My bets');
+                if (bets.list === null) $body.replaceChildren(note('Loading…'));
+                else renderBets();
+                askForBets();
+            }
+
+            return {
+                openRound,
+                openBets,
+                /** The host answers bet_history: offer My bets. request() asks it for them. */
+                enableBets({ request, money }) {
+                    bets.request = request;
+                    if (money) bets.money = money;
+                },
+                /** A bet_history_result from the host. */
+                receiveBets(payload) {
+                    bets.pending = false;
+                    clearTimeout(bets.timer);
+                    if (payload?.success) bets.list = Array.isArray(payload.bets) ? payload.bets : [];
+                    if (view !== 'bets') return;
+                    if (payload?.success || bets.list !== null) renderBets();
+                    else failBets();
+                },
+                /** Something changed the player's bets (a bet, a cashout, a round over). */
+                betsChanged() {
+                    if (view === 'bets' && !bets.pending) askForBets();
+                },
+            };
+        })();
 
         const log = (msg) => {
             const line = document.createElement('div');
@@ -3791,7 +4285,7 @@
                             setDepth(cp);
                             $state.textContent = `IMPLODED @ ${cp.toFixed(2)}x`;
                             log(`💥 imploded @ ${cp.toFixed(2)}x`);
-                            pushHistory(cp);
+                            pushHistory(cp, e.round_uuid);
                         } else {
                             $state.textContent = 'IMPLODED (no crash_point)';
                             log('⚠ crash_point missing in payload');
@@ -3804,6 +4298,7 @@
                 })
                 .listen('.round.settled', (e) => {
                     log(`settled · seed ${e.server_seed?.slice(0,12)}…`);
+                    sheet.betsChanged(); // the round's bets are settled now
                     // Hold the IMPLODED splash for ~1.2s so the player can read
                     // the crash point, then snap back to a neutral idle and
                     // start a visible countdown until the next betting window.
@@ -4473,7 +4968,17 @@
                             : `#${payload.id}`;
                         $balance.textContent = `${money(payload.balance)} ${payload.currency}`;
                         setStatus('connected to operator', 'ok');
+                        // Pages that answer bet_history say so (Orange's own host pages do).
+                        if (payload.bet_history === true && !document.documentElement.classList.contains('has-bets')) {
+                            sheet.enableBets({ request: () => postToParent({ type: 'bet_history', payload: {} }), money });
+                            document.documentElement.classList.add('has-bets');
+                            fitHistory();
+                        }
                         updateButtons();
+                        break;
+
+                    case 'bet_history_result':
+                        sheet.receiveBets(payload);
                         break;
 
                     case 'balance_update':
@@ -4499,6 +5004,7 @@
                             }
                         }
                         if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
+                        if (payload.success) sheet.betsChanged();
                         updateButtons();
                         break;
 
@@ -4524,6 +5030,7 @@
                             setStatus(`cashout failed: ${payload.error || 'unknown'}`, 'err');
                         }
                         if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
+                        sheet.betsChanged();
                         updateButtons();
                         break;
 
@@ -4670,6 +5177,7 @@
             }
 
             $bet.addEventListener('click', triggerBet);
+            document.getElementById('bets-btn').addEventListener('click', () => sheet.openBets());
 
             $autoBet.addEventListener('click', () => {
                 const next = !opState.autoBet;

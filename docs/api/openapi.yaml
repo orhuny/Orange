@@ -325,6 +325,16 @@ paths:
         - { name: nonce, in: query, required: true, schema: { type: integer, minimum: 0 } }
         - { name: expected_server_seed_hash, in: query, required: false, schema: { type: string } }
       responses:
-        '200': { description: 'The recomputed outcome (crash: hmac, crash_point, house_edge_divisor)' }
+        '200': { description: 'The recomputed outcome (crash: hmac, hex, decimal, instant_crash, crash_point, house_edge_divisor)' }
         '404': { description: unknown_game }
         '422': { description: validation error }
+
+  /rounds/{uuid}:
+    get:
+      tags: [Fairness]
+      summary: One round's result and what to verify it with (public, no HMAC)
+      parameters:
+        - { name: uuid, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: 'round_id, game, state, times, result (null while live) and fairness: server_seed_hash, server_seed and verification (null until the round settles), client_seed, nonce' }
+        '404': { description: round_not_found }

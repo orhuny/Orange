@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\Bets\CashoutController;
 use App\Http\Controllers\Api\Fairness\GameFairnessController;
+use App\Http\Controllers\Api\Fairness\RoundController;
 use App\Http\Controllers\Api\Fairness\VerifyController;
 use App\Http\Controllers\Api\OperatorApi\BetController;
 use App\Http\Controllers\Api\OperatorApi\GameBetController;
@@ -23,6 +24,7 @@ Route::prefix('play-api')
     ->group(function (): void {
         Route::get('/session', [PlayController::class, 'session']);
         Route::get('/lobby', [PlayController::class, 'lobby']);
+        Route::get('/games/{code}/bets', [PlayController::class, 'bets'])->where('code', '[a-z0-9_-]+');
         Route::post('/games/{code}/bets', [PlayController::class, 'bet'])->where('code', '[a-z0-9_-]+');
         Route::post('/bets/{bet}/cashout', [PlayController::class, 'cashout'])->whereNumber('bet');
         Route::get('/seeds', [PlayController::class, 'seeds']);
@@ -32,10 +34,11 @@ Route::prefix('play-api')
 Route::prefix('v1')->group(function (): void {
     Route::post('/fairness/verify', VerifyController::class);
 
-    // Public per-game fairness: what to verify with, and a verifier.
+    // Public per-game fairness: what to verify with, and a verifier; and a round's details.
     Route::middleware('throttle:60,1')->group(function (): void {
         Route::get('/fairness/{code}', [GameFairnessController::class, 'show'])->where('code', '[a-z0-9_-]+');
         Route::get('/fairness/{code}/verify', [GameFairnessController::class, 'verify'])->where('code', '[a-z0-9_-]+');
+        Route::get('/rounds/{uuid}', [RoundController::class, 'show'])->whereUuid('uuid');
     });
 
     Route::middleware([VerifyOperatorSignature::class, EnforceIdempotency::class])
