@@ -80,7 +80,7 @@ describe('startPlayHost', () => {
         expect(init.headers.Authorization).toBe('Bearer ps_test');
         expect(frame.contentWindow.posted.at(-1).data).toEqual({
             type: 'player_info',
-            payload: { id: '12*3456', username: '12*3456', currency: 'EUR', balance: '98.00', bet_history: true },
+            payload: { id: '12*3456', username: '12*3456', currency: 'EUR', balance: '98.00', bet_history: true, bet_slots: 2 },
         });
     });
 
@@ -164,6 +164,23 @@ describe('startPlayHost', () => {
             type: 'bet_placed_result',
             payload: { success: false, error: 'network_error', round_uuid: 'r-1' },
         });
+    });
+
+    it('names the bet slot each result answers, whichever comes back first', async () => {
+        let answerFirst;
+        fetchMock
+            .mockReturnValueOnce(new Promise((resolve) => { answerFirst = resolve; }))
+            .mockReturnValueOnce(json(201, { bet_id: 8, round_uuid: 'r-1', amount: '5.00000000' }));
+        start();
+
+        await intent('place_bet', { amount: '2.00', round_uuid: 'r-1', slot: 0 });
+        await intent('place_bet', { amount: '5.00', round_uuid: 'r-1', slot: 1 });
+        answerFirst({ ok: false, status: 402, json: () => Promise.resolve({ error: 'wallet_rejected', reason: 'insufficient_funds' }) });
+        await vi.waitFor(() => expect(frame.contentWindow.posted).toHaveLength(2));
+
+        const [second, first] = frame.contentWindow.posted.map((p) => p.data.payload);
+        expect(second).toMatchObject({ success: true, bet_id: 8, slot: 1 });
+        expect(first).toEqual({ success: false, error: 'insufficient_funds', round_uuid: 'r-1', slot: 0 });
     });
 
     it('passes the operator\'s refusal reason to the game', async () => {

@@ -105,6 +105,9 @@ export function startPlayHost(config) {
                         // if the bridge we got knows it: a browser that ignores the import map
                         // can still pair this script with an old cached bridge, which drops it.
                         bet_history: FROM_GAME.includes('bet_history'),
+                        // Each bet is its own call, so a player may hold two a round (the
+                        // game's second bet slot); results name the slot they answer.
+                        bet_slots: 2,
                     });
                     break;
                 }
@@ -122,6 +125,8 @@ export function startPlayHost(config) {
                     if (!gameCode) {
                         return;
                     }
+                    // Two bets can be in flight at once and answer out of order: echo the slot.
+                    const slot = payload.slot === undefined ? {} : { slot: payload.slot };
                     const r = await api(`/games/${encodeURIComponent(gameCode)}/bets`, {
                         method: 'POST',
                         idempotent: true,
@@ -148,12 +153,14 @@ export function startPlayHost(config) {
                             multiplier: r.data.multiplier ?? null,
                             payout_amount: r.data.payout_amount ?? null,
                             fairness: r.data.fairness ?? null,
+                            ...slot,
                         });
                     } else {
                         inner.send('bet_placed_result', {
                             success: false,
                             error: r.data.reason || r.data.error || `http_${r.status}`,
                             round_uuid: payload.round_uuid ?? null,
+                            ...slot,
                         });
                     }
                     break;

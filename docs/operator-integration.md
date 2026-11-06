@@ -281,7 +281,7 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `type` | `payload` | When |
 |---|---|---|
 | `embed_ready` | `{}` | Iframe finished loading and is ready to receive `player_info` |
-| `place_bet` | `{ amount, auto_cashout_at, round_uuid }` | User clicked Place Bet in the iframe |
+| `place_bet` | `{ amount, auto_cashout_at, round_uuid, slot? }` | User clicked Place Bet in the iframe. `slot` (0 or 1) only when your `player_info` said `bet_slots: 2` |
 | `cashout` | `{ bet_id }` | User clicked Cash Out in the iframe |
 | `enter_fullscreen` | `{}` | User clicked the fullscreen toggle |
 | `exit_fullscreen` | `{}` | User clicked the toggle while in fullscreen |
@@ -293,13 +293,26 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 
 | `type` | `payload` | Purpose |
 |---|---|---|
-| `player_info` | `{ id, username, currency, balance, bet_history? }` | Identify the logged-in player to the iframe HUD. `bet_history: true` (optional) shows the My bets button; only send it if you answer `bet_history` |
+| `player_info` | `{ id, username, currency, balance, bet_history?, bet_slots? }` | Identify the logged-in player to the iframe HUD. `bet_history: true` (optional) shows the My bets button; only send it if you answer `bet_history`. `bet_slots: 2` (optional) offers a second bet per round, see below |
 | `round_state` | `{ phase, round_uuid }` | Sync state machine — phase ∈ `waiting`/`betting`/`running`/`crashed` |
-| `bet_placed_result` | `{ success, bet_id, round_uuid, amount, auto_cashout_at, player_balance, error?, error_message? }` | Echo of your `/v1/bets` response |
+| `bet_placed_result` | `{ success, bet_id, round_uuid, amount, auto_cashout_at, player_balance, error?, error_message?, slot? }` | Echo of your `/v1/bets` response, with the `slot` its `place_bet` named |
 | `cashout_result` | `{ success, bet_id, multiplier?, payout?, player_balance, error?, error_message? }` | Echo of your `/v1/bets/{id}/cashout` response |
 | `auto_cashout_fired` | `{ multiplier, threshold }` | Tell the iframe HUD that auto-cashout has been triggered server-side |
 | `fullscreen_state` | `{ active: bool }` | Sync the iframe's fullscreen icon state |
 | `bet_history_result` | `{ success, bets?, error? }` | (new, optional) Answer to `bet_history`: the player's latest bets on this game, newest first, each `{ bet_id, placed_at, amount, currency, status, multiplier, payout_amount, round_id, round_uuid, crash_point }`. `multiplier` is the cash-out multiplier (won bets only). `crash_point` is `null` until the round is over |
+
+**Two bets a round (optional).** Like Aviator, the HUD can hold a second bet, with its own stake,
+auto-cashout and AUTO BET. It only offers one if your `player_info` says `bet_slots: 2`, and
+then your page must:
+- handle two `place_bet` calls in the same round, each its own `/v1/bets` call with its own
+  idempotency key;
+- put the `slot` from each `place_bet` into its `bet_placed_result`. The two calls can answer in
+  either order, and the slot is how the HUD tells them apart. Without it, results are matched in
+  the order the bets were sent.
+
+`cashout_result` already names its `bet_id`; with two bets, also send `bet_id` with a failed
+cashout and with `auto_cashout_fired`. Orange's own `/play/{code}` and `/lobby` pages do all of
+this.
 
 The recent-crashes rail needs nothing from you. Each chip opens that round's details (seeds,
 HMAC and the result worked out from them) from the public `GET /v1/rounds/{uuid}`.
