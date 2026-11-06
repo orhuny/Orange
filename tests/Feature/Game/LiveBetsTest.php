@@ -76,6 +76,19 @@ it('broadcasts a bet that counts, with its player masked', function (): void {
         ]]]);
 });
 
+it('shows the player by their masked display name when the operator gave one', function (): void {
+    $round = liveRound();
+    $named = liveBet($round, 'client_x:7');
+    $named->player?->forceFill(['username' => 'orhuntest'])->save();
+    liveBet($round, 'client_x:8', ['amount' => '1.00']);
+
+    getJson("/v1/rounds/{$round->round_uuid}/bets")
+        ->assertOk()
+        ->assertJsonPath('bets.0.player', 'o***t')
+        ->assertJsonPath('bets.1.player', 'c***8')
+        ->assertDontSee('orhuntest');
+});
+
 it('does not broadcast a bet that does not count', function (): void {
     $round = liveRound();
     Event::fake([RoundBetsUpdated::class]);

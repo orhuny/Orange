@@ -33,9 +33,13 @@ final class LiveBets
     {
         $won = $bet->getAttribute('status') === BetStatus::Won;
 
+        $player = $bet->player;
+
         return [
             'id' => $bet->id,
-            'player' => self::mask((string) $bet->player?->external_player_id),
+            // The operator's display name when a launch gave one (so its initial means
+            // something), else its player id; masked either way.
+            'player' => self::mask((string) ($player?->username ?: $player?->external_player_id)),
             'amount' => (string) $bet->amount,
             'currency' => $bet->currency,
             // Only what has happened: a cash-out. Nobody's auto-cashout target is shown.
