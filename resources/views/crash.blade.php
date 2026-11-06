@@ -461,11 +461,12 @@
             mask-image: linear-gradient(to bottom, transparent, #000 2.5%);
             will-change: transform;
         }
-        :root[data-theme="jackpot"] .walls { --seabed: #255c7e; }
+        :root[data-theme="jackpot"] { --seabed: #255c7e; }
         /* Gothic's lower band alternates black hills and grey water: blend over that
            band, so the ground meets the dark instead of a cut. */
+        :root[data-theme="burton"] { --seabed: #29272d; }
         :root[data-theme="burton"] .walls {
-            --seabed: #29272d; top: 80%;
+            top: 80%;
             -webkit-mask-image: linear-gradient(to bottom, transparent, #000 8%);
             mask-image: linear-gradient(to bottom, transparent, #000 8%);
         }
@@ -473,7 +474,26 @@
             -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
             mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
         }
-        .wall { position: absolute; top: 0; bottom: 0; width: clamp(64px, 16vw, 260px); overflow: hidden; }
+        /* Where reef and trench meet. Diving, the painting's lower third sinks into the
+           water's own colour (--seabed, where the trench water starts) as the descent gets
+           going, so the floor doesn't end in a line; at rest the fog is out (opacity 0, set
+           in setScenery) and the painting shows whole. The cliffs below come into view
+           over a third of the screen instead of starting at full strength under the reef. */
+        .seabed-fog {
+            position: absolute; left: 0; right: 0; bottom: 0; height: 28%;
+            background: linear-gradient(to bottom, transparent,
+                color-mix(in srgb, var(--seabed, var(--depth-2)) 45%, transparent) 55%,
+                var(--seabed, var(--depth-2)) 92%);
+            opacity: 0;
+            pointer-events: none;
+            will-change: opacity;
+        }
+        .waiting .seabed-fog, .betting .seabed-fog { transition: opacity 1.6s cubic-bezier(.3, .7, .3, 1); }
+        .wall {
+            position: absolute; top: 0; bottom: 0; width: clamp(64px, 16vw, 260px); overflow: hidden;
+            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 32vh);
+            mask-image: linear-gradient(to bottom, transparent, #000 32vh);
+        }
         .wall-l { left: 0; }
         .wall-r { right: 0; }
         /* One tall strip per side: the art repeats down it, and it is shifted up by
@@ -3122,7 +3142,7 @@
     <div id="stage" class="stage waiting">
         <!-- Filtered scene (depth darkening lives here) -->
         <div class="scene">
-            <div class="backdrop"></div>
+            <div class="backdrop"><i class="seabed-fog"></i></div>
             <div class="walls" aria-hidden="true"><i class="wall wall-l"><b></b></i><i class="wall wall-r"><b></b></i></div>
             <div class="rays"></div>
             <div id="particles" class="particles"></div>
@@ -4518,6 +4538,7 @@
         const diveProgress = (m) => Math.min(1, Math.max(0, Math.log(m) / Math.log(DIVE_MAX_X)));
         const $depthMeter = document.getElementById('depth-meter');
         const $backdrop = document.querySelector('.backdrop');
+        const $seabedFog = document.querySelector('.seabed-fog');
         const $walls = document.querySelector('.walls');
         const $depthVal = document.getElementById('depth-value');
         const $depthZone = document.getElementById('depth-zone');
@@ -4560,6 +4581,9 @@
             const rise = Math.min(1.25 * h, fall * 0.8);
             const lift = `translate3d(0, ${(-rise).toFixed(2)}px, 0)`;
             if ($backdrop) $backdrop.style.transform = lift;
+            // The floor sinks into the water as soon as the reef starts rising, all the
+            // way by the time it has risen an eighth of the screen.
+            if ($seabedFog) $seabedFog.style.opacity = Math.min(1, rise / (0.125 * h)).toFixed(3);
             if ($walls) $walls.style.transform = lift;
             tiles().forEach((tile, i) => {
                 const y = tile > 0 ? (fall - rise) % tile : 0;
