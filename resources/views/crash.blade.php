@@ -1397,10 +1397,10 @@
             position: fixed;
             top: 54px; right: 14px;
             z-index: 41;
-            width: 220px;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
             max-height: calc(100% - 68px);
             overflow-y: auto;
-            padding: 6px;
+            padding: 5px;
             background: rgba(var(--panel-rgb),0.92);
             border: 1px solid rgba(var(--hud-rgb),0.32);
             border-radius: 8px;
@@ -1414,43 +1414,43 @@
             from { opacity: 0; transform: translateY(-4px) scale(0.97); }
             to   { opacity: 1; transform: none; }
         }
+        /* Icons only: the names are tooltips (title) and labels for screen readers. */
         .menu-item,
         .theme-opt {
-            display: flex; align-items: center; gap: 10px;
-            width: 100%;
-            padding: 8px 10px;
+            position: relative;
+            flex: 0 0 auto;
+            width: 36px; height: 36px;
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0;
             background: transparent;
             border: 1px solid transparent;
             border-radius: 6px;
-            color: var(--text);
-            font-family: inherit; font-size: 12px; font-weight: 700;
-            letter-spacing: 0.06em;
-            text-align: left;
+            color: var(--hud);
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
-        .menu-item:hover, .theme-opt:hover { background: rgba(var(--hud-rgb),0.12); }
+        .menu-item:hover, .theme-opt:hover { background: rgba(var(--hud-rgb),0.14); color: var(--hud-bright); }
         .menu-item:focus-visible, .theme-opt:focus-visible { outline: 2px solid var(--hud); outline-offset: -2px; }
-        .menu-item svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--hud); pointer-events: none; }
-        /* A toggle's state, at the row's right end. */
-        .menu-state { margin-left: auto; font-size: 10px; font-style: normal; letter-spacing: 0.14em; color: var(--text-muted); }
-        .menu-sep { height: 1px; margin: 6px 4px; background: rgba(var(--hud-rgb),0.18); }
+        .menu-item svg { width: 18px; height: 18px; pointer-events: none; }
+        .menu-label {
+            position: absolute; width: 1px; height: 1px; overflow: hidden;
+            clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+        }
+        .menu-sep { flex: 0 0 auto; width: 24px; height: 1px; margin: 2px 0; background: rgba(var(--hud-rgb),0.25); }
 
-        /* All bets: ticked while its panel is open. */
-        .live-btn[aria-checked="true"] .menu-state::after { content: '✓'; color: var(--hud); font-size: 12px; }
+        /* All bets: lit while its panel is open. */
+        .live-btn[aria-checked="true"] { background: rgba(var(--hud-rgb),0.18); border-color: rgba(var(--hud-rgb),0.5); }
 
         /* My bets: only when the page hosting the game answers bet_history (Orange's
            host pages say so in player_info). */
         .bets-btn { display: none; }
-        .has-bets .bets-btn { display: flex; }
+        .has-bets .bets-btn { display: inline-flex; }
 
         /* Sound */
         .audio-btn .audio-icon-mute { display: none; }
         .audio-btn.is-muted .audio-icon-on { display: none; }
         .audio-btn.is-muted .audio-icon-mute { display: block; }
-        .audio-btn .menu-state::after { content: 'ON'; }
-        .audio-btn.is-muted .menu-state::after { content: 'OFF'; }
-        .audio-btn.is-muted svg { color: var(--text-muted); }
+        .audio-btn.is-muted { color: var(--text-muted); }
 
         /* Fullscreen. None to be had (the page on its own on an iPhone): the row goes. */
         .fs-btn .fs-icon-exit, .fs-btn .fs-label-exit { display: none; }
@@ -1460,24 +1460,12 @@
         :fullscreen .fs-btn .fs-icon-exit,
         body.is-fullscreen .fs-btn .fs-icon-exit { display: block; }
         :fullscreen .fs-btn .fs-label-exit,
-        body.is-fullscreen .fs-btn .fs-label-exit { display: inline; }
+        body.is-fullscreen .fs-btn .fs-label-exit { display: block; }
 
-        /* Theme: the skins, listed in the menu. */
-        .theme-menu-label {
-            padding: 6px 10px 4px;
-            font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase;
-            color: var(--hud); opacity: 0.7;
-        }
+        /* Theme: a swatch per skin; the one in use is ringed. */
         .theme-opt.is-active {
-            border-color: rgba(var(--hud-rgb),0.5);
-            background: rgba(var(--hud-rgb),0.10);
-            color: var(--hud-bright);
-        }
-        .theme-opt.is-active::after {
-            content: '✓';
-            margin-left: auto;
-            color: var(--hud);
-            font-size: 12px;
+            border-color: rgba(var(--hud-rgb),0.6);
+            background: rgba(var(--hud-rgb),0.12);
         }
         /* Swatch previews the skin's own colours (set inline per option) so
            every row looks right no matter which skin is active. */
@@ -3074,34 +3062,33 @@
     {{-- data-close: the item closes the menu; the toggles (sound, theme) leave it open, so their new state shows. --}}
     <div id="game-menu" class="game-menu" role="menu" aria-label="Menu" hidden>
         {{-- Back to the lobby, when the game was opened from one (player_info.home). --}}
-        <button id="home-btn" class="menu-item" type="button" role="menuitem" data-close hidden>
+        <button id="home-btn" class="menu-item" type="button" role="menuitem" title="Home" data-close hidden>
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M2.5 7.2 8 2.6l5.5 4.6"/>
                 <path d="M4 6v7.4h3V10h2v3.4h3V6"/>
             </svg>
-            <span>Home</span>
+            <span class="menu-label">Home</span>
         </button>
         @if ($liveRounds ?? null)
-        <button id="live-btn" class="menu-item live-btn" type="button" role="menuitemcheckbox" aria-checked="false" aria-controls="live-bets" data-close>
+        <button id="live-btn" class="menu-item live-btn" type="button" role="menuitemcheckbox" aria-checked="false" aria-controls="live-bets" title="All bets" data-close>
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="6" cy="5.4" r="2.4"/>
                 <path d="M1.8 13.4c.4-2.4 2.1-3.8 4.2-3.8s3.8 1.4 4.2 3.8"/>
                 <path d="M10.6 3.2a2.3 2.3 0 0 1 0 4.4"/>
                 <path d="M12 9.8c1.2.5 2 1.7 2.2 3.6"/>
             </svg>
-            <span>All bets</span>
-            <em class="menu-state" aria-hidden="true"></em>
+            <span class="menu-label">All bets</span>
         </button>
         @endif
-        <button id="bets-btn" class="menu-item bets-btn" type="button" role="menuitem" aria-haspopup="dialog" data-close>
+        <button id="bets-btn" class="menu-item bets-btn" type="button" role="menuitem" aria-haspopup="dialog" title="My bets" data-close>
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.85"/>
                 <path d="M2.4 2.4v2.8h2.8"/>
                 <path d="M8 5v3.2l2.2 1.4"/>
             </svg>
-            <span>My bets</span>
+            <span class="menu-label">My bets</span>
         </button>
-        <button id="audio-btn" class="menu-item audio-btn" type="button" role="menuitem">
+        <button id="audio-btn" class="menu-item audio-btn" type="button" role="menuitem" title="Sound">
             <svg class="audio-icon-on" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
                 <path d="M11 6c0.8 0.6 1.2 1.4 1.2 2s-0.4 1.4-1.2 2"/>
@@ -3111,26 +3098,24 @@
                 <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
                 <path d="M11 6l4 4M15 6l-4 4"/>
             </svg>
-            <span>Sound</span>
-            <em class="menu-state" aria-hidden="true"></em>
+            <span class="menu-label">Sound</span>
         </button>
-        <button id="fs-btn" class="menu-item fs-btn" type="button" role="menuitem" data-close>
+        <button id="fs-btn" class="menu-item fs-btn" type="button" role="menuitem" title="Fullscreen" data-close>
             <svg class="fs-icon-enter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
             </svg>
             <svg class="fs-icon-exit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
             </svg>
-            <span class="fs-label-enter">Fullscreen</span>
-            <span class="fs-label-exit">Exit fullscreen</span>
+            <span class="menu-label fs-label-enter">Fullscreen</span>
+            <span class="menu-label fs-label-exit">Exit fullscreen</span>
         </button>
         <div class="menu-sep" role="separator"></div>
-        <div class="theme-menu-label">Theme</div>
         @foreach ($themes as $key => $t)
-        <button type="button" class="theme-opt" role="menuitemradio" aria-checked="false" data-theme="{{ $key }}">
+        <button type="button" class="theme-opt" role="menuitemradio" aria-checked="false" data-theme="{{ $key }}" title="Theme: {{ $t['label'] }}">
             <span class="theme-swatch" aria-hidden="true"
                   style="--sw-top: {{ $t['shallow'] }}; --sw-deep: {{ $t['depth2'] }}; --sw-hud: {{ $t['hud'] }};"></span>
-            {{ $t['label'] }}
+            <span class="menu-label">Theme: {{ $t['label'] }}</span>
         </button>
         @endforeach
     </div>
