@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="referrer" content="no-referrer">
     <title>{{ $gameName }}</title>
+    @include('play.bridge-importmap')
     <style>
         html, body { margin: 0; height: 100%; background: #04121f; overflow: hidden; }
         iframe { border: 0; width: 100%; height: 100%; display: block; }

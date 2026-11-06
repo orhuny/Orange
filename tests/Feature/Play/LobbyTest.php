@@ -40,7 +40,9 @@ it('opens the lobby with the operator\'s theme, and lets the operator\'s origins
         ->assertHeader('Referrer-Policy', 'no-referrer')
         ->assertSee('--primary: #123abc', false)
         ->assertSee('https://casino.example/logo.svg', false)
-        ->assertSee('play-host.js', false);
+        ->assertSee('play-host.js', false)
+        // The host script's bridge import resolves to a versioned URL, so a deploy reaches browsers at once.
+        ->assertSee(json_encode(asset('js/orange/bridge.js').'?v='.filemtime(public_path('js/orange/bridge.js'))), false);
     expect($response->headers->get('Content-Security-Policy'))
         ->toContain('https://casino.example')
         ->toContain('https://m.casino.example');

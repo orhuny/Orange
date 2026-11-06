@@ -67,6 +67,8 @@ it('opens the host page for the launched game, with the game frame and no-store,
         ->assertHeader('Cache-Control', 'no-store, private')
         ->assertHeader('Referrer-Policy', 'no-referrer')
         ->assertSee('play-host.js', false)
+        // The host script's bridge import resolves to a versioned URL, so a deploy reaches browsers at once.
+        ->assertSee(json_encode(asset('js/orange/bridge.js').'?v='.filemtime(public_path('js/orange/bridge.js'))), false)
         ->assertSee(json_encode(url('/crash').'?game=crash'), false)
         ->assertSee('"ps_', false)
         ->assertSee('https:\/\/casino.example', false);

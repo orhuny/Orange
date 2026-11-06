@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="referrer" content="no-referrer">
     <title>Games</title>
+    @include('play.bridge-importmap')
     <style>
         /* The operator's colours (Operator::lobbyTheme) drive everything; the rest is mixed from them. */
         :root {

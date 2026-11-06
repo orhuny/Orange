@@ -5,7 +5,7 @@
  * game page works the same whether an operator or Orange hosts it. Fullscreen and
  * navigation messages pass through to the operator page around us.
  */
-import { createGameBridge, createHostBridge } from './bridge.js';
+import { createGameBridge, createHostBridge, FROM_GAME } from './bridge.js';
 
 /**
  * @param {{ gameCode: string|null, frameUrl: string|null, bearer: string|null, storageKey: string,
@@ -101,8 +101,10 @@ export function startPlayHost(config) {
                         username: r.data.player.id,
                         currency: r.data.player.currency,
                         balance: balance ?? '',
-                        // We answer bet_history, so the game may offer its bet history.
-                        bet_history: true,
+                        // We answer bet_history, so the game may offer its bet history. Only
+                        // if the bridge we got knows it: a browser that ignores the import map
+                        // can still pair this script with an old cached bridge, which drops it.
+                        bet_history: FROM_GAME.includes('bet_history'),
                     });
                     break;
                 }
