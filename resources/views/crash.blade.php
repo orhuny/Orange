@@ -459,10 +459,13 @@
            painting's own colour there) and darkens into the abyss as you descend. */
         .walls {
             position: absolute; left: 0; right: 0; top: 95%; height: 170%; pointer-events: none;
+            will-change: transform;
+        }
+        .walls::before {
+            content: ''; position: absolute; inset: 0;
             background: linear-gradient(to bottom, var(--seabed, var(--depth-2)) 3%, var(--abyss) 55%);
             -webkit-mask-image: linear-gradient(to bottom, transparent, #000 2.5%);
             mask-image: linear-gradient(to bottom, transparent, #000 2.5%);
-            will-change: transform;
         }
         :root[data-theme="jackpot"] { --seabed: #255c7e; }
         /* The portrait art has no floor: it ends in open water of this colour, between
@@ -473,8 +476,8 @@
         /* Gothic's lower band alternates black hills and grey water: blend over that
            band, so the ground meets the dark instead of a cut. */
         :root[data-theme="burton"] { --seabed: #29272d; }
-        :root[data-theme="burton"] .walls {
-            top: 80%;
+        :root[data-theme="burton"] .walls { top: 80%; }
+        :root[data-theme="burton"] .walls::before {
             -webkit-mask-image: linear-gradient(to bottom, transparent, #000 8%);
             mask-image: linear-gradient(to bottom, transparent, #000 8%);
         }
@@ -498,9 +501,18 @@
         }
         .waiting .seabed-fog, .betting .seabed-fog { transition: opacity 1.6s cubic-bezier(.3, .7, .3, 1); }
         .wall {
-            position: absolute; top: 0; bottom: 0; width: clamp(64px, 16vw, 260px); overflow: hidden;
-            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 32vh);
-            mask-image: linear-gradient(to bottom, transparent, #000 32vh);
+            position: absolute; top: calc(-1 * var(--wall-rise, 0px)); bottom: 0;
+            width: clamp(64px, 16vw, 260px); overflow: hidden;
+            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--wall-fade, 32vh));
+            mask-image: linear-gradient(to bottom, transparent, #000 var(--wall-fade, 32vh));
+        }
+        /* Jackpot's portrait art ends in reef cliffs, wider than the trench's. The trench
+           cliffs reach up into the painting's fogged lower part and come in with the dive
+           (--walls-in, from setScenery), so one cliff dissolves into the other instead of
+           a dark band between them; at rest they stay out of the painting. */
+        @media (orientation: portrait) {
+            :root[data-theme="jackpot"] .wall { --wall-rise: 24vh; --wall-fade: 20vh; opacity: var(--walls-in, 0); }
+            :root[data-theme="jackpot"] :is(.waiting, .betting) .wall { transition: opacity 1.6s cubic-bezier(.3, .7, .3, 1); }
         }
         .wall-l { left: 0; }
         .wall-r { right: 0; }
@@ -4591,7 +4603,9 @@
             if ($backdrop) $backdrop.style.transform = lift;
             // The floor sinks into the water as soon as the reef starts rising, all the
             // way by the time it has risen an eighth of the screen.
-            if ($seabedFog) $seabedFog.style.opacity = Math.min(1, rise / (0.125 * h)).toFixed(3);
+            const sunk = Math.min(1, rise / (0.125 * h)).toFixed(3);
+            if ($seabedFog) $seabedFog.style.opacity = sunk;
+            if ($walls) $walls.style.setProperty('--walls-in', sunk); // where the cliffs reach into the painting
             if ($walls) $walls.style.transform = lift;
             tiles().forEach((tile, i) => {
                 const y = tile > 0 ? (fall - rise) % tile : 0;
