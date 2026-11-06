@@ -1535,6 +1535,59 @@
         .lb-win { color: var(--good); font-weight: 700; }
         .lb-note { padding: 14px 8px; text-align: center; font-size: 11px; color: var(--text-muted); }
 
+        /* Where the panel isn't docked: the round's bets as circles down the right edge,
+           below the buttons and above the multiplier row. A circle that cashes out steps
+           inward as its multiplier grows in beside it; those that didn't grey out at the
+           crash. --y is each circle's place, so a reorder glides. */
+        .lb-mini {
+            position: fixed; z-index: 34;
+            top: 64px; right: 11px;
+            bottom: calc(var(--hud-room, 220px) + 10px);
+            width: 28px;
+            pointer-events: none;
+        }
+        .lb-mini[hidden] { display: none; }
+        @media (max-width: 640px) {
+            .lb-mini { top: 192px; } /* below the stacked buttons */
+        }
+        .lb-dot {
+            position: absolute; top: 0; right: 0;
+            display: flex; align-items: center; gap: 4px;
+            height: 28px;
+            transform: translateY(var(--y, 0px));
+            transition: transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.4s ease, filter 0.4s ease;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .lb-dot i {
+            flex: 0 0 auto;
+            width: 28px; height: 28px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            background: hsl(var(--h, 200) 55% 42%);
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.75), 0 2px 6px rgba(0,0,0,0.45);
+            color: #fff; font-size: 12px; font-style: normal; font-weight: 700;
+            transition: box-shadow 0.3s ease;
+        }
+        .lb-dot b {
+            max-width: 0; height: 18px; padding: 0;
+            overflow: hidden; opacity: 0;
+            background: rgba(22,163,74,0.92);
+            border-radius: 999px;
+            color: #fff; font-size: 10.5px; line-height: 18px; font-weight: 700; white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: max-width 0.45s cubic-bezier(.2,.8,.2,1), padding 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.3s ease;
+        }
+        .lb-dot.is-out b { max-width: 60px; padding: 0 6px; opacity: 1; }
+        .lb-dot.is-out i { box-shadow: 0 0 0 2px var(--good), 0 0 12px rgba(34,197,94,0.7); }
+        .lb-dot.is-mine i { box-shadow: 0 0 0 2px var(--hud), 0 0 12px rgba(var(--hud-rgb),0.6); }
+        .lb-dot.is-lost { opacity: 0.4; filter: grayscale(1); }
+        .lb-dot.is-new { animation: lb-dot-in 0.4s cubic-bezier(.34,1.56,.64,1); }
+        .lb-dot.is-gone { opacity: 0; transform: translateY(var(--y, 0px)) scale(0.5); }
+        @keyframes lb-dot-in { from { opacity: 0; transform: translateY(var(--y, 0px)) scale(0); } }
+        .lb-mini-more i { background: rgba(var(--panel-rgb),0.85); color: var(--hud-bright); font-size: 10px; }
+        .lb-mini-more[hidden] { display: none; }
+
         /* ---------- Round details and My bets: one dialog over the game ---------- */
         .sheet {
             position: fixed; inset: 0; z-index: 60;
@@ -3007,6 +3060,8 @@
         <div class="lb-row lb-head" aria-hidden="true"><span>Player</span><span id="lb-head-bet">Bet</span><span>X</span><span id="lb-head-win">Win</span></div>
         <div id="lb-rows" class="lb-rows" role="list"></div>
     </aside>
+    {{-- Phones and narrow screens: the round's bets as circles down the right edge (a tap opens All bets). --}}
+    <div id="lb-mini" class="lb-mini" aria-hidden="true" hidden><div id="lb-mini-more" class="lb-dot lb-mini-more" hidden><i></i></div></div>
     @endif
 
     {{-- Round details (a recent crash, or a bet's round) and My bets. Filled in by the script. --}}
@@ -4230,7 +4285,10 @@
             }
             function render() {
                 frame = 0;
-                if ($panel.hidden) return;
+                if (!$panel.hidden) renderPanel();
+                renderMini();
+            }
+            function renderPanel() {
                 const uuid = tab === 'current' ? current : previous;
                 const r = uuid ? round(uuid) : null;
                 if (r && !r.loaded) load(uuid);
@@ -4270,6 +4328,60 @@
                 $rows.replaceChildren(...children);
             }
 
+            // Where the panel isn't docked: the current round's bets as circles down the
+            // right edge (the player's own first, then the biggest stakes; as many as fit,
+            // then "+N"). One that cashes out steps inward, its multiplier beside it.
+            const $mini = document.getElementById('lb-mini');
+            const $miniMore = document.getElementById('lb-mini-more');
+            const DOT = 28;
+            const DOT_GAP = 6;
+            const DOT_SLOTS = 9; // at most 8 circles and "+N": a light touch, the panel has the rest
+            const dots = new Map(); // bet id → its circle
+            function renderMini() {
+                const shownMini = !docked.matches && $panel.hidden;
+                $mini.hidden = !shownMini;
+                if (!shownMini) return;
+                const r = current ? round(current) : null;
+                if (r && !r.loaded) load(current);
+
+                const list = r ? [...r.rows.values()] : [];
+                list.sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || Number(b.amount) - Number(a.amount) || a.id - b.id);
+                const fits = Math.max(0, Math.min(DOT_SLOTS, Math.floor(($mini.clientHeight + DOT_GAP) / (DOT + DOT_GAP))));
+                const shown = list.length > fits ? list.slice(0, Math.max(0, fits - 1)) : list;
+
+                const keep = new Set();
+                shown.forEach((b, i) => {
+                    let n = dots.get(b.id);
+                    if (!n) {
+                        n = document.createElement('div');
+                        n.className = 'lb-dot is-new';
+                        n.innerHTML = '<i></i><b></b>';
+                        n.firstChild.textContent = (b.player || '?').slice(0, 1).toUpperCase();
+                        n.firstChild.style.setProperty('--h', hue(b.player || ''));
+                        n.addEventListener('animationend', () => n.classList.remove('is-new'), { once: true });
+                        $mini.insertBefore(n, $miniMore);
+                        dots.set(b.id, n);
+                    }
+                    n.style.setProperty('--y', `${i * (DOT + DOT_GAP)}px`);
+                    if (b.multiplier) n.lastChild.textContent = `${Number(b.multiplier).toFixed(2)}x`;
+                    n.classList.toggle('is-out', !!b.multiplier);
+                    n.classList.toggle('is-lost', !!r?.crashed && !b.multiplier);
+                    n.classList.toggle('is-mine', mine.has(b.id));
+                    keep.add(b.id);
+                });
+                for (const [id, n] of dots) {
+                    if (keep.has(id)) continue;
+                    dots.delete(id);
+                    n.classList.add('is-gone');
+                    setTimeout(() => n.remove(), 400);
+                }
+                $miniMore.hidden = list.length === shown.length;
+                $miniMore.firstChild.textContent = `+${list.length - shown.length}`;
+                $miniMore.style.setProperty('--y', `${shown.length * (DOT + DOT_GAP)}px`);
+            }
+            $mini.addEventListener('click', () => setOpen(true));
+            window.addEventListener('resize', schedule);
+
             function setOpen(open, remember = false) {
                 $panel.hidden = !open;
                 $btn.setAttribute('aria-expanded', String(open));
@@ -4277,7 +4389,7 @@
                 if (remember && docked.matches) {
                     try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch (_) {}
                 }
-                if (open) schedule();
+                schedule(); // the panel, or the circles in its place
             }
             function defaultOpen() {
                 let stored = null;
