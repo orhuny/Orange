@@ -88,7 +88,10 @@
             'portrait' => $portrait,
             'bg' => [
                 'burton' => ['landscape' => asset('images/bg-gothic-landscape.jpg'), 'portrait' => asset('images/bg-gothic-portrait.jpg')],
-                'jackpot' => ['landscape' => asset('images/bg-jackpot-landscape.jpg'), 'portrait' => asset('images/bg-jackpot-portrait.jpg')],
+                'jackpot' => [
+                    'landscape' => asset('images/bg-jackpot-landscape.jpg').'?v='.filemtime(public_path('images/bg-jackpot-landscape.jpg')),
+                    'portrait' => asset('images/bg-jackpot-portrait.jpg').'?v='.filemtime(public_path('images/bg-jackpot-portrait.jpg')),
+                ],
             ],
             'frameMs' => (int) config('crash.intro.frame_ms', 550),
             'fadeMs' => (int) config('crash.intro.fade_ms', 400),
@@ -264,11 +267,11 @@
            Sunlit reef backdrops (they carry their own rays and seabed), gold
            HUD from the tokens, a chunky rounded face for the numbers. */
         :root[data-theme="jackpot"] .backdrop {
-            background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}");
+            background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-landscape.jpg')) }}");
         }
         @media (orientation: portrait) {
             :root[data-theme="jackpot"] .backdrop {
-                background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}");
+                background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-portrait.jpg')) }}");
                 background-position: center top;
             }
         }
@@ -462,6 +465,11 @@
             will-change: transform;
         }
         :root[data-theme="jackpot"] { --seabed: #255c7e; }
+        /* The portrait art has no floor: it ends in open water of this colour, between
+           the reef cliffs, and the trench carries on from it. */
+        @media (orientation: portrait) {
+            :root[data-theme="jackpot"] { --seabed: #003547; }
+        }
         /* Gothic's lower band alternates black hills and grey water: blend over that
            band, so the ground meets the dark instead of a cut. */
         :root[data-theme="burton"] { --seabed: #29272d; }
@@ -2648,9 +2656,9 @@
         @media (orientation: portrait) {
             .is-bg { background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}"); }
         }
-        :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}"); }
+        :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-landscape.jpg')) }}"); }
         @media (orientation: portrait) {
-            :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}"); }
+            :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-portrait.jpg')) }}"); }
         }
         .intro.play .is-bg { animation: is-fade-in 0.6s ease-out forwards, is-bg-drift 4.4s cubic-bezier(.2, .7, .3, 1) forwards; }
         @keyframes is-fade-in { to { opacity: 1; } }
