@@ -765,7 +765,7 @@
         .sub-wrap {
             position: absolute; left: 50%; top: 30%;
             transform: translate(-50%, calc(-50% - var(--lift, 0px)));
-            width: 346px; height: 187px;
+            width: 277px; height: 150px; /* 80% of the first 346 × 187: players found it too big */
             /* Faster, punchier plunge — ease-in so each depth threshold feels
                like gravity pulls the sub down rather than a uniform drift. */
             transition: top 2.5s cubic-bezier(.42, 0, .35, 1), transform 0.15s ease;
@@ -779,10 +779,10 @@
         :is(.running, .critical) .sub-wrap {
             top: min(var(--dip), calc(100% - var(--hud-room, 240px) - var(--sink) - 12px + var(--lift, 0px)));
         }
-        .running .sub-wrap   { --dip: 50%; --sink: 80px; }
-        .deep .sub-wrap      { --dip: 56%; --sink: 92px; }
-        .abyss .sub-wrap     { --dip: 60%; --sink: 104px; }
-        .critical .sub-wrap  { --dip: 62%; --sink: 114px; animation: shake 0.18s linear infinite; }
+        .running .sub-wrap   { --dip: 50%; --sink: 64px; }
+        .deep .sub-wrap      { --dip: 56%; --sink: 74px; }
+        .abyss .sub-wrap     { --dip: 60%; --sink: 83px; }
+        .critical .sub-wrap  { --dip: 62%; --sink: 91px; animation: shake 0.18s linear infinite; }
         /* `translate`, so the embed's lift in `transform` is kept while it shakes. */
         @keyframes shake {
             0%,100% { translate: 0 0; }
