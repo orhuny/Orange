@@ -14,6 +14,16 @@ return [
     // crash:tick stops broadcasting after 120 s (≈ 1339x at growth 0.06).
     'depth_max_multiplier' => 1000,
 
+    // Sea life swimming behind the sub, by kind. All off for now, to see the game
+    // without it: set a kind to true (or its env var) to bring it back. The intro's
+    // own whale and fish are separate and stay.
+    'sea_life' => [
+        'fish' => (bool) env('GAME_CRASH_SEA_LIFE_FISH', false),           // small fish near the surface
+        'creatures' => (bool) env('GAME_CRASH_SEA_LIFE_CREATURES', false), // whale, deep angler, eel
+        'octopi' => (bool) env('GAME_CRASH_SEA_LIFE_OCTOPI', false),       // the big octopus and the minis
+        'jellyfish' => (bool) env('GAME_CRASH_SEA_LIFE_JELLYFISH', false),
+    ],
+
     // Studio intro shown over /crash on launch.
     // - No images in public/images/intro/: a built-in scene animates the game's
     //   own art (submarine, background, creatures) with the title below.

@@ -62,6 +62,12 @@
     $themes = array_replace(array_flip($enabledThemes), array_intersect_key($themes, array_flip($enabledThemes)));
     $rgb = static fn (string $hex): string => implode(',', sscanf($hex, '#%02x%02x%02x'));
 
+    // Which sea life swims behind the sub (config('crash.sea_life')); a kind not set there shows.
+    $seaLife = array_merge(
+        ['fish' => true, 'creatures' => true, 'octopi' => true, 'jellyfish' => true],
+        (array) config('crash.sea_life', []),
+    );
+
     // Studio intro frames (see config('crash.intro')): every image in the
     // folder, in natural file-name order, as public URLs.
     $introFrames = static function (string $dir): array {
@@ -2976,6 +2982,8 @@
             <div class="caustics"></div>
             <div id="bubbles"  class="bubbles"></div>
             <div id="bubbles-dive" class="bubbles bubbles-dive"></div>
+            {{-- Sea life behind the sub, by kind: config('crash.sea_life'). --}}
+            @if ($seaLife['fish'])
             <div class="fishes">
                 <!-- Orange tropical fish, left → right -->
                 <div class="fish" style="left:0; top:18%; --dur:18s; animation-delay:-3s;">
@@ -3050,8 +3058,10 @@
                     <img class="skin-art art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" width="49" height="42" alt="" aria-hidden="true" loading="lazy">
                 </div>
             </div>
+            @endif
 
             <div id="creatures" class="creatures">
+                @if ($seaLife['creatures'])
                 <!-- Whale silhouette, slow drift left → right -->
                 <div class="creature whale cross-reverse" style="right:0; top:50%; --dur:58s; animation-delay:-15s;">
                     <svg width="340" height="120" viewBox="0 0 340 120" xmlns="http://www.w3.org/2000/svg">
@@ -3144,7 +3154,9 @@
                         <circle cx="20" cy="20" r="1.2" fill="rgba(255,255,255,0.55)"/>
                     </svg>
                 </div>
+                @endif
 
+                @if ($seaLife['octopi'])
                 <!-- Octopus, slow drift right → left with swaying tentacles -->
                 <div class="creature octopus cross-reverse" style="right:0; top:42%; --dur:64s; animation-delay:-25s;">
                     <svg width="220" height="200" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
@@ -3224,11 +3236,14 @@
                     <img class="skin-art art-jackpot" src="{{ asset('images/octopus-jackpot.webp') }}" width="{{ (int) ($o['size'] * 1.19) }}" height="{{ (int) ($o['size'] * 1.23) }}" alt="" aria-hidden="true" loading="lazy">
                 </div>
                 @endforeach
+                @endif
             </div>
 
+            @if ($seaLife['jellyfish'])
             <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
             <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
             <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
+            @endif
 
             <div class="sub-wrap">
                 <svg class="sub-svg" viewBox="0 0 240 130" xmlns="http://www.w3.org/2000/svg">
