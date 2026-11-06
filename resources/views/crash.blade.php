@@ -1362,16 +1362,15 @@
             opacity: 0.7; margin-top: 4px; font-weight: 500;
         }
 
-        /* ---------- Top-right buttons ----------
-           One row (a column on phones), right to left: fullscreen, sound, theme, All
-           bets, My bets. A button that isn't offered is display:none, and the rest
-           close up; the recent-crashes rail keeps clear of the row (--ctl-reserve,
-           measured in the script). */
+        /* ---------- Top-right menu ----------
+           One button (☰) opens the game's menu: Home (in a lobby), All bets, My bets,
+           sound, fullscreen and the theme. The recent-crashes rail keeps clear of the
+           button (--ctl-reserve, measured in the script). */
         .top-controls {
             position: fixed;
             top: 14px; right: 14px;
             z-index: 40;
-            display: flex; flex-direction: row-reverse; gap: 8px;
+            display: flex;
         }
         .ctl-btn {
             width: 34px; height: 34px;
@@ -1394,32 +1393,15 @@
         .ctl-btn:active { transform: translateY(1px); }
         .ctl-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
 
-        /* Sound */
-        .audio-btn .audio-icon-mute { display: none; }
-        .audio-btn.is-muted { color: var(--text-muted); }
-        .audio-btn.is-muted .audio-icon-on { display: none; }
-        .audio-btn.is-muted .audio-icon-mute { display: block; }
-
-        /* Fullscreen. None to be had (the page on its own on an iPhone): the button goes. */
-        .fs-btn .fs-icon-exit { display: none; }
-        .no-fullscreen .fs-btn { display: none; }
-        :fullscreen .fs-btn .fs-icon-enter,
-        body.is-fullscreen .fs-btn .fs-icon-enter { display: none; }
-        :fullscreen .fs-btn .fs-icon-exit,
-        body.is-fullscreen .fs-btn .fs-icon-exit { display: block; }
-
-        /* My bets: only when the page hosting the game answers bet_history (Orange's
-           host pages say so in player_info). */
-        .bets-btn { display: none; }
-        .has-bets .bets-btn { display: inline-flex; }
-
-        .theme-menu {
+        .game-menu {
             position: fixed;
             top: 54px; right: 14px;
             z-index: 41;
-            min-width: 200px;
+            width: 220px;
+            max-height: calc(100% - 68px);
+            overflow-y: auto;
             padding: 6px;
-            background: rgba(var(--panel-rgb),0.9);
+            background: rgba(var(--panel-rgb),0.92);
             border: 1px solid rgba(var(--hud-rgb),0.32);
             border-radius: 8px;
             backdrop-filter: blur(8px);
@@ -1427,20 +1409,16 @@
             transform-origin: 100% 0;
             animation: theme-menu-in 0.16s ease-out;
         }
-        .theme-menu[hidden] { display: none; }
+        .game-menu[hidden] { display: none; }
         @keyframes theme-menu-in {
             from { opacity: 0; transform: translateY(-4px) scale(0.97); }
             to   { opacity: 1; transform: none; }
         }
-        .theme-menu-label {
-            padding: 6px 10px 4px;
-            font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase;
-            color: var(--hud); opacity: 0.7;
-        }
+        .menu-item,
         .theme-opt {
             display: flex; align-items: center; gap: 10px;
             width: 100%;
-            padding: 7px 10px;
+            padding: 8px 10px;
             background: transparent;
             border: 1px solid transparent;
             border-radius: 6px;
@@ -1451,7 +1429,45 @@
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
-        .theme-opt:hover { background: rgba(var(--hud-rgb),0.12); }
+        .menu-item:hover, .theme-opt:hover { background: rgba(var(--hud-rgb),0.12); }
+        .menu-item:focus-visible, .theme-opt:focus-visible { outline: 2px solid var(--hud); outline-offset: -2px; }
+        .menu-item svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--hud); pointer-events: none; }
+        /* A toggle's state, at the row's right end. */
+        .menu-state { margin-left: auto; font-size: 10px; font-style: normal; letter-spacing: 0.14em; color: var(--text-muted); }
+        .menu-sep { height: 1px; margin: 6px 4px; background: rgba(var(--hud-rgb),0.18); }
+
+        /* All bets: ticked while its panel is open. */
+        .live-btn[aria-checked="true"] .menu-state::after { content: '✓'; color: var(--hud); font-size: 12px; }
+
+        /* My bets: only when the page hosting the game answers bet_history (Orange's
+           host pages say so in player_info). */
+        .bets-btn { display: none; }
+        .has-bets .bets-btn { display: flex; }
+
+        /* Sound */
+        .audio-btn .audio-icon-mute { display: none; }
+        .audio-btn.is-muted .audio-icon-on { display: none; }
+        .audio-btn.is-muted .audio-icon-mute { display: block; }
+        .audio-btn .menu-state::after { content: 'ON'; }
+        .audio-btn.is-muted .menu-state::after { content: 'OFF'; }
+        .audio-btn.is-muted svg { color: var(--text-muted); }
+
+        /* Fullscreen. None to be had (the page on its own on an iPhone): the row goes. */
+        .fs-btn .fs-icon-exit, .fs-btn .fs-label-exit { display: none; }
+        .no-fullscreen .fs-btn { display: none; }
+        :fullscreen .fs-btn :is(.fs-icon-enter, .fs-label-enter),
+        body.is-fullscreen .fs-btn :is(.fs-icon-enter, .fs-label-enter) { display: none; }
+        :fullscreen .fs-btn .fs-icon-exit,
+        body.is-fullscreen .fs-btn .fs-icon-exit { display: block; }
+        :fullscreen .fs-btn .fs-label-exit,
+        body.is-fullscreen .fs-btn .fs-label-exit { display: inline; }
+
+        /* Theme: the skins, listed in the menu. */
+        .theme-menu-label {
+            padding: 6px 10px 4px;
+            font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase;
+            color: var(--hud); opacity: 0.7;
+        }
         .theme-opt.is-active {
             border-color: rgba(var(--hud-rgb),0.5);
             background: rgba(var(--hud-rgb),0.10);
@@ -1472,17 +1488,11 @@
             background: linear-gradient(160deg, var(--sw-top) 0%, var(--sw-deep) 100%);
             box-shadow: inset 0 0 0 2px var(--sw-hud), 0 0 6px var(--sw-hud);
         }
-        /* Phones: the buttons a little smaller, stacked down the right edge (theme at the
-           top, its menu opening beside it), so the recent-crashes rail can stay centred. */
+        /* Phones: the button a little smaller and closer to the corner. */
         @media (max-width: 640px) {
-            .top-controls { top: 12px; right: 10px; flex-direction: column; gap: 4px; }
+            .top-controls { top: 12px; right: 10px; }
             .ctl-btn { width: 30px; height: 30px; }
-            .theme-btn { order: 1; }
-            .audio-btn { order: 2; }
-            .fs-btn    { order: 3; }
-            .live-btn  { order: 4; }
-            .bets-btn  { order: 5; }
-            .theme-menu { top: 12px; right: 48px; }
+            .game-menu { top: 48px; right: 10px; max-height: calc(100% - 60px); }
         }
 
         /* ---------- All bets: every player's bet in the round, live ----------
@@ -1507,7 +1517,7 @@
             .live-bets { bottom: calc(var(--hud-room, 220px) + 12px); }
         }
         @media (max-width: 640px) {
-            .live-bets { top: 120px; right: 48px; left: 10px; width: auto; bottom: calc(var(--op-bar-h, 0px) + 10px); }
+            .live-bets { top: 120px; right: 10px; left: 10px; width: auto; bottom: calc(var(--op-bar-h, 0px) + 10px); }
         }
         .lb-top { display: flex; align-items: center; gap: 4px; padding: 8px 6px 0 8px; }
         .lb-tabs {
@@ -1587,9 +1597,6 @@
             pointer-events: none;
         }
         .lb-mini[hidden] { display: none; }
-        @media (max-width: 640px) {
-            .lb-mini { top: 192px; } /* below the stacked buttons */
-        }
         .lb-dot {
             position: absolute; top: 0; right: 0;
             display: flex; align-items: center; gap: 4px;
@@ -3055,17 +3062,46 @@
     </script>
     @endif
 
-    {{-- Top-right buttons, right to left (see .top-controls). --}}
+    {{-- Top right: one menu button; the game's controls are in its menu (#game-menu). --}}
     <div id="top-controls" class="top-controls">
-        <button id="fs-btn" class="ctl-btn fs-btn" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
-            <svg class="fs-icon-enter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
-            </svg>
-            <svg class="fs-icon-exit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+        <button id="menu-btn" class="ctl-btn menu-btn" type="button" title="Menu" aria-label="Menu"
+                aria-haspopup="menu" aria-expanded="false" aria-controls="game-menu">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                <path d="M2.5 4h11M2.5 8h11M2.5 12h11"/>
             </svg>
         </button>
-        <button id="audio-btn" class="ctl-btn audio-btn" type="button" title="Toggle sound" aria-label="Toggle sound">
+    </div>
+    {{-- data-close: the item closes the menu; the toggles (sound, theme) leave it open, so their new state shows. --}}
+    <div id="game-menu" class="game-menu" role="menu" aria-label="Menu" hidden>
+        {{-- Back to the lobby, when the game was opened from one (player_info.home). --}}
+        <button id="home-btn" class="menu-item" type="button" role="menuitem" data-close hidden>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2.5 7.2 8 2.6l5.5 4.6"/>
+                <path d="M4 6v7.4h3V10h2v3.4h3V6"/>
+            </svg>
+            <span>Home</span>
+        </button>
+        @if ($liveRounds ?? null)
+        <button id="live-btn" class="menu-item live-btn" type="button" role="menuitemcheckbox" aria-checked="false" aria-controls="live-bets" data-close>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="6" cy="5.4" r="2.4"/>
+                <path d="M1.8 13.4c.4-2.4 2.1-3.8 4.2-3.8s3.8 1.4 4.2 3.8"/>
+                <path d="M10.6 3.2a2.3 2.3 0 0 1 0 4.4"/>
+                <path d="M12 9.8c1.2.5 2 1.7 2.2 3.6"/>
+            </svg>
+            <span>All bets</span>
+            <em class="menu-state" aria-hidden="true"></em>
+        </button>
+        @endif
+        <button id="bets-btn" class="menu-item bets-btn" type="button" role="menuitem" aria-haspopup="dialog" data-close>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.85"/>
+                <path d="M2.4 2.4v2.8h2.8"/>
+                <path d="M8 5v3.2l2.2 1.4"/>
+            </svg>
+            <span>My bets</span>
+        </button>
+        <button id="audio-btn" class="menu-item audio-btn" type="button" role="menuitem">
             <svg class="audio-icon-on" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
                 <path d="M11 6c0.8 0.6 1.2 1.4 1.2 2s-0.4 1.4-1.2 2"/>
@@ -3075,37 +3111,20 @@
                 <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
                 <path d="M11 6l4 4M15 6l-4 4"/>
             </svg>
+            <span>Sound</span>
+            <em class="menu-state" aria-hidden="true"></em>
         </button>
-        <button id="theme-btn" class="ctl-btn theme-btn" type="button" title="Change theme" aria-label="Change theme"
-                aria-haspopup="true" aria-expanded="false" aria-controls="theme-menu">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M8 1.6C4.5 1.6 1.6 4.5 1.6 8s2.9 6.4 6.4 6.4c.7 0 1.2-.5 1.2-1.2 0-.3-.1-.6-.3-.8-.2-.2-.3-.5-.3-.8 0-.7.5-1.2 1.2-1.2h1.4c1.9 0 3.4-1.5 3.4-3.4C14.6 4.1 11.6 1.6 8 1.6Z"/>
-                <circle cx="4.9" cy="7.2" r="0.9" fill="currentColor" stroke="none"/>
-                <circle cx="6.9" cy="4.6" r="0.9" fill="currentColor" stroke="none"/>
-                <circle cx="10.2" cy="4.8" r="0.9" fill="currentColor" stroke="none"/>
-                <circle cx="12"  cy="7.6" r="0.9" fill="currentColor" stroke="none"/>
+        <button id="fs-btn" class="menu-item fs-btn" type="button" role="menuitem" data-close>
+            <svg class="fs-icon-enter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
             </svg>
-        </button>
-        @if ($liveRounds ?? null)
-        <button id="live-btn" class="ctl-btn live-btn" type="button" title="All bets" aria-label="All bets"
-                aria-controls="live-bets" aria-expanded="false">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="6" cy="5.4" r="2.4"/>
-                <path d="M1.8 13.4c.4-2.4 2.1-3.8 4.2-3.8s3.8 1.4 4.2 3.8"/>
-                <path d="M10.6 3.2a2.3 2.3 0 0 1 0 4.4"/>
-                <path d="M12 9.8c1.2.5 2 1.7 2.2 3.6"/>
+            <svg class="fs-icon-exit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
             </svg>
+            <span class="fs-label-enter">Fullscreen</span>
+            <span class="fs-label-exit">Exit fullscreen</span>
         </button>
-        @endif
-        <button id="bets-btn" class="ctl-btn bets-btn" type="button" title="My bets" aria-label="My bets" aria-haspopup="dialog">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.85"/>
-                <path d="M2.4 2.4v2.8h2.8"/>
-                <path d="M8 5v3.2l2.2 1.4"/>
-            </svg>
-        </button>
-    </div>
-    <div id="theme-menu" class="theme-menu" role="menu" aria-label="Theme" hidden>
+        <div class="menu-sep" role="separator"></div>
         <div class="theme-menu-label">Theme</div>
         @foreach ($themes as $key => $t)
         <button type="button" class="theme-opt" role="menuitemradio" aria-checked="false" data-theme="{{ $key }}">
@@ -4473,7 +4492,7 @@
 
             function setOpen(open, remember = false) {
                 $panel.hidden = !open;
-                $btn.setAttribute('aria-expanded', String(open));
+                $btn.setAttribute('aria-checked', String(open));
                 // Only the docked panel's state is kept: over the game it starts closed.
                 if (remember && docked.matches) {
                     try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch (_) {}
@@ -4903,14 +4922,30 @@
             document.addEventListener('webkitfullscreenchange', syncState);
         })();
 
-        // ---- Theme picker ------------------------------------------------------
-        // Skins are `:root[data-theme]` token blocks in the <style> above. The
-        // <head> bootstrap already applied the saved skin before first paint;
-        // this only wires the dropdown, persistence and the active marker.
-        (function themePicker() {
-            const $btn  = document.getElementById('theme-btn');
-            const $menu = document.getElementById('theme-menu');
+        // ---- Menu (☰) and theme -------------------------------------------------
+        // The top-right button opens the game's menu; an item marked data-close closes
+        // it after doing its thing (the sound and theme toggles leave it open, so their
+        // new state shows). Skins are `:root[data-theme]` token blocks in the <style>
+        // above: the <head> bootstrap already applied the saved one before first paint;
+        // this wires the theme list, persistence and the active marker.
+        (function gameMenu() {
+            const $btn  = document.getElementById('menu-btn');
+            const $menu = document.getElementById('game-menu');
             if (!$btn || !$menu) return;
+
+            function open()  { $menu.hidden = false; $btn.setAttribute('aria-expanded', 'true'); }
+            function close() { $menu.hidden = true;  $btn.setAttribute('aria-expanded', 'false'); }
+
+            $btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if ($menu.hidden) open(); else close();
+            });
+            $menu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (e.target.closest('[data-close]')) close();
+            });
+            document.addEventListener('click', () => { if (!$menu.hidden) close(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$menu.hidden) close(); });
 
             const THEME_KEY = 'orange.ui.theme';
             const $opts = [...$menu.querySelectorAll('.theme-opt')];
@@ -4934,19 +4969,9 @@
                 syncActive();
             }
 
-            function open()  { $menu.hidden = false; $btn.setAttribute('aria-expanded', 'true'); }
-            function close() { $menu.hidden = true;  $btn.setAttribute('aria-expanded', 'false'); }
-
-            $btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if ($menu.hidden) open(); else close();
-            });
-            $menu.addEventListener('click', (e) => e.stopPropagation());
             for (const $o of $opts) {
-                $o.addEventListener('click', () => { apply($o.dataset.theme); close(); });
+                $o.addEventListener('click', () => apply($o.dataset.theme));
             }
-            document.addEventListener('click', () => { if (!$menu.hidden) close(); });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$menu.hidden) close(); });
 
             syncActive();
         })();
@@ -5366,6 +5391,7 @@
             const $lastPay  = document.getElementById('op-last-payout');
             const $addSlot  = $panel.querySelector('.op-add-slot');
             const $removeSlot = $panel.querySelector('.op-remove-slot');
+            const $home     = document.getElementById('home-btn');
             $panel.setAttribute('aria-hidden', 'false');
 
             function showLast(kind, multiplier, payout) {
@@ -5553,6 +5579,9 @@
                             document.documentElement.classList.add('has-bets');
                             fitHistory();
                         }
+                        // In a lobby, the menu's Home goes back to it (the lobby hides its own
+                        // bar for a game that says it has one: see embed_ready below).
+                        if (payload.home === true) $home.hidden = false;
                         // Pages that take two bets a round say so (Orange's own host pages do).
                         if (Number(payload.bet_slots) >= 2 && opState.maxSlots < 2) {
                             opState.maxSlots = 2;
@@ -5828,6 +5857,8 @@
                 if (localStorage.getItem(slots[0].autoBetKey) === '1') setAutoBet(slots[0], true);
             } catch (_) {}
 
+            $home.addEventListener('click', () => postToParent({ type: 'back_to_lobby', payload: {} }));
+
             $addSlot.addEventListener('click', () => setTwo(true));
             $removeSlot.addEventListener('click', () => setTwo(false));
             document.getElementById('bets-btn').addEventListener('click', () => sheet.openBets());
@@ -5835,8 +5866,10 @@
             // Announce readiness so the parent can replay player_info / round_state.
             // We don't know the parent origin yet, so use '*' for this one beacon;
             // the parent must still verify *our* origin on its side.
+            // home: the game has its own way back to a lobby (the menu's Home), so a lobby
+            // hosting it can drop its bar.
             if (window.parent) {
-                window.parent.postMessage({ type: 'embed_ready' }, '*');
+                window.parent.postMessage({ type: 'embed_ready', payload: { home: true } }, '*');
             }
 
             setStatus('embed ready · waiting for player_info');

@@ -80,7 +80,7 @@ describe('startPlayHost', () => {
         expect(init.headers.Authorization).toBe('Bearer ps_test');
         expect(frame.contentWindow.posted.at(-1).data).toEqual({
             type: 'player_info',
-            payload: { id: '12*3456', username: '12*3456', currency: 'EUR', balance: '98.00', bet_history: true, bet_slots: 2 },
+            payload: { id: '12*3456', username: '12*3456', currency: 'EUR', balance: '98.00', bet_history: true, bet_slots: 2, home: false },
         });
     });
 
@@ -212,6 +212,21 @@ describe('startPlayHost', () => {
         fetchMock.mockReturnValueOnce(json(409, { error: 'round_crashed', bet_status: 'lost' }));
         await intent('cashout', { bet_id: 9 });
         expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ success: false, bet_id: 9, error: 'round_crashed' });
+    });
+
+    it('tells a game in a lobby it can go home, and the lobby that the game has its own Home', async () => {
+        const ready = vi.fn();
+        startPlayHost({
+            gameCode: null, frameUrl: null, bearer: 'ps_lobby', storageKey: 'orange.lobby',
+            outerOrigins: [], playApi: 'https://orange.example/play-api', frame, onExpired: expired,
+            onBackToLobby: vi.fn(), onGameReady: ready,
+        });
+        fetchMock.mockReturnValueOnce(json(200, { player: { id: 'p-1', currency: 'EUR' }, balance: '5.00' }));
+
+        await intent('embed_ready', { home: true });
+
+        expect(ready).toHaveBeenCalledWith({ home: true });
+        expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ home: true });
     });
 
     it('lets a lobby open games, bet on the open one, and come back', async () => {

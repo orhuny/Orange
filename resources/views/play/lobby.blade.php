@@ -143,6 +143,8 @@
         /* The operator page expanded the game (fullscreen, or where there is none, as on
            iPhones, filling the window): the bar steps aside too. */
         body.game-expanded .gamebar { display: none; }
+        /* The game has its own way back (its menu's Home): the bar would only take room. */
+        body.game-has-home .gamebar { display: none; }
         .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
         .spinner { position: absolute; inset: 0; display: grid; place-items: center; background: #000; transition: opacity .3s; }
         .spinner i { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(255,255,255,.15); border-top-color: var(--primary); animation: spin .8s linear infinite; }
@@ -266,6 +268,9 @@
                 $('expired').classList.add('shown');
             },
             onBackToLobby: showLobby,
+            onGameReady(payload) {
+                document.body.classList.toggle('game-has-home', !!payload?.home);
+            },
             onFullscreen(active) {
                 document.body.classList.toggle('game-expanded', active);
             },
@@ -275,6 +280,8 @@
             if (!game.playable) return;
             $('game-name').textContent = game.name;
             $('spinner').classList.remove('gone');
+            // The bar shows until the game says it has its own Home.
+            document.body.classList.remove('game-has-home');
             $('lobby').hidden = true;
             $('game').classList.add('shown');
             host.open(game.code, game.frame_url);

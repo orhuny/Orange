@@ -280,20 +280,20 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 
 | `type` | `payload` | When |
 |---|---|---|
-| `embed_ready` | `{}` | Iframe finished loading and is ready to receive `player_info` |
+| `embed_ready` | `{ home? }` | Iframe finished loading and is ready to receive `player_info`. `home: true`: the game has its own way back to a lobby (its menu's Home) |
 | `place_bet` | `{ amount, auto_cashout_at, round_uuid, slot? }` | User clicked Place Bet in the iframe. `slot` (0 or 1) only when your `player_info` said `bet_slots: 2` |
 | `cashout` | `{ bet_id }` | User clicked Cash Out in the iframe |
 | `enter_fullscreen` | `{}` | User clicked the fullscreen toggle |
 | `exit_fullscreen` | `{}` | User clicked the toggle while in fullscreen |
 | `launch_game` | `{ code }` | (new, informational) The player opened another game from the lobby |
-| `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it |
+| `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it (the game menu's Home) |
 | `bet_history` | `{}` | (new, optional) The player opened My bets. Sent only if your `player_info` said `bet_history: true` |
 
 #### Messages **parent → iframe**
 
 | `type` | `payload` | Purpose |
 |---|---|---|
-| `player_info` | `{ id, username, currency, balance, bet_history?, bet_slots? }` | Identify the logged-in player to the iframe HUD. `bet_history: true` (optional) shows the My bets button; only send it if you answer `bet_history`. `bet_slots: 2` (optional) offers a second bet per round, see below |
+| `player_info` | `{ id, username, currency, balance, bet_history?, bet_slots? }` | Identify the logged-in player to the iframe HUD. `bet_history: true` (optional) shows the My bets button; only send it if you answer `bet_history`. `bet_slots: 2` (optional) offers a second bet per round, see below. `home: true` (optional) shows Home in the game's menu, which sends `back_to_lobby` |
 | `round_state` | `{ phase, round_uuid }` | Sync state machine — phase ∈ `waiting`/`betting`/`running`/`crashed` |
 | `bet_placed_result` | `{ success, bet_id, round_uuid, amount, auto_cashout_at, player_balance, error?, error_message?, slot? }` | Echo of your `/v1/bets` response, with the `slot` its `place_bet` named |
 | `cashout_result` | `{ success, bet_id, multiplier?, payout?, player_balance, error?, error_message? }` | Echo of your `/v1/bets/{id}/cashout` response |

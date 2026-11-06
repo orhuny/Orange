@@ -11,7 +11,9 @@ import { createGameBridge, createHostBridge, FROM_GAME } from './bridge.js';
  * @param {{ gameCode: string|null, frameUrl: string|null, bearer: string|null, storageKey: string,
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
  *           onExpired: () => void, onBackToLobby?: () => void,
- *           onFullscreen?: (active: boolean) => void }} config
+ *           onFullscreen?: (active: boolean) => void,
+ *           onGameReady?: (payload: { home?: boolean }) => void }} config
+ *        onGameReady: the game announced itself (embed_ready); home: it has its own way back.
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
 export function startPlayHost(config) {
@@ -91,6 +93,7 @@ export function startPlayHost(config) {
         async onIntent(type, payload) {
             switch (type) {
                 case 'embed_ready': {
+                    config.onGameReady?.(payload);
                     const r = await api('/session');
                     if (!r.ok) {
                         return;
@@ -109,6 +112,8 @@ export function startPlayHost(config) {
                         // Each bet is its own call, so a player may hold two a round (the
                         // game's second bet slot); results name the slot they answer.
                         bet_slots: 2,
+                        // A lobby takes the player back (back_to_lobby): the game may offer Home.
+                        home: typeof config.onBackToLobby === 'function',
                     });
                     break;
                 }
