@@ -419,14 +419,16 @@
                     [58, 57, 56].forEach((n, i) => trombone(midi(n), { at: t + i * 0.3, bus, gain: 0.1, dur: 0.26 }));
                     trombone(midi(55), { at: t + 0.9, bus, gain: 0.1, dur: 0.95, vibrato: 0.02 });
                     break;
-                case 'crash': { // the hull strains and cracks, coins pop out, then BOOM, cymbal, coins everywhere, a slide whistle down
-                    const b = t + 0.32; // the implosion sprite's flash (the page's --boom-at)
-                    riser({ at: t, bus, gain: 0.05, dur: 0.32 });
+                case 'crash': { // the hull strains, a rivet pops, cracks, it crumples, then BOOM, cymbal, coins everywhere, a slide whistle down
+                    const b = t + 0.45; // the implosion sprite's full flash (the page's --boom-at)
+                    riser({ at: t, bus, gain: 0.05, dur: 0.45 });
                     tom(95, { at: t, bus, gain: 0.14 });
-                    tom(70, { at: t + 0.14, bus, gain: 0.14 });
+                    coin({ at: t + 0.09, bus, gain: 0.03 }); // a rivet pops
                     hiss({ at: t + 0.09, bus, gain: 0.07, dur: 0.04, freq: 5000 });
-                    hiss({ at: t + 0.16, bus, gain: 0.09, dur: 0.05, freq: 4200 });
-                    for (let i = 0; i < 4; i++) coin({ at: t + 0.19 + i * 0.03, bus, gain: 0.03 });
+                    hiss({ at: t + 0.16, bus, gain: 0.09, dur: 0.05, freq: 4200 }); // cracks
+                    hiss({ at: t + 0.23, bus, gain: 0.09, dur: 0.05, freq: 3600 }); // a porthole shatters
+                    tom(70, { at: t + 0.3, bus, gain: 0.14 }); // the hull crumples
+                    for (let i = 0; i < 3; i++) coin({ at: t + 0.32 + i * 0.03, bus, gain: 0.03 });
                     boom({ at: b, bus, gain: 0.32 });
                     kick({ at: b, bus, gain: 0.45 });
                     cymbal({ at: b, bus, gain: 0.1 });

@@ -2175,10 +2175,10 @@
            `translate` (not transform) so the embed offset on .sub-wrap is kept. */
         :root { --boom-at: 0s; }
         :root[data-theme="burton"] { --boom-at: 0.17s; }
-        :root[data-theme="jackpot"] { --boom-at: 0.32s; }
+        :root[data-theme="jackpot"] { --boom-at: 0.45s; }
         .crashed .sub-wrap { animation: sub-collapse 1.7s ease-in forwards; }
-        /* Jackpot's sprite runs longer (its halves sink): fade the sub out later. */
-        :root[data-theme="jackpot"] .crashed .sub-wrap { animation-duration: 2.2s; }
+        /* Jackpot's sprite runs longer (the wreck settles): fade the sub out later. */
+        :root[data-theme="jackpot"] .crashed .sub-wrap { animation-duration: 2.6s; }
         @keyframes sub-collapse {
             0%, 55% { translate: 0 0; opacity: 1; }
             100%    { translate: 0 6vh; opacity: 0; }
@@ -2190,12 +2190,13 @@
             background: url("{{ asset('images/sub-explosion.webp') }}") 0 0 / 700% 100% no-repeat;
             opacity: 0;
         }
-        /* Jackpot's sprite: 16 frames (strain, cracks, coins squeezed out, beams, the
-           flash, the halves bursting apart in coins and bills, then sinking). */
+        /* Jackpot's sprite: 36 frames in a 6x6 grid (the hull strains, cracks and crumples,
+           the flash, a shockwave and a gas bubble round the torn hull, the burst of coins,
+           bubbles and silt, then the wreck settling). */
         :root[data-theme="jackpot"] .sub-boom span {
-            left: 5.34%; top: -33.13%; width: 84.13%; height: 156.59%;
+            left: -4.83%; top: -39.17%; width: 97.79%; height: 160.54%;
             background-image: url("{{ asset('images/sub-explosion-jackpot.webp') }}?v={{ filemtime(public_path('images/sub-explosion-jackpot.webp')) }}");
-            background-size: 1600% 100%;
+            background-size: 600% 600%;
         }
         :root:is([data-theme="burton"], [data-theme="jackpot"]) .sub-boom { display: block; }
         :root[data-theme="burton"] .crashed .sub-gothic,
@@ -2210,25 +2211,45 @@
             44%       { background-position-x: 83.333%; }
             62%, 100% { background-position-x: 100%; }
         }
-        /* Frame n (0-15) at n/15 of the strip; the flash (frame 8) at 0.32s = --boom-at. */
-        :root[data-theme="jackpot"] .crashed .sub-boom span { animation: sub-boom-jackpot 1.75s step-end forwards; }
+        /* Frame n (0-35) at column n % 6, row n / 6; the full flash (frame 12) at 0.45s = --boom-at. */
+        :root[data-theme="jackpot"] .crashed .sub-boom span { animation: sub-boom-jackpot 2.07s step-end forwards; }
         @keyframes sub-boom-jackpot {
-            0%        { background-position-x: 0%; }
-            2.29%     { background-position-x: 6.667%; }
-            5.14%     { background-position-x: 13.333%; }
-            8%        { background-position-x: 20%; }
-            10.86%    { background-position-x: 26.667%; }
-            13.71%    { background-position-x: 33.333%; }
-            16%       { background-position-x: 40%; }
-            18.29%    { background-position-x: 46.667%; }   /* the flash: 0.32s */
-            24%       { background-position-x: 53.333%; }
-            29.71%    { background-position-x: 60%; }
-            36.57%    { background-position-x: 66.667%; }
-            44.57%    { background-position-x: 73.333%; }
-            53.71%    { background-position-x: 80%; }
-            62.86%    { background-position-x: 86.667%; }
-            73.14%    { background-position-x: 93.333%; }
-            83.43%, 100% { background-position-x: 100%; }
+            0.00%          { background-position: 0.000% 0.000%; }
+            2.66%          { background-position: 20.000% 0.000%; }
+            4.35%          { background-position: 40.000% 0.000%; }
+            6.04%          { background-position: 60.000% 0.000%; }
+            7.73%          { background-position: 80.000% 0.000%; }
+            9.42%          { background-position: 100.000% 0.000%; }
+            11.11%         { background-position: 0.000% 20.000%; }
+            12.80%         { background-position: 20.000% 20.000%; }
+            14.49%         { background-position: 40.000% 20.000%; }
+            16.18%         { background-position: 60.000% 20.000%; }
+            17.87%         { background-position: 80.000% 20.000%; }
+            19.81%         { background-position: 100.000% 20.000%; }
+            21.74%         { background-position: 0.000% 40.000%; }   /* the flash: 0.45s */
+            25.12%         { background-position: 20.000% 40.000%; }
+            27.54%         { background-position: 40.000% 40.000%; }
+            29.71%         { background-position: 60.000% 40.000%; }
+            31.88%         { background-position: 80.000% 40.000%; }
+            34.06%         { background-position: 100.000% 40.000%; }
+            36.23%         { background-position: 0.000% 60.000%; }
+            38.65%         { background-position: 20.000% 60.000%; }
+            41.06%         { background-position: 40.000% 60.000%; }
+            43.48%         { background-position: 60.000% 60.000%; }
+            45.89%         { background-position: 80.000% 60.000%; }
+            48.55%         { background-position: 100.000% 60.000%; }
+            51.45%         { background-position: 0.000% 80.000%; }
+            54.35%         { background-position: 20.000% 80.000%; }
+            57.25%         { background-position: 40.000% 80.000%; }
+            60.14%         { background-position: 60.000% 80.000%; }
+            63.29%         { background-position: 80.000% 80.000%; }
+            66.43%         { background-position: 100.000% 80.000%; }
+            69.57%         { background-position: 0.000% 100.000%; }
+            72.95%         { background-position: 20.000% 100.000%; }
+            76.33%         { background-position: 40.000% 100.000%; }
+            79.95%         { background-position: 60.000% 100.000%; }
+            83.82%         { background-position: 80.000% 100.000%; }
+            87.92%, 100%   { background-position: 100.000% 100.000%; }
         }
 
         /* ---------- Log ---------- */
