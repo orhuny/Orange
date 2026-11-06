@@ -4092,6 +4092,13 @@
         window.addEventListener('resize', () => { tileHeights = null; });
         new MutationObserver(() => { tileHeights = null; })
             .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        // The jellyfish hang in the water, so the sub passes them: they rise with the
+        // descent (a little slower than the walls, being further off) and, once above
+        // the screen, come round again from below it, out of sight. `translate`, so
+        // their bob (the float animation, on `transform`) carries on.
+        const $jellies = [...document.querySelectorAll('.jelly')];
+        const JELLY_PARALLAX = 0.9;
+        const JELLY_WRAP_MARGIN = 140; // px beyond each edge, more than a jelly is tall
         function setScenery(m) {
             const h = $scene?.clientHeight || window.innerHeight;
             const fall = descent(m) / 100 * h;
@@ -4103,6 +4110,12 @@
                 const y = tile > 0 ? (fall - rise) % tile : 0;
                 $wallStrips[i].style.transform = `translate3d(0, ${(-y).toFixed(2)}px, 0)`;
             });
+            const span = h + 2 * JELLY_WRAP_MARGIN;
+            for (const $j of $jellies) {
+                const home = parseFloat($j.style.top) / 100 * h; // its place at the surface
+                const y = ((home - fall * JELLY_PARALLAX + JELLY_WRAP_MARGIN) % span + span) % span - JELLY_WRAP_MARGIN;
+                $j.style.translate = `0 ${(y - home).toFixed(2)}px`;
+            }
         }
 
         // The descent runs on its own clock, not on the ticks: ticks carry multipliers
