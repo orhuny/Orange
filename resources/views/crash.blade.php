@@ -1078,7 +1078,7 @@
         /* ---------- Recent crashes history ---------- */
         /* The rail stays clear of the theme / sound / fullscreen buttons at the top
            right (--ctl-reserve: their width plus margins): centred with that much room
-           on both sides, and on phones in the space to the left of them. */
+           on both sides. (On phones the buttons stack down the edge, so it's narrow.) */
         :root { --ctl-reserve: 146px; }
         :root.no-fullscreen { --ctl-reserve: 104px; }
         .history-wrap {
@@ -1092,11 +1092,9 @@
         }
         .history-wrap .history { max-width: 100%; }
         @media (max-width: 640px) {
-            .history-wrap { left: 10px; right: var(--ctl-reserve); transform: none; max-width: none; }
-            /* The status pill under it stays centred on the screen, on one line. */
+            /* The status pill under it on one line. */
             .history-wrap .state {
-                position: relative; left: calc((var(--ctl-reserve) - 10px) / 2);
-                width: max-content; max-width: calc(100vw - 20px);
+                width: max-content;
                 gap: 9px; padding: 7px 16px 7px 13px; font-size: 12px; letter-spacing: 0.16em;
             }
         }
@@ -1138,11 +1136,10 @@
             100% { transform: scale(1); }
         }
         @media (max-width: 500px) {
-            .history-wrap { top: 14px; gap: 3px; max-width: 94vw; }
+            .history-wrap { top: 14px; gap: 3px; }
             .history-label { font-size: 9px; letter-spacing: 0.24em; }
             .history {
                 gap: 4px; padding: 5px 8px;
-                max-width: 94vw;
                 /* Cleaner than `overflow: hidden` here — flexbox will shrink
                    each chip down rather than mid-cropping the rightmost one. */
                 flex-wrap: nowrap;
@@ -1458,18 +1455,17 @@
             background: linear-gradient(160deg, var(--sw-top) 0%, var(--sw-deep) 100%);
             box-shadow: inset 0 0 0 2px var(--sw-hud), 0 0 6px var(--sw-hud);
         }
-        /* Phones: the theme / sound / fullscreen buttons a little smaller and closer,
-           leaving the recent-crashes rail more room. */
+        /* Phones: the theme / sound / fullscreen buttons a little smaller, stacked down
+           the right edge, so the recent-crashes rail can stay centred; the theme menu
+           opens beside them. */
         @media (max-width: 640px) {
-            :root { --ctl-reserve: 112px; }
-            :root.no-fullscreen { --ctl-reserve: 78px; }
-            .theme-btn, .audio-btn, .fs-btn { top: 12px; width: 30px; height: 30px; }
-            .fs-btn { right: 10px; }
-            .audio-btn { right: 44px; }
-            .theme-btn { right: 78px; }
-            .no-fullscreen .audio-btn { right: 10px; }
-            .no-fullscreen .theme-btn { right: 44px; }
-            .theme-menu { top: 48px; right: 10px; }
+            :root, :root.no-fullscreen { --ctl-reserve: 46px; }
+            .theme-btn, .audio-btn, .fs-btn,
+            .no-fullscreen .theme-btn, .no-fullscreen .audio-btn { right: 10px; width: 30px; height: 30px; }
+            .theme-btn { top: 12px; }
+            .audio-btn { top: 46px; }
+            .fs-btn { top: 80px; }
+            .theme-menu { top: 12px; right: 48px; }
         }
         /* ---------- Operator HUD bar (slim — only when /crash is iframe-embedded) ---------- */
         .operator-panel { display: none; }
