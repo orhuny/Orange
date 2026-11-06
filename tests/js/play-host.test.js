@@ -84,6 +84,15 @@ describe('startPlayHost', () => {
         });
     });
 
+    it('names the player as the operator does, when the launch gave a name', async () => {
+        fetchMock.mockReturnValueOnce(json(200, { player: { id: 'client_x:7', username: 'orhuntest', currency: 'TRY' }, balance: '1049.73' }));
+        start();
+
+        await intent('embed_ready');
+
+        expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ id: 'client_x:7', username: 'orhuntest' });
+    });
+
     it('answers bet_history with the player\'s bets on the open game', async () => {
         const bets = [{ bet_id: 4, status: 'won', amount: '10.00000000', multiplier: '2.5000', round_uuid: 'r-1', crash_point: 4.1 }];
         fetchMock.mockReturnValueOnce(json(200, { bets }));

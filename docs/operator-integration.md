@@ -508,7 +508,7 @@ Lists the games enabled for your operator, ordered for display, with your effect
 ```json
 // request
 { "player_external_id": "12*3456", "currency": "EUR", "language": "tr",
-  "return_url": "https://casino.example/games" }
+  "return_url": "https://casino.example/games", "username": "orhuntest" }
 // 201 (lobby: "lobby_url" instead of "play_url")
 { "launch_token": "lt_6vQ…", "play_url": "https://orange…/play/dice?token=lt_6vQ…",
   "expires_at": "2026-11-02T10:02:00+00:00" }
@@ -519,6 +519,10 @@ play mode, Orange then debits and credits your wallet through the wallet callbac
 the player places in the page. Those bets were not started by your backend, so your credit and
 rollback handlers must accept them. Errors: `404 unknown_game`, `403 game_not_enabled`,
 `409 game_unavailable`, `422 currency_not_supported`, `422` validation.
+
+`username` (optional) is the name your site shows the player. The game shows it in place of
+`player_external_id`. Each launch updates it, and one without it keeps the last. Names over 64
+characters are cut, never refused.
 
 ### `POST /v1/games/{code}/bets` — place a bet on any game (relay mode)
 

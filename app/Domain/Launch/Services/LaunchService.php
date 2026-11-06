@@ -30,6 +30,7 @@ final class LaunchService
         string $currency,
         ?string $language = null,
         ?string $returnUrl = null,
+        ?string $username = null,
     ): IssuedLaunch {
         $currency = strtoupper($currency);
 
@@ -44,6 +45,11 @@ final class LaunchService
             ['operator_id' => $operator->id, 'external_player_id' => $externalPlayerId],
             ['currency' => $currency, 'status' => 'active'],
         );
+        // The name the operator shows its player, as of this launch (players rename).
+        $username = self::displayName($username);
+        if ($username !== null && $player->username !== $username) {
+            $player->forceFill(['username' => $username])->save();
+        }
 
         $token = 'lt_'.rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $expiresAt = now()->addSeconds((int) config('games.launch.token_ttl_seconds', 120));
@@ -62,6 +68,14 @@ final class LaunchService
         $url = $game instanceof Game ? url("/play/{$game->code}") : url('/lobby');
 
         return new IssuedLaunch($token, $url.'?token='.$token, $expiresAt);
+    }
+
+    /** A name fit to show: no control characters, at most 64 characters, null if empty. */
+    private static function displayName(?string $name): ?string
+    {
+        $name = trim((string) preg_replace('/\p{C}+/u', '', (string) $name));
+
+        return $name === '' ? null : mb_substr($name, 0, 64);
     }
 
     public static function hash(string $token): string

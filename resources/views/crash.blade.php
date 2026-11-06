@@ -5493,10 +5493,12 @@
                     case 'player_info': {
                         opState.playerId = payload.id;
                         opState.currency = payload.currency;
-                        // Orange's own host knows no username and sends the id twice: show it once.
+                        // The player's name when the page knows one (Orange's host sends the id
+                        // twice when it doesn't); the id stays in the tooltip.
                         $player.textContent = payload.username && payload.username !== String(payload.id)
-                            ? `#${payload.id} ${payload.username}`
+                            ? payload.username
                             : `#${payload.id}`;
+                        $player.title = `#${payload.id}`;
                         $balance.textContent = `${money(payload.balance)} ${payload.currency}`;
                         setStatus('connected to operator', 'ok');
                         // Pages that answer bet_history say so (Orange's own host pages do).

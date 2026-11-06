@@ -13,6 +13,7 @@ use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\Launch\Models\LaunchToken;
 use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Operator\Models\Operator;
+use App\Domain\Operator\Models\Player;
 use App\Domain\Operator\Services\OperatorSignature;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -176,6 +177,21 @@ it('launches the lobby', function (): void {
     expect(array_keys($response->json()))->toBe(['launch_token', 'lobby_url', 'expires_at'])
         ->and($response->json('lobby_url'))->toStartWith(url('/lobby').'?token=lt_')
         ->and(LaunchToken::query()->sole()->game_id)->toBeNull();
+});
+
+it('keeps the player\'s display name from a launch, and never refuses a launch over it', function (): void {
+    $operator = Operator::factory()->create();
+
+    operatorApi($operator, 'POST', '/v1/lobby/launch', ['player_external_id' => 'client_x:7', 'currency' => 'TRY', 'username' => "  orhun\u{0007}test "])
+        ->assertCreated();
+    expect(Player::query()->sole()->username)->toBe('orhuntest');
+
+    // A later launch renames; one without a name keeps it; a long one is cut, not refused.
+    operatorApi($operator, 'POST', '/v1/lobby/launch', ['player_external_id' => 'client_x:7', 'currency' => 'TRY', 'username' => 'orhun2'], 'k-2')->assertCreated();
+    operatorApi($operator, 'POST', '/v1/lobby/launch', ['player_external_id' => 'client_x:7', 'currency' => 'TRY'], 'k-3')->assertCreated();
+    expect(Player::query()->sole()->username)->toBe('orhun2');
+    operatorApi($operator, 'POST', '/v1/lobby/launch', ['player_external_id' => 'client_x:7', 'currency' => 'TRY', 'username' => str_repeat('n', 200)], 'k-4')->assertCreated();
+    expect(Player::query()->sole()->username)->toBe(str_repeat('n', 64));
 });
 
 it('refuses to launch what the operator could not play', function (string $code, int $status, string $error): void {

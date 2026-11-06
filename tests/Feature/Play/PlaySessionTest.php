@@ -102,10 +102,24 @@ it('answers the player API only with a valid session', function (): void {
     getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])
         ->assertOk()
         ->assertJsonPath('player.id', 'p-1')
+        ->assertJsonPath('player.username', null)
         ->assertJsonPath('player.currency', 'EUR')
         ->assertJsonPath('game', 'crash')
         ->assertJsonPath('lobby', false)
         ->assertJsonPath('language', 'tr');
+});
+
+it('gives the game the player\'s display name from the launch', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $operator = Operator::factory()->create();
+    OperatorGame::query()->create(['operator_id' => $operator->id, 'game_id' => $game->id, 'enabled' => true, 'settings' => ['play_mode' => 'direct']]);
+    $token = app(LaunchService::class)->issue($operator, $game, 'client_x:7', 'TRY', username: 'orhuntest')->token;
+    [, $bearer] = app(PlaySessionService::class)->exchange($token);
+
+    getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])
+        ->assertOk()
+        ->assertJsonPath('player.id', 'client_x:7')
+        ->assertJsonPath('player.username', 'orhuntest');
 });
 
 it('ends play sessions and launch links when their operator is suspended', function (): void {

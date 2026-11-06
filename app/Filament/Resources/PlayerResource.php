@@ -46,6 +46,7 @@ class PlayerResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('external_player_id')->searchable()->copyable(),
+                TextColumn::make('username')->searchable()->placeholder('—'),
                 TextColumn::make('operator.slug')->searchable(),
                 TextColumn::make('currency'),
                 TextColumn::make('country')->placeholder('—'),

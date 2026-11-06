@@ -70,6 +70,7 @@ components:
         currency: { type: string, minLength: 3, maxLength: 3 }
         language: { type: string, example: tr }
         return_url: { type: string, format: uri }
+        username: { type: string, maxLength: 255, description: 'The name the game shows the player; cut to 64 characters', example: orhuntest }
     CatalogueGame:
       type: object
       properties:

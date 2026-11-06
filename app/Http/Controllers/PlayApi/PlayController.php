@@ -74,7 +74,12 @@ class PlayController
         $session = $this->playSession($request);
 
         return response()->json([
-            'player' => ['id' => $session->player->external_player_id, 'currency' => $session->currency],
+            'player' => [
+                'id' => $session->player->external_player_id,
+                // The operator's display name for the player, when its launch gave one.
+                'username' => $session->player->username,
+                'currency' => $session->currency,
+            ],
             'game' => $session->game?->code,
             'lobby' => $session->lobby,
             'language' => $session->language,

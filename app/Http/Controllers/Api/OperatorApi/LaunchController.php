@@ -46,6 +46,9 @@ class LaunchController
             'currency' => ['required', 'string', 'size:3'],
             'language' => ['nullable', 'string', 'max:16', 'regex:/^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})?$/'],
             'return_url' => ['nullable', 'url:https,http', 'max:2048'],
+            // What the game shows the player as. Longer names are cut, never refused: a
+            // display name must not stop the game from opening.
+            'username' => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
@@ -56,6 +59,7 @@ class LaunchController
                 $validated['currency'],
                 $validated['language'] ?? null,
                 $validated['return_url'] ?? null,
+                $validated['username'] ?? null,
             );
         } catch (GameNotAvailable|CurrencyNotSupported $e) {
             return GameErrors::render($e) ?? throw $e;

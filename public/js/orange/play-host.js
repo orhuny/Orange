@@ -98,7 +98,8 @@ export function startPlayHost(config) {
                     balance = r.data.balance;
                     inner.send('player_info', {
                         id: r.data.player.id,
-                        username: r.data.player.id,
+                        // The operator's display name when the launch gave one, else the id.
+                        username: r.data.player.username || r.data.player.id,
                         currency: r.data.player.currency,
                         balance: balance ?? '',
                         // We answer bet_history, so the game may offer its bet history. Only

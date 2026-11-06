@@ -18,6 +18,7 @@ class Player extends Model
     protected $fillable = [
         'operator_id',
         'external_player_id',
+        'username',
         'currency',
         'country',
         'status',
