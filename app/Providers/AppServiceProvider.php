@@ -12,6 +12,8 @@ use App\Domain\Game\Events\MultiplierTick;
 use App\Domain\Game\Events\RoundCrashed;
 use App\Domain\Game\Events\RoundSettled;
 use App\Domain\Game\Listeners\AutoCashoutOnTick;
+use App\Domain\Game\Listeners\PublishLiveBets;
+use App\Domain\Game\Services\LiveBets;
 use App\Domain\Game\Services\MultiplierCalculator;
 use App\Domain\Wallet\Listeners\WebhookOnGameEvents;
 use App\Models\User;
@@ -31,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
             MultiplierCalculator::class,
             fn () => MultiplierCalculator::default(),
         );
+
+        // One instance, so the auto-cashouts of a tick batch into one round.bets message.
+        $this->app->singleton(LiveBets::class);
 
         $this->app->singleton(EngineRegistry::class, function (Application $app): EngineRegistry {
             // Crash as a literal fallback, so a config cache built before config/games.php
@@ -64,6 +69,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(RoundCrashed::class, [WebhookOnGameEvents::class, 'onRoundCrashed']);
         Event::listen(RoundSettled::class, [WebhookOnGameEvents::class, 'onRoundSettled']);
         Event::listen(BetSettled::class, [WebhookOnGameEvents::class, 'onBetSettled']);
+
+        Event::listen(BetPlaced::class, [PublishLiveBets::class, 'onBetPlaced']);
+        Event::listen(CashoutCompleted::class, [PublishLiveBets::class, 'onCashoutCompleted']);
 
         // The one admin-panel permission check (spatie's own gate hook is disabled in
         // config/permission.php). Order matters: operator users can never exceed the

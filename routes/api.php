@@ -39,6 +39,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/fairness/{code}', [GameFairnessController::class, 'show'])->where('code', '[a-z0-9_-]+');
         Route::get('/fairness/{code}/verify', [GameFairnessController::class, 'verify'])->where('code', '[a-z0-9_-]+');
         Route::get('/rounds/{uuid}', [RoundController::class, 'show'])->whereUuid('uuid');
+        Route::get('/rounds/{uuid}/bets', [RoundController::class, 'bets'])->whereUuid('uuid');
     });
 
     Route::middleware([VerifyOperatorSignature::class, EnforceIdempotency::class])

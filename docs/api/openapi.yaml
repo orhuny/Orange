@@ -338,3 +338,13 @@ paths:
       responses:
         '200': { description: 'round_id, game, state, times, result (null while live) and fairness: server_seed_hash, server_seed and verification (null until the round settles), client_seed, nonce' }
         '404': { description: round_not_found }
+
+  /rounds/{uuid}/bets:
+    get:
+      tags: [Fairness]
+      summary: A round's live bet list, as the game page's All bets panel shows it (public, no HMAC)
+      parameters:
+        - { name: uuid, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: 'round_uuid, state and bets (biggest stake first): id, player (masked), amount, currency, and multiplier and payout once cashed out' }
+        '404': { description: round_not_found (or the live bet list is switched off) }

@@ -228,6 +228,7 @@ All events fire on both channels above.
 | `round.tick` | `{ round_uuid, multiplier, elapsed_seconds }` | ~10 Hz multiplier updates |
 | `round.crashed` | `{ round_uuid, crash_point }` | Round just imploded |
 | `round.settled` | `{ round_uuid, server_seed, next_round_in_seconds }` | Seed revealed, round closed |
+| `round.bets` | `{ round_uuid, bets: [{ id, player, amount, currency, multiplier, payout }] }` | (new) Bets were placed or cashed out. These are rows of the round's live bet list, shown to every player. `player` is masked (`1***5`). `multiplier` and `payout` are set once a bet cashes out. A tick's auto-cashouts come together, at most 30 rows a message. Safe to ignore |
 
 Every round has its own server seed: its SHA-256 hash is published in `round.betting_opened`
 (`server_seed_hash`, with `nonce`) and the seed itself in `round.settled`. A revealed seed never
@@ -536,6 +537,10 @@ Public, no HMAC, 60 requests a minute per IP.
   Games that are no longer offered stay verifiable. For crash, the answer also gives the steps:
   `hex` (the HMAC's first 13 hex digits), `decimal` (their value) and `instant_crash` (whether
   the first 8 hit the house edge).
+- `GET /v1/rounds/{uuid}/bets` returns the round's live bet list (`round_uuid`, `state`, and `bets`
+  as in `round.bets`, biggest stake first). Only bets that count are listed, not stakes that
+  were declined or rolled back, and nobody's auto-cashout target is shown. The game page's
+  All bets panel loads it when it joins a round late.
 - `GET /v1/rounds/{uuid}` returns one round's details: `round_id`, `game`, `state`, its times,
   `result` (`{ crash_point }`, `null` while the round is live) and `fairness`
   (`server_seed_hash`, `server_seed`, `client_seed`, `nonce`, and `verification`, the outcome

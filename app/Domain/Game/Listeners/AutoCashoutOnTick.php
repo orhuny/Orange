@@ -10,12 +10,16 @@ use App\Domain\Game\Exceptions\AlreadyCashedOut;
 use App\Domain\Game\Exceptions\RoundNotRunning;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Services\CashoutService;
+use App\Domain\Game\Services\LiveBets;
 use Illuminate\Database\Eloquent\Builder;
 use Throwable;
 
 class AutoCashoutOnTick
 {
-    public function __construct(private readonly CashoutService $cashouts) {}
+    public function __construct(
+        private readonly CashoutService $cashouts,
+        private readonly LiveBets $liveBets,
+    ) {}
 
     public function handle(MultiplierTick $event): void
     {
@@ -30,14 +34,17 @@ class AutoCashoutOnTick
                     ->whereRaw('amount * CAST(? AS DECIMAL(14,4)) >= max_payout', [$multiplier])))
             ->get();
 
-        foreach ($bets as $bet) {
-            try {
-                $this->cashouts->cashout($bet, isAuto: true);
-            } catch (AlreadyCashedOut|RoundNotRunning) {
-                // Manual cashout won the race or the round just crashed; safe to ignore.
-            } catch (Throwable $e) {
-                report($e);
+        // The tick's cash-outs reach the live bet list together, in one message.
+        $this->liveBets->batch(function () use ($bets): void {
+            foreach ($bets as $bet) {
+                try {
+                    $this->cashouts->cashout($bet, isAuto: true);
+                } catch (AlreadyCashedOut|RoundNotRunning) {
+                    // Manual cashout won the race or the round just crashed; safe to ignore.
+                } catch (Throwable $e) {
+                    report($e);
+                }
             }
-        }
+        });
     }
 }

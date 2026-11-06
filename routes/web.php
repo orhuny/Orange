@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Models\GameRound;
 use App\Http\Controllers\GamePageController;
 use App\Http\Controllers\LobbyPageController;
@@ -25,7 +26,13 @@ Route::get('/crash', function () {
         ->values()
         ->all();
 
-    return view('crash', ['recentCrashes' => $recentCrashes]);
+    // The live bet list starts from these: the round in play (if any) and the last one over.
+    $liveRounds = config('crash.live_bets', true) ? [
+        'current' => GameRound::query()->where('state', '!=', RoundState::Settled)->latest('id')->value('round_uuid'),
+        'previous' => GameRound::query()->where('state', RoundState::Settled)->latest('id')->value('round_uuid'),
+    ] : null;
+
+    return view('crash', ['recentCrashes' => $recentCrashes, 'liveRounds' => $liveRounds]);
 })->middleware(AllowGameEmbed::class);
 
 // Game pages (resources/views/games/{type}.blade.php), embedded by Orange's host pages

@@ -1082,11 +1082,11 @@
         }
 
         /* ---------- Recent crashes history ---------- */
-        /* The rail stays clear of the theme / sound / fullscreen buttons at the top
-           right (--ctl-reserve: their width plus margins): centred with that much room
+        /* The rail stays clear of the buttons at the top right (--ctl-reserve: their
+           row's width plus margins, measured in the script): centred with that much room
            on both sides. (On phones the buttons stack down the edge, so it's narrow.) */
         :root { --ctl-reserve: 146px; }
-        :root.no-fullscreen { --ctl-reserve: 104px; }
+        @media (max-width: 640px) { :root { --ctl-reserve: 46px; } }
         .history-wrap {
             position: absolute;
             top: 18px; left: 50%;
@@ -1322,11 +1322,18 @@
             opacity: 0.7; margin-top: 4px; font-weight: 500;
         }
 
-        /* ---------- Audio mute toggle (next to fullscreen) ---------- */
-        .audio-btn {
+        /* ---------- Top-right buttons ----------
+           One row (a column on phones), right to left: fullscreen, sound, theme, All
+           bets, My bets. A button that isn't offered is display:none, and the rest
+           close up; the recent-crashes rail keeps clear of the row (--ctl-reserve,
+           measured in the script). */
+        .top-controls {
             position: fixed;
-            top: 14px; right: 56px;
+            top: 14px; right: 14px;
             z-index: 40;
+            display: flex; flex-direction: row-reverse; gap: 8px;
+        }
+        .ctl-btn {
             width: 34px; height: 34px;
             display: inline-flex; align-items: center; justify-content: center;
             background: rgba(var(--panel-rgb),0.7);
@@ -1338,76 +1345,33 @@
             box-shadow: 0 0 10px rgba(var(--hud-rgb),0.10);
             transition: box-shadow 0.18s, transform 0.12s, background 0.18s, color 0.18s;
         }
-        .audio-btn:hover {
+        .ctl-btn:hover,
+        .ctl-btn[aria-expanded="true"] {
             background: rgba(var(--panel-rgb),0.85);
             box-shadow: 0 0 18px rgba(var(--hud-rgb),0.45);
             color: var(--hud-bright);
         }
-        .audio-btn:active { transform: translateY(1px); }
-        .audio-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+        .ctl-btn:active { transform: translateY(1px); }
+        .ctl-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+
+        /* Sound */
         .audio-btn .audio-icon-mute { display: none; }
         .audio-btn.is-muted { color: var(--text-muted); }
         .audio-btn.is-muted .audio-icon-on { display: none; }
         .audio-btn.is-muted .audio-icon-mute { display: block; }
 
-        /* ---------- Fullscreen toggle (top-right) ---------- */
-        .fs-btn {
-            position: fixed;
-            top: 14px; right: 14px;
-            z-index: 40;
-            width: 34px; height: 34px;
-            display: inline-flex; align-items: center; justify-content: center;
-            background: rgba(var(--panel-rgb),0.7);
-            border: 1px solid rgba(var(--hud-rgb),0.32);
-            border-radius: 6px;
-            color: var(--hud);
-            cursor: pointer;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 0 10px rgba(var(--hud-rgb),0.10);
-            transition: box-shadow 0.18s, transform 0.12s, background 0.18s, color 0.18s;
-        }
-        .fs-btn:hover {
-            background: rgba(var(--panel-rgb),0.85);
-            box-shadow: 0 0 18px rgba(var(--hud-rgb),0.45);
-            color: var(--hud-bright);
-        }
-        .fs-btn:active { transform: translateY(1px); }
-        .fs-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+        /* Fullscreen. None to be had (the page on its own on an iPhone): the button goes. */
         .fs-btn .fs-icon-exit { display: none; }
-        /* No fullscreen to be had (the page on its own on an iPhone): the button goes
-           and the other two close up. */
         .no-fullscreen .fs-btn { display: none; }
-        .no-fullscreen .audio-btn { right: 14px; }
-        .no-fullscreen .theme-btn { right: 56px; }
         :fullscreen .fs-btn .fs-icon-enter,
         body.is-fullscreen .fs-btn .fs-icon-enter { display: none; }
         :fullscreen .fs-btn .fs-icon-exit,
         body.is-fullscreen .fs-btn .fs-icon-exit { display: block; }
 
-        /* ---------- Theme picker (top-right, left of the audio toggle) ---------- */
-        .theme-btn {
-            position: fixed;
-            top: 14px; right: 98px;
-            z-index: 40;
-            width: 34px; height: 34px;
-            display: inline-flex; align-items: center; justify-content: center;
-            background: rgba(var(--panel-rgb),0.7);
-            border: 1px solid rgba(var(--hud-rgb),0.32);
-            border-radius: 6px;
-            color: var(--hud);
-            cursor: pointer;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 0 10px rgba(var(--hud-rgb),0.10);
-            transition: box-shadow 0.18s, transform 0.12s, background 0.18s, color 0.18s;
-        }
-        .theme-btn:hover,
-        .theme-btn[aria-expanded="true"] {
-            background: rgba(var(--panel-rgb),0.85);
-            box-shadow: 0 0 18px rgba(var(--hud-rgb),0.45);
-            color: var(--hud-bright);
-        }
-        .theme-btn:active { transform: translateY(1px); }
-        .theme-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+        /* My bets: only when the page hosting the game answers bet_history (Orange's
+           host pages say so in player_info). */
+        .bets-btn { display: none; }
+        .has-bets .bets-btn { display: inline-flex; }
 
         .theme-menu {
             position: fixed;
@@ -1468,50 +1432,108 @@
             background: linear-gradient(160deg, var(--sw-top) 0%, var(--sw-deep) 100%);
             box-shadow: inset 0 0 0 2px var(--sw-hud), 0 0 6px var(--sw-hud);
         }
-        /* ---------- My bets (top-right, left of the theme picker) ----------
-           Only when the page hosting the game answers bet_history (Orange's host
-           pages say so in player_info); the rail then keeps clear of it too. */
-        .bets-btn {
-            display: none;
-            position: fixed;
-            top: 14px; right: 140px;
-            z-index: 40;
-            width: 34px; height: 34px;
-            align-items: center; justify-content: center;
-            background: rgba(var(--panel-rgb),0.7);
-            border: 1px solid rgba(var(--hud-rgb),0.32);
-            border-radius: 6px;
-            color: var(--hud);
-            cursor: pointer;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 0 10px rgba(var(--hud-rgb),0.10);
-            transition: box-shadow 0.18s, transform 0.12s, background 0.18s, color 0.18s;
-        }
-        .has-bets .bets-btn { display: inline-flex; }
-        .bets-btn:hover {
-            background: rgba(var(--panel-rgb),0.85);
-            box-shadow: 0 0 18px rgba(var(--hud-rgb),0.45);
-            color: var(--hud-bright);
-        }
-        .bets-btn:active { transform: translateY(1px); }
-        .bets-btn svg { width: 16px; height: 16px; display: block; pointer-events: none; }
-        .no-fullscreen .bets-btn { right: 98px; }
-        :root.has-bets { --ctl-reserve: 188px; }
-        :root.has-bets.no-fullscreen { --ctl-reserve: 146px; }
-        /* Phones: the theme / sound / fullscreen buttons a little smaller, stacked down
-           the right edge, so the recent-crashes rail can stay centred; the theme menu
-           opens beside them. */
+        /* Phones: the buttons a little smaller, stacked down the right edge (theme at the
+           top, its menu opening beside it), so the recent-crashes rail can stay centred. */
         @media (max-width: 640px) {
-            :root, :root.no-fullscreen, :root.has-bets, :root.has-bets.no-fullscreen { --ctl-reserve: 46px; }
-            .theme-btn, .audio-btn, .fs-btn, .bets-btn,
-            .no-fullscreen .theme-btn, .no-fullscreen .audio-btn, .no-fullscreen .bets-btn { right: 10px; width: 30px; height: 30px; }
-            .theme-btn { top: 12px; }
-            .audio-btn { top: 46px; }
-            .fs-btn { top: 80px; }
-            .bets-btn { top: 114px; }
-            .no-fullscreen .bets-btn { top: 80px; }
+            .top-controls { top: 12px; right: 10px; flex-direction: column; gap: 4px; }
+            .ctl-btn { width: 30px; height: 30px; }
+            .theme-btn { order: 1; }
+            .audio-btn { order: 2; }
+            .fs-btn    { order: 3; }
+            .live-btn  { order: 4; }
+            .bets-btn  { order: 5; }
             .theme-menu { top: 12px; right: 48px; }
         }
+
+        /* ---------- All bets: every player's bet in the round, live ----------
+           Docked at the right on wide screens, between the buttons and the multiplier
+           row (--hud-room); elsewhere it opens over the game from its button. */
+        .live-bets {
+            position: fixed; z-index: 35;
+            top: 96px; right: 14px;
+            bottom: calc(var(--op-bar-h, 0px) + 14px);
+            width: min(300px, calc(100vw - 28px));
+            display: flex; flex-direction: column;
+            background: rgba(var(--panel-rgb),0.82);
+            border: 1px solid rgba(var(--hud-rgb),0.28);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            font-size: 12px;
+            overflow: hidden;
+        }
+        .live-bets[hidden] { display: none; }
+        @media (min-width: 1100px) and (min-height: 600px) {
+            .live-bets { bottom: calc(var(--hud-room, 220px) + 12px); }
+        }
+        @media (max-width: 640px) {
+            .live-bets { top: 120px; right: 48px; left: 10px; width: auto; bottom: calc(var(--op-bar-h, 0px) + 10px); }
+        }
+        .lb-top { display: flex; align-items: center; gap: 4px; padding: 8px 6px 0 8px; }
+        .lb-tabs {
+            flex: 1;
+            display: grid; grid-template-columns: 1fr 1fr;
+            padding: 3px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 999px;
+        }
+        .lb-tab {
+            padding: 6px 8px;
+            background: transparent; border: 0; border-radius: 999px;
+            color: var(--text-muted);
+            font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+            cursor: pointer;
+        }
+        .lb-tab[aria-selected="true"] { background: rgba(var(--hud-rgb),0.2); color: var(--hud-bright); }
+        .lb-tab:focus-visible { outline: 2px solid var(--hud); outline-offset: -2px; }
+        .lb-summary {
+            display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+            padding: 10px 12px 7px;
+        }
+        .lb-summary b { display: block; font-size: 15px; color: var(--hud-bright); white-space: nowrap; }
+        .lb-summary small { font-size: 10px; letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; }
+        .lb-result { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .lb-result[hidden] { display: none; }
+        .lb-total { min-width: 0; text-align: right; }
+        .lb-total b { overflow: hidden; text-overflow: ellipsis; }
+        .lb-progress { height: 4px; margin: 0 12px 8px; background: rgba(0,0,0,0.35); border-radius: 999px; overflow: hidden; }
+        .lb-progress i { display: block; width: 0; height: 100%; background: var(--good); transition: width 0.3s ease; }
+        .lb-row {
+            display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1fr);
+            align-items: center; gap: 6px;
+            padding: 5px 10px;
+        }
+        .lb-row > :not(:first-child) { text-align: right; white-space: nowrap; }
+        .lb-head { padding: 0 18px 4px; font-size: 10px; color: var(--text-muted); }
+        .lb-rows {
+            flex: 1;
+            display: flex; flex-direction: column; gap: 3px;
+            padding: 0 8px 8px;
+            overflow-y: auto; overscroll-behavior: contain;
+        }
+        .lb-rows .lb-row {
+            min-height: 30px;
+            background: rgba(0,0,0,0.22);
+            border: 1px solid transparent; border-radius: 8px;
+        }
+        .lb-rows .lb-row.is-won { background: rgba(34,197,94,0.14); border-color: rgba(34,197,94,0.3); }
+        .lb-rows .lb-row.is-lost { opacity: 0.5; }
+        .lb-rows .lb-row.is-mine { border-color: rgba(var(--hud-rgb),0.75); }
+        .lb-rows .lb-row.flash { animation: lb-flash 0.8s ease-out; }
+        @keyframes lb-flash { from { background: rgba(34,197,94,0.5); } }
+        .lb-player { display: flex; align-items: center; gap: 6px; }
+        .lb-player i {
+            flex: 0 0 auto;
+            width: 18px; height: 18px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            background: hsl(var(--h, 200) 55% 42%);
+            color: #fff; font-size: 10px; font-style: normal; font-weight: 700;
+        }
+        .lb-player span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-x .x-chip { padding: 2px 6px; font-size: 11px; }
+        .lb-win { color: var(--good); font-weight: 700; }
+        .lb-note { padding: 14px 8px; text-align: center; font-size: 11px; color: var(--text-muted); }
 
         /* ---------- Round details and My bets: one dialog over the game ---------- */
         .sheet {
@@ -2903,16 +2925,56 @@
     </script>
     @endif
 
-    <button id="theme-btn" class="theme-btn" type="button" title="Change theme" aria-label="Change theme"
-            aria-haspopup="true" aria-expanded="false" aria-controls="theme-menu">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 1.6C4.5 1.6 1.6 4.5 1.6 8s2.9 6.4 6.4 6.4c.7 0 1.2-.5 1.2-1.2 0-.3-.1-.6-.3-.8-.2-.2-.3-.5-.3-.8 0-.7.5-1.2 1.2-1.2h1.4c1.9 0 3.4-1.5 3.4-3.4C14.6 4.1 11.6 1.6 8 1.6Z"/>
-            <circle cx="4.9" cy="7.2" r="0.9" fill="currentColor" stroke="none"/>
-            <circle cx="6.9" cy="4.6" r="0.9" fill="currentColor" stroke="none"/>
-            <circle cx="10.2" cy="4.8" r="0.9" fill="currentColor" stroke="none"/>
-            <circle cx="12"  cy="7.6" r="0.9" fill="currentColor" stroke="none"/>
-        </svg>
-    </button>
+    {{-- Top-right buttons, right to left (see .top-controls). --}}
+    <div id="top-controls" class="top-controls">
+        <button id="fs-btn" class="ctl-btn fs-btn" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+            <svg class="fs-icon-enter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+            </svg>
+            <svg class="fs-icon-exit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+            </svg>
+        </button>
+        <button id="audio-btn" class="ctl-btn audio-btn" type="button" title="Toggle sound" aria-label="Toggle sound">
+            <svg class="audio-icon-on" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
+                <path d="M11 6c0.8 0.6 1.2 1.4 1.2 2s-0.4 1.4-1.2 2"/>
+                <path d="M12.6 4.4c1.4 0.9 2.2 2.2 2.2 3.6s-0.8 2.7-2.2 3.6"/>
+            </svg>
+            <svg class="audio-icon-mute" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
+                <path d="M11 6l4 4M15 6l-4 4"/>
+            </svg>
+        </button>
+        <button id="theme-btn" class="ctl-btn theme-btn" type="button" title="Change theme" aria-label="Change theme"
+                aria-haspopup="true" aria-expanded="false" aria-controls="theme-menu">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 1.6C4.5 1.6 1.6 4.5 1.6 8s2.9 6.4 6.4 6.4c.7 0 1.2-.5 1.2-1.2 0-.3-.1-.6-.3-.8-.2-.2-.3-.5-.3-.8 0-.7.5-1.2 1.2-1.2h1.4c1.9 0 3.4-1.5 3.4-3.4C14.6 4.1 11.6 1.6 8 1.6Z"/>
+                <circle cx="4.9" cy="7.2" r="0.9" fill="currentColor" stroke="none"/>
+                <circle cx="6.9" cy="4.6" r="0.9" fill="currentColor" stroke="none"/>
+                <circle cx="10.2" cy="4.8" r="0.9" fill="currentColor" stroke="none"/>
+                <circle cx="12"  cy="7.6" r="0.9" fill="currentColor" stroke="none"/>
+            </svg>
+        </button>
+        @if ($liveRounds ?? null)
+        <button id="live-btn" class="ctl-btn live-btn" type="button" title="All bets" aria-label="All bets"
+                aria-controls="live-bets" aria-expanded="false">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="6" cy="5.4" r="2.4"/>
+                <path d="M1.8 13.4c.4-2.4 2.1-3.8 4.2-3.8s3.8 1.4 4.2 3.8"/>
+                <path d="M10.6 3.2a2.3 2.3 0 0 1 0 4.4"/>
+                <path d="M12 9.8c1.2.5 2 1.7 2.2 3.6"/>
+            </svg>
+        </button>
+        @endif
+        <button id="bets-btn" class="ctl-btn bets-btn" type="button" title="My bets" aria-label="My bets" aria-haspopup="dialog">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.85"/>
+                <path d="M2.4 2.4v2.8h2.8"/>
+                <path d="M8 5v3.2l2.2 1.4"/>
+            </svg>
+        </button>
+    </div>
     <div id="theme-menu" class="theme-menu" role="menu" aria-label="Theme" hidden>
         <div class="theme-menu-label">Theme</div>
         @foreach ($themes as $key => $t)
@@ -2924,34 +2986,28 @@
         @endforeach
     </div>
 
-    <button id="audio-btn" class="audio-btn" type="button" title="Toggle sound" aria-label="Toggle sound">
-        <svg class="audio-icon-on" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
-            <path d="M11 6c0.8 0.6 1.2 1.4 1.2 2s-0.4 1.4-1.2 2"/>
-            <path d="M12.6 4.4c1.4 0.9 2.2 2.2 2.2 3.6s-0.8 2.7-2.2 3.6"/>
-        </svg>
-        <svg class="audio-icon-mute" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
-            <path d="M11 6l4 4M15 6l-4 4"/>
-        </svg>
-    </button>
-
-    <button id="fs-btn" class="fs-btn" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
-        <svg class="fs-icon-enter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
-        </svg>
-        <svg class="fs-icon-exit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
-        </svg>
-    </button>
-
-    <button id="bets-btn" class="bets-btn" type="button" title="My bets" aria-label="My bets" aria-haspopup="dialog">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.85"/>
-            <path d="M2.4 2.4v2.8h2.8"/>
-            <path d="M8 5v3.2l2.2 1.4"/>
-        </svg>
-    </button>
+    @if ($liveRounds ?? null)
+    {{-- All bets: every player's bet in the round, live (config('crash.live_bets')). Filled in by the script. --}}
+    <aside id="live-bets" class="live-bets" aria-label="All bets" hidden>
+        <div class="lb-top">
+            <div class="lb-tabs" role="tablist" aria-label="Round">
+                <button type="button" class="lb-tab" role="tab" data-tab="current" aria-selected="true">All bets</button>
+                <button type="button" class="lb-tab" role="tab" data-tab="previous" aria-selected="false">Previous</button>
+            </div>
+            <button id="live-close" class="sheet-btn" type="button" title="Close" aria-label="Close all bets">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </button>
+        </div>
+        <div class="lb-summary">
+            <div><b id="lb-count">0/0</b><small>cashed out</small></div>
+            <div id="lb-result" class="lb-result" hidden></div>
+            <div class="lb-total"><b id="lb-total">0.00</b><small id="lb-total-label">Total win</small></div>
+        </div>
+        <div class="lb-progress"><i id="lb-progress"></i></div>
+        <div class="lb-row lb-head" aria-hidden="true"><span>Player</span><span id="lb-head-bet">Bet</span><span>X</span><span id="lb-head-win">Win</span></div>
+        <div id="lb-rows" class="lb-rows" role="list"></div>
+    </aside>
+    @endif
 
     {{-- Round details (a recent crash, or a bet's round) and My bets. Filled in by the script. --}}
     <div id="sheet" class="sheet" hidden>
@@ -3776,6 +3832,16 @@
         }
         renderHistory();
 
+        // The rail keeps clear of the top-right buttons, whichever of them are shown:
+        // their row's width plus its margin, on both sides (the rail is centred).
+        const $controls = document.getElementById('top-controls');
+        new ResizeObserver(() => {
+            const r = $controls.getBoundingClientRect();
+            const reserve = r.width + 2 * (window.innerWidth - r.right);
+            document.documentElement.style.setProperty('--ctl-reserve', `${Math.ceil(reserve)}px`);
+            fitHistory();
+        }).observe($controls);
+
         // ---------- Round details and My bets (one dialog over the game) ----------
         // Round details come from the public GET /v1/rounds/{uuid}; My bets from the page
         // hosting the game (bet_history → bet_history_result), wired by the operator bridge.
@@ -4046,6 +4112,219 @@
             };
         })();
 
+        // ---------- All bets: every player's bet in the round, live ----------
+        // Rows come from round.bets broadcasts. A round the page joins late, and the
+        // previous one when its tab opens, are fetched once (GET /v1/rounds/{uuid}/bets).
+        const liveBets = (function livePanel() {
+            const $panel = document.getElementById('live-bets');
+            const $btn = document.getElementById('live-btn');
+            if (!$panel || !$btn) return { seen() {}, update() {}, crashed() {}, mine() {} };
+
+            const START = @json($liveRounds ?? null);
+            const ROUNDS_URL = @json(url('/v1/rounds'));
+            const MAX_ROWS = 100; // the biggest bets; the counts and totals cover all of them
+            const OPEN_KEY = 'orange.ui.livebets';
+            const $rows = document.getElementById('lb-rows');
+            const $count = document.getElementById('lb-count');
+            const $total = document.getElementById('lb-total');
+            const $totalLabel = document.getElementById('lb-total-label');
+            const $progress = document.getElementById('lb-progress');
+            const $result = document.getElementById('lb-result');
+            const $headBet = document.getElementById('lb-head-bet');
+            const $headWin = document.getElementById('lb-head-win');
+            const $tabs = [...$panel.querySelectorAll('.lb-tab')];
+            const docked = window.matchMedia('(min-width: 1100px) and (min-height: 600px)');
+
+            const rounds = new Map(); // uuid → { rows: Map<bet id, row>, crashPoint, crashed, loaded, loading }
+            let current = null;
+            let previous = null;
+            let tab = 'current';
+            const mine = new Set();   // this player's bet ids
+            const nodes = new Map();  // bet id → its row element, reused across renders
+            const flashes = new Set(); // bet ids just cashed out
+            let frame = 0;
+
+            // Money with two decimals, cut (never rounded up), and thousands separators.
+            function fmt(value) {
+                const s = typeof value === 'number' ? value.toFixed(2) : String(value);
+                const m = /^(-?)(\d+)(?:\.(\d*))?$/.exec(s);
+                if (!m) return s;
+                return `${m[1]}${m[2].replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${((m[3] || '') + '00').slice(0, 2)}`;
+            }
+            const hue = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+
+            function round(uuid) {
+                if (!rounds.has(uuid)) rounds.set(uuid, { rows: new Map(), crashPoint: null, crashed: false, loaded: false, loading: false });
+                return rounds.get(uuid);
+            }
+            function merge(r, row) {
+                const before = r.rows.get(row.id);
+                if (before?.multiplier && !row.multiplier) return; // a late copy from before the cash-out
+                if (before && !before.multiplier && row.multiplier) flashes.add(row.id);
+                r.rows.set(row.id, row);
+            }
+            async function load(uuid) {
+                const r = round(uuid);
+                if (r.loaded || r.loading) return;
+                r.loading = true;
+                try {
+                    const res = await fetch(`${ROUNDS_URL}/${uuid}/bets`, { headers: { Accept: 'application/json' } });
+                    if (res.ok) {
+                        const data = await res.json();
+                        for (const row of data.bets ?? []) merge(r, row);
+                        if (data.state === 'crashed' || data.state === 'settled') r.crashed = true;
+                        r.loaded = true;
+                    }
+                } catch (_) { /* offline: tried again the next time it's shown */ }
+                r.loading = false;
+                flashes.clear();
+                schedule();
+            }
+
+            // A round the page hadn't seen is the new current one; the current one becomes
+            // the previous. `fresh`: its betting just opened, so there's nothing to fetch.
+            function seen(uuid, { fresh = false } = {}) {
+                if (!UUID.test(uuid ?? '') || uuid === current || uuid === previous) return;
+                if (current) previous = current; // else the page's start value stays
+                current = uuid;
+                if (fresh) round(uuid).loaded = true;
+                for (const id of rounds.keys()) {
+                    if (id === current || id === previous) continue;
+                    for (const betId of rounds.get(id).rows.keys()) nodes.delete(betId);
+                    rounds.delete(id);
+                }
+                schedule();
+            }
+
+            function schedule() {
+                if (!frame) frame = requestAnimationFrame(render);
+            }
+            function rowNode(b, crashed, one) {
+                let n = nodes.get(b.id);
+                if (!n) {
+                    n = document.createElement('div');
+                    n.setAttribute('role', 'listitem');
+                    n.innerHTML = '<span class="lb-player"><i></i><span></span></span><span></span><span class="lb-x"></span><span class="lb-win"></span>';
+                    const [$who, , , ] = n.children;
+                    $who.firstChild.textContent = (b.player || '?').slice(0, 1).toUpperCase();
+                    $who.firstChild.style.setProperty('--h', hue(b.player || ''));
+                    $who.lastChild.textContent = b.player;
+                    nodes.set(b.id, n);
+                }
+                const won = !!b.multiplier;
+                const key = [won, crashed, mine.has(b.id), one].join('|');
+                if (n.dataset.key !== key) {
+                    n.dataset.key = key;
+                    n.className = `lb-row${won ? ' is-won' : ''}${crashed && !won ? ' is-lost' : ''}${mine.has(b.id) ? ' is-mine' : ''}`;
+                    const [, $bet, $x, $win] = n.children;
+                    $bet.textContent = one === null ? `${fmt(b.amount)} ${b.currency}` : fmt(b.amount);
+                    $x.replaceChildren(...(won ? [Object.assign(document.createElement('span'), { className: `x-chip ${tierClassFor(Number(b.multiplier))}`, textContent: `${Number(b.multiplier).toFixed(2)}x` })] : []));
+                    $win.textContent = won ? (one === null ? `${fmt(b.payout)} ${b.currency}` : fmt(b.payout)) : '';
+                }
+                if (flashes.delete(b.id)) {
+                    n.classList.remove('flash');
+                    void n.offsetWidth; // restart the animation
+                    n.classList.add('flash');
+                }
+                return n;
+            }
+            function render() {
+                frame = 0;
+                if ($panel.hidden) return;
+                const uuid = tab === 'current' ? current : previous;
+                const r = uuid ? round(uuid) : null;
+                if (r && !r.loaded) load(uuid);
+
+                const list = r ? [...r.rows.values()] : [];
+                list.sort((a, b) => Number(b.amount) - Number(a.amount) || a.id - b.id);
+                const won = list.filter((b) => b.multiplier);
+                const currencies = [...new Set(list.map((b) => b.currency))];
+                const one = currencies.length <= 1 ? (currencies[0] ?? '') : null; // null: several
+                const totals = new Map();
+                for (const b of won) totals.set(b.currency, (totals.get(b.currency) ?? 0) + Number(b.payout));
+
+                $count.textContent = `${won.length}/${list.length}`;
+                $progress.style.width = list.length ? `${(won.length / list.length) * 100}%` : '0';
+                $headBet.textContent = one ? `Bet ${one}` : 'Bet';
+                $headWin.textContent = one ? `Win ${one}` : 'Win';
+                $total.textContent = one !== null
+                    ? fmt(totals.get(one) ?? 0)
+                    : [...totals].map(([c, v]) => `${fmt(v)} ${c}`).join(' · ') || '0.00';
+                $totalLabel.textContent = one ? `Total win ${one}` : 'Total win';
+                const cp = tab === 'previous' ? r?.crashPoint ?? history.find((h) => h.uuid === uuid)?.cp : null;
+                $result.hidden = !cp;
+                if (cp) {
+                    $result.replaceChildren(Object.assign(document.createElement('span'), { className: `x-chip ${tierClassFor(cp)}`, textContent: `${Number(cp).toFixed(2)}x` }),
+                        Object.assign(document.createElement('small'), { textContent: 'Result' }));
+                }
+
+                const children = list.slice(0, MAX_ROWS).map((b) => rowNode(b, !!r?.crashed, one));
+                if (list.length === 0) {
+                    children.push(Object.assign(document.createElement('div'), {
+                        className: 'lb-note',
+                        textContent: r && !r.loaded ? 'Loading…' : tab === 'current' ? 'No bets yet in this round.' : 'No bets in the previous round.',
+                    }));
+                } else if (list.length > MAX_ROWS) {
+                    children.push(Object.assign(document.createElement('div'), { className: 'lb-note', textContent: `+${list.length - MAX_ROWS} smaller bets` }));
+                }
+                $rows.replaceChildren(...children);
+            }
+
+            function setOpen(open, remember = false) {
+                $panel.hidden = !open;
+                $btn.setAttribute('aria-expanded', String(open));
+                // Only the docked panel's state is kept: over the game it starts closed.
+                if (remember && docked.matches) {
+                    try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch (_) {}
+                }
+                if (open) schedule();
+            }
+            function defaultOpen() {
+                let stored = null;
+                try { stored = localStorage.getItem(OPEN_KEY); } catch (_) {}
+                return docked.matches && stored !== '0';
+            }
+            $btn.addEventListener('click', () => setOpen($panel.hidden, true));
+            document.getElementById('live-close').addEventListener('click', () => setOpen(false, true));
+            docked.addEventListener('change', () => setOpen(defaultOpen()));
+            for (const $t of $tabs) {
+                $t.addEventListener('click', () => {
+                    tab = $t.dataset.tab;
+                    for (const $o of $tabs) $o.setAttribute('aria-selected', String($o === $t));
+                    $rows.scrollTop = 0;
+                    schedule();
+                });
+            }
+
+            if (UUID.test(START?.current ?? '')) current = START.current;
+            if (UUID.test(START?.previous ?? '')) previous = START.previous;
+            setOpen(defaultOpen());
+
+            return {
+                seen,
+                /** A round.bets message. */
+                update(e) {
+                    seen(e.round_uuid);
+                    if (e.round_uuid !== current && e.round_uuid !== previous) return;
+                    const r = round(e.round_uuid);
+                    for (const row of e.bets ?? []) merge(r, row);
+                    schedule();
+                },
+                crashed(uuid, cp) {
+                    if (uuid !== current && uuid !== previous) return;
+                    const r = round(uuid);
+                    r.crashed = true;
+                    r.crashPoint = cp;
+                    schedule();
+                },
+                /** The player's own bet, marked in the list. */
+                mine(betId) {
+                    mine.add(Number(betId));
+                    schedule();
+                },
+            };
+        })();
+
         const log = (msg) => {
             const line = document.createElement('div');
             line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
@@ -4054,12 +4333,12 @@
         };
 
         // How much of the screen's bottom the multiplier row takes up: the diving
-        // sub stays clear of it (see the .sub-wrap diving rules).
-        const $subWrap = document.querySelector('.sub-wrap');
+        // sub and the docked All bets panel stay clear of it (see the .sub-wrap diving
+        // rules and .live-bets).
         const $center = document.querySelector('.center');
         const hudRoom = new ResizeObserver(() => {
             const room = $stage.getBoundingClientRect().bottom - $center.getBoundingClientRect().top;
-            $subWrap.style.setProperty('--hud-room', `${Math.round(room)}px`);
+            document.documentElement.style.setProperty('--hud-room', `${Math.round(room)}px`);
         });
         hudRoom.observe($stage);
         hudRoom.observe($center);
@@ -4273,6 +4552,7 @@
                     $cashout.disabled = true;
                     $cashoutHint.textContent = 'awaiting dive';
                     log(`betting_opened ${e.round_uuid.slice(0,8)}…`);
+                    liveBets.seen(e.round_uuid, { fresh: true });
                     startCountdown(e.betting_seconds || 10, 'Diving in', () => {
                         $state.textContent = 'Pressurising…';
                     });
@@ -4284,6 +4564,7 @@
                     $cashout.disabled = false;
                     $cashoutHint.textContent = 'cash out at current x';
                     syncDescent(0, Number(e.growth_rate));
+                    liveBets.seen(e.round_uuid);
                     log(`dive started · growth ${e.growth_rate}/s`);
                 })
                 .listen('.round.tick', (e) => {
@@ -4292,6 +4573,7 @@
                     if (!Number.isFinite(m)) return;
                     tweenMultiplier(m);
                     syncDescent(e.elapsed_seconds, NaN);
+                    liveBets.seen(e.round_uuid);
                     // Tick implies running. If user opened the page mid-round and
                     // missed betting_opened/started, sync state text + cashout button.
                     const elapsed = Number(e.elapsed_seconds ?? 0).toFixed(1);
@@ -4314,6 +4596,7 @@
                             $state.textContent = `IMPLODED @ ${cp.toFixed(2)}x`;
                             log(`💥 imploded @ ${cp.toFixed(2)}x`);
                             pushHistory(cp, e.round_uuid);
+                            liveBets.crashed(e.round_uuid, cp);
                         } else {
                             $state.textContent = 'IMPLODED (no crash_point)';
                             log('⚠ crash_point missing in payload');
@@ -4340,7 +4623,8 @@
                             $state.textContent = 'Awaiting next dive…';
                         });
                     }, 1200);
-                });
+                })
+                .listen('.round.bets', (e) => liveBets.update(e));
         }
 
         if (window.Echo) attachEcho();
@@ -5032,7 +5316,10 @@
                             }
                         }
                         if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
-                        if (payload.success) sheet.betsChanged();
+                        if (payload.success) {
+                            sheet.betsChanged();
+                            liveBets.mine(payload.bet_id);
+                        }
                         updateButtons();
                         break;
 

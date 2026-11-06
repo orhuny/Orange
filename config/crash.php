@@ -14,6 +14,11 @@ return [
     // crash:tick stops broadcasting after 120 s (≈ 1339x at growth 0.06).
     'depth_max_multiplier' => 1000,
 
+    // The live list of every player's bets in the round (like Aviator's "All bets"):
+    // the round.bets broadcasts, GET /v1/rounds/{uuid}/bets and the game page's panel.
+    // Players are masked ("1***5"). false switches all of it off.
+    'live_bets' => (bool) env('GAME_CRASH_LIVE_BETS', true),
+
     // Sea life swimming behind the sub, by kind. All off for now, to see the game
     // without it: set a kind to true (or its env var) to bring it back. The intro's
     // own whale and fish are separate and stay.
