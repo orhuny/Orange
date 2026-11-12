@@ -1827,6 +1827,7 @@
         .rules h3:first-child { margin-top: 0; }
         .rules p { margin: 0 0 6px; line-height: 1.55; }
         .rules ol { margin: 0; padding-left: 20px; line-height: 1.55; list-style: decimal; }
+        .rules ul { margin: 0; padding-left: 20px; line-height: 1.55; list-style: disc; }
         .rules li + li { margin-top: 3px; }
         .rules .is-muted { color: var(--text-muted); }
         .rules-grid {
@@ -1915,9 +1916,10 @@
         body.embedded .op-phase[data-phase="running"] { color: var(--good); }
         body.embedded .op-phase[data-phase="crashed"] { color: var(--warn); }
 
-        /* Bet controls — inline, tight */
+        /* Bet controls — inline, tight. The fields' captions stand above the line, so
+           the row lines its controls up by their bottoms (each as tall as the others). */
         body.embedded .op-bet-row {
-            display: flex; align-items: center; gap: 6px;
+            display: flex; align-items: flex-end; gap: 6px;
         }
         body.embedded .op-input {
             background: rgba(var(--panel-rgb),0.6);
@@ -2365,7 +2367,7 @@
                stake and the auto cash-out (and their captions) stay readable from 360px up. */
             body.embedded .op-field { flex: 1 1 0; }
             body.embedded .op-field-auto { flex-grow: 1.1; } /* the longer caption */
-            body.embedded .op-field .op-stepper { display: flex; }
+            body.embedded .op-field .op-stepper { display: flex; height: 30px; } /* as tall as the buttons */
             body.embedded .op-stepper .op-input,
             body.embedded .op-stepper-auto .op-input { flex: 1 1 auto; width: 0; min-width: 34px; }
             body.embedded .op-cap { font-size: 8px; letter-spacing: 0.02em; gap: 3px; }
@@ -2424,6 +2426,8 @@
             body.embedded .op-slots { order: 1; flex: 1 0 100%; gap: 5px; }
             body.embedded .op-slots > .op-bet-row { flex: 0 0 auto; }
             body.embedded .op-slot-toggle { width: 28px; height: 30px; border-radius: 6px; }
+            /* Diving or cashed out, the fields are gone and the buttons taller: + sits mid-height. */
+            body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-slot-toggle { align-self: center; }
             body.embedded.two-bets { --op-bar-h: 178px; }
             body.embedded.two-bets .op-slot[data-mode="cashout"] .op-cashout-btn,
             body.embedded.two-bets .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-autobet-btn { height: 40px; font-size: 14px; }
@@ -2444,6 +2448,9 @@
             body.embedded .op-stepper-auto .op-input       { width: 66px; }
             body.embedded .op-step                         { font-size: 17px; padding: 0 12px; }
             body.embedded .op-btn                          { font-size: 13px; padding: 0 18px; height: 36px; }
+            /* One line: steppers, AUTO BET, Place Bet / Cash Out all 40px; + centred on it. */
+            body.embedded .op-stepper,
+            body.embedded .op-autobet-btn                  { height: 40px; }
             body.embedded .op-cashout-btn,
             body.embedded .op-action .op-bet-btn           { font-size: 14px; height: 40px; min-width: 180px; }
             body.embedded .op-cashout-btn .op-cashout-x    { font-size: 12px; }
@@ -2454,7 +2461,7 @@
             body.embedded .op-last                         { padding: 5px 12px; }
             body.embedded .op-last-mult                    { font-size: 15px; }
             body.embedded .op-last-payout                  { font-size: 14px; }
-            body.embedded .op-slot-toggle                  { width: 36px; height: 36px; font-size: 18px; }
+            body.embedded .op-slot-toggle                  { width: 36px; height: 36px; font-size: 18px; margin-bottom: 2px; }
             body.embedded.two-bets                         { --op-bar-h: 124px; }
         }
 
@@ -4477,7 +4484,9 @@
 
             function open() {
                 const { limits, currency, money } = opts;
-                const amount = (v, none) => (v === null || v === undefined ? none : `${money(v)} ${currency}`.trim());
+                // "500000.00" → "500,000.00": a max win reads at a glance.
+                const grouped = (v) => money(v).replace(/^(-?\d+)/, (n) => n.replace(/\B(?=(\d{3})+$)/g, ','));
+                const amount = (v, none) => (v === null || v === undefined ? none : `${grouped(v)} ${currency}`.trim());
                 const pct = RTP === null ? null : `${(Number(RTP) * 100).toFixed(2)}%`;
                 const h = (text) => el('h3', {}, text);
                 const p = (...children) => el('p', {}, ...children);
@@ -4508,7 +4517,14 @@
                     h('Provably fair'),
                     p('Every result is fixed before betting opens: we publish the SHA-256 of the round’s server seed in advance and reveal the seed once the round is over. Tap a past result at the top of the screen to check it.'),
                     h('If you lose connection'),
-                    p('A bet with auto cash out is still cashed out at its multiplier. A bet without it stays in the round, and is lost if the hull implodes before you cash out.')));
+                    p('A bet with auto cash out is still cashed out at its multiplier. A bet without it stays in the round, and is lost if the hull implodes before you cash out.'),
+                    // What the platform does (crash:loop's orphan rounds, the stake confirmation,
+                    // wallet:reconcile): keep this in step with them.
+                    h('Malfunction'),
+                    el('ul', {},
+                        el('li', {}, 'If a fault on our side cuts a round short, the round is cancelled and every bet still in it is refunded in full. Bets already cashed out keep their win.'),
+                        el('li', {}, 'A bet only counts once your casino confirms its stake. If that can’t be confirmed, the bet is cancelled and anything taken for it is returned.'),
+                        el('li', {}, 'If paying a win to your casino fails, it is sent again automatically.'))));
             }
             document.getElementById('rules-btn')?.addEventListener('click', open);
 
