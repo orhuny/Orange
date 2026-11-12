@@ -24,6 +24,7 @@ Route::prefix('play-api')
     ->group(function (): void {
         Route::get('/session', [PlayController::class, 'session']);
         Route::get('/lobby', [PlayController::class, 'lobby']);
+        Route::get('/games/{code}', [PlayController::class, 'game'])->where('code', '[a-z0-9_-]+');
         Route::get('/games/{code}/bets', [PlayController::class, 'bets'])->where('code', '[a-z0-9_-]+');
         Route::post('/games/{code}/bets', [PlayController::class, 'bet'])->where('code', '[a-z0-9_-]+');
         Route::post('/bets/{bet}/cashout', [PlayController::class, 'cashout'])->whereNumber('bet');

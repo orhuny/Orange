@@ -84,6 +84,19 @@ describe('startPlayHost', () => {
         });
     });
 
+    it('tells the game the limits its bets are played with', async () => {
+        const limits = { min_bet: '0.10000000', max_bet: '50.00000000', max_win: null };
+        fetchMock.mockImplementation((url) => (url.endsWith('/games/crash')
+            ? json(200, { code: 'crash', rtp: '0.9700', currency: 'EUR', limits })
+            : json(200, { player: { id: 'p-1', currency: 'EUR' }, balance: '98.00' })));
+        start();
+
+        await intent('embed_ready');
+
+        expect(fetchMock.mock.calls.map(([url]) => url)).toContain('https://orange.example/play-api/games/crash');
+        expect(frame.contentWindow.posted.at(-1).data.payload.limits).toEqual(limits);
+    });
+
     it('names the player as the operator does, when the launch gave a name', async () => {
         fetchMock.mockReturnValueOnce(json(200, { player: { id: 'client_x:7', username: 'orhuntest', currency: 'TRY' }, balance: '1049.73' }));
         start();
@@ -206,12 +219,23 @@ describe('startPlayHost', () => {
         start();
         await intent('cashout', { bet_id: 9 });
         expect(fetchMock.mock.calls[0][0]).toBe('https://orange.example/play-api/bets/9/cashout');
-        expect(frame.contentWindow.posted.at(-1).data.payload).toEqual({ success: true, bet_id: 9, multiplier: 1.85, payout: '3.70000000' });
+        expect(frame.contentWindow.posted.at(-1).data.payload).toEqual({ success: true, bet_id: 9, multiplier: 1.85, payout: '3.70000000', is_auto: false });
 
         fetchMock.mockClear();
         fetchMock.mockReturnValueOnce(json(409, { error: 'round_crashed', bet_status: 'lost' }));
         await intent('cashout', { bet_id: 9 });
         expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ success: false, bet_id: 9, error: 'round_crashed' });
+    });
+
+    it('reports a bet its auto cash-out already won as cashed out, not as a failed cash-out', async () => {
+        fetchMock.mockReturnValueOnce(json(409, {
+            error: 'already_settled', bet_status: 'won', cashout: { multiplier: 2, payout_amount: '4.00000000', is_auto: true },
+        }));
+        start();
+
+        await intent('cashout', { bet_id: 9 });
+
+        expect(frame.contentWindow.posted.at(-1).data.payload).toEqual({ success: true, bet_id: 9, multiplier: 2, payout: '4.00000000', is_auto: true });
     });
 
     it('tells a game in a lobby it can go home, and the lobby that the game has its own Home', async () => {

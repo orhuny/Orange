@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Game\Enums\RoundState;
+use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Http\Controllers\GamePageController;
 use App\Http\Controllers\LobbyPageController;
@@ -32,7 +33,15 @@ Route::get('/crash', function () {
         'previous' => GameRound::query()->where('state', RoundState::Settled)->latest('id')->value('round_uuid'),
     ] : null;
 
-    return view('crash', ['recentCrashes' => $recentCrashes, 'liveRounds' => $liveRounds]);
+    // The game being played (?game={code}, set by Orange's host pages), for the RTP its rules
+    // show; an operator embedding the page without one gets the first crash game's.
+    $games = Game::query()->where('type', 'crash')->where('status', '!=', 'draft');
+    $code = request()->query('game');
+    $game = (is_string($code) && $code !== '' ? (clone $games)->where('code', $code)->first() : null)
+        ?? $games->orderBy('id')->first();
+    $rtp = $game instanceof Game ? number_format((float) $game->rtp_target, 4, '.', '') : null;
+
+    return view('crash', ['recentCrashes' => $recentCrashes, 'liveRounds' => $liveRounds, 'rtp' => $rtp]);
 })->middleware(AllowGameEmbed::class);
 
 // Game pages (resources/views/games/{type}.blade.php), embedded by Orange's host pages

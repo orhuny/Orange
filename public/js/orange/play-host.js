@@ -94,7 +94,12 @@ export function startPlayHost(config) {
             switch (type) {
                 case 'embed_ready': {
                     config.onGameReady?.(payload);
-                    const r = await api('/session');
+                    // The game's rules show the limits the player's bets are played with; without
+                    // them the game still starts.
+                    const [r, info] = await Promise.all([
+                        api('/session'),
+                        gameCode ? api(`/games/${encodeURIComponent(gameCode)}`).catch(() => null) : null,
+                    ]);
                     if (!r.ok) {
                         return;
                     }
@@ -114,6 +119,8 @@ export function startPlayHost(config) {
                         bet_slots: 2,
                         // A lobby takes the player back (back_to_lobby): the game may offer Home.
                         home: typeof config.onBackToLobby === 'function',
+                        // { min_bet, max_bet, max_win }, decimal strings or null (no limit).
+                        ...(info?.ok && info.data.limits ? { limits: info.data.limits } : {}),
                     });
                     break;
                 }
@@ -173,12 +180,16 @@ export function startPlayHost(config) {
                 }
                 case 'cashout': {
                     const r = await api(`/bets/${encodeURIComponent(payload.bet_id)}/cashout`, { method: 'POST', body: {} });
-                    if (r.ok) {
+                    // Its auto cash-out got there first: the bet is won all the same.
+                    const won = r.status === 409 && r.data.bet_status === 'won' ? r.data.cashout : null;
+                    if (r.ok || won) {
+                        const cashout = r.ok ? r.data : won;
                         inner.send('cashout_result', {
                             success: true,
-                            bet_id: r.data.bet_id,
-                            multiplier: r.data.multiplier,
-                            payout: r.data.payout_amount,
+                            bet_id: r.ok ? r.data.bet_id : payload.bet_id,
+                            multiplier: cashout.multiplier,
+                            payout: cashout.payout_amount,
+                            is_auto: !!cashout.is_auto,
                         });
                     } else {
                         inner.send('cashout_result', {

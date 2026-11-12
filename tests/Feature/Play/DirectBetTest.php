@@ -5,9 +5,13 @@ declare(strict_types=1);
 use App\Domain\Game\Enums\BetStatus;
 use App\Domain\Game\Enums\GameAccess;
 use App\Domain\Game\Models\Bet;
+use App\Domain\Game\Models\Cashout;
 use App\Domain\Game\Models\Game;
+use App\Domain\Game\Models\GameLimit;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Models\OperatorGame;
+use App\Domain\Game\Models\OperatorGameLimit;
+use App\Domain\Game\Services\CashoutService;
 use App\Domain\Game\Services\RoundOrchestrator;
 use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Launch\Services\PlaySessionService;
@@ -25,6 +29,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\Response;
 
+use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
 
 // Direct play: a bet counts only once the operator confirms its stake debit.
@@ -151,6 +156,42 @@ it('cashes out the player\'s own bet, and nobody else\'s', function (): void {
         ->assertOk()
         ->assertJsonPath('bet_id', $betId);
     expect(Bet::query()->find($betId)?->status)->toBe(BetStatus::Won);
+});
+
+it('says at what a bet was cashed out when its auto cash-out got there first', function (): void {
+    Http::fake(['wallet.test/*' => Http::response(['balance_after' => '98.00'], 200)]);
+    [, , $round, $bearer] = directPlay();
+    $betId = directBet($bearer, ['amount' => '2.00', 'params' => ['auto_cashout_at' => '1.20']])->json('bet_id');
+    Carbon::setTestNow(now());
+    app(RoundOrchestrator::class)->start($round->fresh());
+    Carbon::setTestNow(now()->addSeconds(5));
+    app(CashoutService::class)->cashout(Bet::query()->findOrFail($betId), isAuto: true);
+    $cashout = Cashout::sole();
+
+    postJson("/play-api/bets/{$betId}/cashout", [], ['Authorization' => "Bearer {$bearer}"])
+        ->assertStatus(409)
+        ->assertJsonPath('error', 'already_settled')
+        ->assertJsonPath('bet_status', 'won')
+        ->assertJsonPath('cashout.multiplier', (float) $cashout->multiplier)
+        ->assertJsonPath('cashout.payout_amount', (string) $cashout->payout_amount)
+        ->assertJsonPath('cashout.is_auto', true);
+});
+
+it('tells the game page its RTP and the player\'s limits', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'rtp_target' => 0.97, 'house_edge' => 0.03]);
+    [$operator, , , $bearer] = directPlay($game);
+    GameLimit::factory()->create(['game_id' => $game->id, 'currency' => 'EUR', 'min_bet' => '0.1', 'max_bet' => '100', 'max_win' => '10000']);
+    // The operator's own limits only tighten the game's.
+    $operatorGame = OperatorGame::query()->where('operator_id', $operator->id)->where('game_id', $game->id)->sole();
+    OperatorGameLimit::factory()->create(['operator_game_id' => $operatorGame->id, 'currency' => 'EUR', 'max_bet' => '50']);
+
+    getJson('/play-api/games/crash', ['Authorization' => "Bearer {$bearer}"])
+        ->assertOk()
+        ->assertJsonPath('rtp', '0.9700')
+        ->assertJsonPath('currency', 'EUR')
+        ->assertJsonPath('limits', ['min_bet' => '0.10000000', 'max_bet' => '50.00000000', 'max_win' => '10000.00000000']);
+
+    getJson('/play-api/games/other', ['Authorization' => "Bearer {$bearer}"])->assertNotFound();
 });
 
 it('takes one stake for a repeated request with the same key', function (): void {

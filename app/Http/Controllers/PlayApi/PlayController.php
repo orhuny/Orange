@@ -19,6 +19,7 @@ use App\Domain\Game\Exceptions\StakeNotTaken;
 use App\Domain\Game\Exceptions\StakeOutsideLimits;
 use App\Domain\Game\Limits\GameLimits;
 use App\Domain\Game\Models\Bet;
+use App\Domain\Game\Models\Cashout;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
 use App\Domain\Game\Services\BetPlacementService;
@@ -228,10 +229,18 @@ class PlayController
             $cashout = $this->cashouts->cashout($bet);
         } catch (AlreadyCashedOut|RoundNotRunning) {
             $status = $bet->fresh()?->getAttribute('status');
+            // Most often its auto cash-out got there first: say at what, as the operator API
+            // does, so the page shows the win instead of a failed cash-out.
+            $existing = $status === BetStatus::Won ? Cashout::query()->where('bet_id', $bet->id)->first() : null;
 
             return response()->json([
                 'error' => $status === BetStatus::Lost ? 'round_crashed' : 'already_settled',
                 'bet_status' => $status?->value,
+                'cashout' => $existing instanceof Cashout ? [
+                    'multiplier' => (float) $existing->multiplier,
+                    'payout_amount' => (string) $existing->payout_amount,
+                    'is_auto' => $existing->is_auto,
+                ] : null,
             ], 409);
         }
 
@@ -240,6 +249,35 @@ class PlayController
             'multiplier' => (float) $cashout->multiplier,
             'payout_amount' => (string) $cashout->payout_amount,
             'is_auto' => $cashout->is_auto,
+        ]);
+    }
+
+    /** GET /play-api/games/{code} — what the game's rules show the player: its RTP and the limits their bets are played with. */
+    public function game(Request $request, string $code): JsonResponse
+    {
+        $session = $this->playSession($request);
+        $game = $this->playableGame($session, $code);
+        if ($game === null) {
+            return GameErrors::unknownGame();
+        }
+
+        try {
+            $limits = $this->limits->for($game, $session->operator, $session->currency);
+        } catch (GameNotAvailable|CurrencyNotSupported $e) {
+            return GameErrors::render($e) ?? throw $e;
+        }
+
+        return response()->json([
+            'code' => $game->code,
+            'name' => $game->name,
+            'rtp' => number_format((float) $game->rtp_target, 4, '.', ''),
+            'currency' => $limits->currency,
+            // Decimal strings; null: no limit.
+            'limits' => [
+                'min_bet' => $limits->minBet,
+                'max_bet' => $limits->maxBet,
+                'max_win' => $limits->maxWin,
+            ],
         ]);
     }
 

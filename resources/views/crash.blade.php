@@ -1764,6 +1764,82 @@
         .bets-row .is-muted { color: var(--text-muted); }
         .bets-row .is-win { color: var(--good); font-weight: 700; }
         .bets-row svg { width: 12px; height: 12px; color: var(--text-muted); }
+
+        /* Auto bet: what it repeats, for how many rounds, and what that comes to. */
+        .sheet-card[data-view="autobet"] { width: min(440px, 100%); }
+        .ab-what {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            margin: 0 0 16px;
+        }
+        .ab-what > div {
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(var(--hud-rgb),0.12);
+            border-radius: 8px;
+        }
+        .ab-what dt { font-size: 11px; color: var(--text-muted); }
+        .ab-what dd { margin: 4px 0 0; font-size: 15px; font-weight: 700; }
+        .ab-what dd.is-off { color: var(--text-muted); font-weight: 600; font-size: 13px; }
+        .ab-label { display: block; margin: 0 0 8px; font-size: 12px; font-weight: 700; color: var(--hud-bright); }
+        .ab-rounds { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+        .ab-chip, .ab-custom {
+            height: 38px; min-width: 0;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(var(--hud-rgb),0.3); border-radius: 8px;
+            color: var(--text);
+            font: inherit; font-size: 14px; font-weight: 700;
+            text-align: center;
+        }
+        .ab-chip { cursor: pointer; }
+        .ab-chip:hover { border-color: var(--hud); }
+        .ab-chip[aria-pressed="true"] { background: rgba(var(--hud-rgb),0.22); border-color: var(--hud); color: var(--hud-bright); }
+        .ab-custom { padding: 0 6px; }
+        .ab-custom::placeholder { color: var(--text-muted); font-weight: 600; font-size: 12px; }
+        .ab-custom:focus, .ab-chip:focus-visible { outline: none; border-color: var(--hud); box-shadow: 0 0 0 1px var(--hud); }
+        .ab-total {
+            display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+            margin: 16px 0 0; padding: 12px 14px;
+            background: rgba(251,191,36,0.08);
+            border: 1px solid rgba(251,191,36,0.35); border-radius: 8px;
+        }
+        .ab-total span { font-size: 12px; color: var(--text-muted); }
+        .ab-total b { font-size: 20px; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .ab-note { margin: 10px 2px 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+        .ab-note.is-warn { color: #fca5a5; }
+        .ab-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .ab-actions button {
+            flex: 1 1 0; height: 42px;
+            border-radius: 8px;
+            font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+            cursor: pointer;
+        }
+        .ab-cancel { background: transparent; border: 1px solid rgba(var(--hud-rgb),0.35); color: var(--text); }
+        .ab-start { flex-grow: 1.6; background: var(--gold); border: 1px solid var(--gold); color: #1c1300; }
+        .ab-start:disabled { opacity: 0.4; cursor: not-allowed; }
+        .ab-actions button:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+
+        /* Rules */
+        .rules h3 {
+            margin: 18px 0 6px;
+            font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--hud-bright);
+        }
+        .rules h3:first-child { margin-top: 0; }
+        .rules p { margin: 0 0 6px; line-height: 1.55; }
+        .rules ol { margin: 0; padding-left: 20px; line-height: 1.55; list-style: decimal; }
+        .rules li + li { margin-top: 3px; }
+        .rules .is-muted { color: var(--text-muted); }
+        .rules-grid {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin: 4px 0 8px; padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(var(--hud-rgb),0.12);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .rules-grid dt { font-size: 11px; color: var(--text-muted); }
+        .rules-grid dd { margin: 5px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+        .rules-grid > div + div { border-left: 1px solid rgba(var(--hud-rgb),0.12); }
         @media (max-width: 500px) {
             .sheet { padding: 10px; }
             .sheet-head { padding-left: 12px; gap: 8px; }
@@ -1855,6 +1931,10 @@
             transition: border-color 0.15s, box-shadow 0.15s;
         }
         body.embedded .op-input[data-kind="stake"] { width: 64px; text-align: center; }
+        /* The − / + beside each field step it; the browser's own spinners would only eat its room. */
+        body.embedded .op-input { appearance: textfield; -moz-appearance: textfield; }
+        body.embedded .op-input::-webkit-inner-spin-button,
+        body.embedded .op-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         body.embedded .op-input[data-kind="auto"]  { width: 60px; }
 
         /* Stake stepper (− input +) */
@@ -1888,21 +1968,6 @@
         body.embedded .op-step:hover  { background: rgba(var(--hud-rgb),0.18); color: var(--hud-bright); }
         body.embedded .op-step:active { background: rgba(var(--hud-rgb),0.30); }
 
-        /* Clear (×) — sits inside the auto stepper to reset the field to empty. */
-        body.embedded .op-clear {
-            background: rgba(var(--panel-rgb),0.6);
-            color: var(--text-muted);
-            border: 0;
-            border-left: 1px solid rgba(var(--hud-rgb),0.18);
-            padding: 0 9px;
-            font-family: inherit; font-weight: 700; font-size: 12px;
-            line-height: 1;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-            user-select: none;
-        }
-        body.embedded .op-clear:hover  { background: rgba(239,68,68,0.18); color: #fca5a5; }
-        body.embedded .op-clear:active { background: rgba(239,68,68,0.30); }
         body.embedded .op-stepper-auto .op-input { width: 56px; text-align: center; }
         body.embedded .op-input:focus {
             outline: none;
@@ -2079,14 +2144,100 @@
            look broken) and the Place Bet button. Auto-bet toggle stays
            visible so the player can flip it off without waiting for the
            next window. */
-        /* Steppers keep their space (just hidden) so nothing to their right
-           shifts; Place Bet / Cash Out swap in place inside .op-action. */
-        body.embedded .op-slot[data-mode="cashout"] .op-stepper,
-        body.embedded .op-slot[data-mode="cashout"] .op-bet-btn,
-        body.embedded .op-slot[data-mode="place"]   .op-cashout-btn { visibility: hidden; }
+        /* Fields keep their space (just hidden) so nothing to their right
+           shifts; Place Bet / Cash Out / the cashed-out result swap in place
+           inside .op-action. */
+        body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-field,
+        body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-bet-btn,
+        body.embedded .op-slot:not([data-mode="cashout"]) .op-cashout-btn,
+        body.embedded .op-slot:not([data-mode="cashed"]) .op-cashed { visibility: hidden; }
         body.embedded .op-action { display: grid; }
-        body.embedded .op-action > .op-btn { grid-area: 1 / 1; width: 100%; }
+        body.embedded .op-action > * { grid-area: 1 / 1; width: 100%; }
         body.embedded .op-action .op-bet-btn { height: 34px; font-size: 12px; min-width: 150px; }
+
+        /* A field: its caption over its stepper, so every input says what it is. */
+        body.embedded .op-field { display: inline-flex; flex-direction: column; gap: 2px; min-width: 0; }
+        body.embedded .op-cap {
+            display: flex; align-items: center; gap: 5px;
+            height: 13px; padding: 0 1px;
+            font-family: inherit; font-size: 8.5px; font-weight: 700;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--text-muted);
+            white-space: nowrap; overflow: hidden;
+        }
+        /* Auto cash-out: the caption is its switch. Off: grey, the stepper dimmed and
+           empty; on: green, the stepper lit, its multiplier in it. */
+        body.embedded button.op-cap {
+            background: transparent; border: 0; border-radius: 3px;
+            cursor: pointer;
+        }
+        body.embedded button.op-cap:focus-visible { outline: 2px solid var(--hud); outline-offset: 1px; }
+        body.embedded .op-switch-track {
+            position: relative; flex: 0 0 auto;
+            width: 22px; height: 12px;
+            border: 1px solid rgba(148,163,184,0.6); border-radius: 999px;
+            background: rgba(var(--panel-rgb),0.8);
+            transition: background 0.15s, border-color 0.15s;
+        }
+        body.embedded .op-switch-track > i {
+            position: absolute; top: 1px; left: 1px;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: rgba(148,163,184,0.9);
+            transition: transform 0.15s ease, background 0.15s;
+        }
+        body.embedded .op-cap-state {
+            min-width: 3.4em; text-align: center; /* On and Off take the same room: nothing shifts */
+            padding: 0 4px; border-radius: 3px;
+            background: rgba(148,163,184,0.18);
+            letter-spacing: 0.1em;
+        }
+        body.embedded .op-field-auto .op-stepper { transition: opacity 0.15s, border-color 0.15s, box-shadow 0.15s; }
+        body.embedded .op-field-auto[data-on="false"] .op-stepper { opacity: 0.6; }
+        body.embedded .op-field-auto[data-on="true"] .op-cap { color: var(--good); }
+        body.embedded .op-field-auto[data-on="true"] .op-switch-track { background: rgba(34,197,94,0.3); border-color: var(--good); }
+        body.embedded .op-field-auto[data-on="true"] .op-switch-track > i { transform: translateX(10px); background: var(--good); box-shadow: 0 0 6px var(--good); }
+        body.embedded .op-field-auto[data-on="true"] .op-cap-state { background: var(--good); color: #052e16; }
+        body.embedded .op-field-auto[data-on="true"] .op-stepper { border-color: rgba(34,197,94,0.65); box-shadow: 0 0 8px rgba(34,197,94,0.25); }
+        /* Auto bet running: the bet and auto cash-out it repeats are locked. */
+        body.embedded .op-slot[data-auto="true"] .op-field { opacity: 0.55; }
+        body.embedded .op-field :disabled { cursor: not-allowed; }
+
+        /* Cash Out names the auto cash-out the bet carries, under the live multiplier. */
+        body.embedded .op-cashout-btn { flex-direction: column; gap: 1px; line-height: 1.1; }
+        body.embedded .op-cashout-auto {
+            font-size: 8.5px; font-weight: 600; letter-spacing: 0.14em;
+            opacity: 0.85;
+        }
+        body.embedded .op-cashout-auto:empty { display: none; }
+
+        /* Cashed out: the result takes Cash Out's place until the next round's betting. */
+        body.embedded .op-cashed {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            height: 34px; padding: 0 12px;
+            border: 1px solid rgba(34,197,94,0.65); border-radius: 4px;
+            background: rgba(34,197,94,0.16);
+            box-shadow: 0 0 14px rgba(34,197,94,0.35);
+            color: var(--good);
+            font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        body.embedded .op-slot[data-mode="cashed"] .op-cashed { animation: op-cashed-in 0.4s cubic-bezier(.34,1.56,.64,1); }
+        @keyframes op-cashed-in { from { transform: scale(0.85); opacity: 0; } }
+        body.embedded .op-cashed-x { font-size: 1.25em; letter-spacing: 0.02em; color: #ecfdf5; }
+        body.embedded .op-cashed-win { letter-spacing: 0.02em; color: var(--gold); }
+        body.embedded .op-cashed-win:empty { display: none; }
+
+        /* Bet placed, waiting for the dive: said plainly, not greyed out like a dead button. */
+        body.embedded .op-slot[data-mode="placed"] .op-bet-btn:disabled {
+            opacity: 0.9; filter: none; cursor: default;
+            background: rgba(251,191,36,0.12);
+        }
+        body.embedded .op-slot[data-mode="placed"] .op-bet-btn::after { content: '✓'; margin-left: 6px; }
+
+        /* Auto bet's count while it runs: bets placed / bets in all. */
+        body.embedded .op-autobet-count { letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+        body.embedded .op-autobet-count:empty { display: none; }
 
         /* Bet slots: one row each, the second under the first (the bar grows for it:
            body.two-bets). + adds the second, − on it takes it away. */
@@ -2127,7 +2278,7 @@
            In cashout mode the inputs row collapses (display:none on inputs),
            so the bar effectively shrinks to 2 rows + a giant Cash Out CTA. */
         @media (max-width: 719px) {
-            body.embedded { --op-bar-h: 112px; }
+            body.embedded { --op-bar-h: 126px; }
             body.embedded .operator-panel {
                 flex-wrap: wrap;
                 white-space: normal;
@@ -2210,27 +2361,36 @@
                 justify-content: stretch;
             }
 
-            /* Steppers share whatever row 2 has left after AUTO + PLACE BET, so
-               the stake and the "auto ×" placeholder stay readable from 360px up. */
-            body.embedded .op-stepper { flex: 1 1 0; min-width: 0; }
-            body.embedded .op-stepper-auto { flex-grow: 1.5; } /* has the extra × button */
+            /* Fields share whatever row 2 has left after AUTO + PLACE BET, so the
+               stake and the auto cash-out (and their captions) stay readable from 360px up. */
+            body.embedded .op-field { flex: 1 1 0; }
+            body.embedded .op-field-auto { flex-grow: 1.1; } /* the longer caption */
+            body.embedded .op-field .op-stepper { display: flex; }
             body.embedded .op-stepper .op-input,
             body.embedded .op-stepper-auto .op-input { flex: 1 1 auto; width: 0; min-width: 34px; }
+            body.embedded .op-cap { font-size: 8px; letter-spacing: 0.02em; gap: 3px; }
+            /* No room for On/Off here: the switch, the colour and the field's "off" say it. */
+            body.embedded .op-cap-state { display: none; }
+            body.embedded .op-switch-track { width: 18px; height: 10px; }
+            body.embedded .op-switch-track > i { width: 6px; height: 6px; }
+            body.embedded .op-field-auto[data-on="true"] .op-switch-track > i { transform: translateX(8px); }
+            /* "Bet placed" in Place Bet's room, so the row doesn't shift. */
+            body.embedded .op-slot[data-mode="placed"] .op-bet-btn::after { content: none; }
             body.embedded .op-input { font-size: 12px; padding: 4px 2px; text-align: center; }
             body.embedded .op-input::placeholder { font-size: 11px; letter-spacing: 0; }
-            body.embedded .op-step  { padding: 0 5px; font-size: 13px; }
-            body.embedded .op-clear { padding: 0 6px; font-size: 11px; }
+            body.embedded .op-step  { padding: 0 4px; font-size: 13px; }
 
             /* Tight bet row — stays on one line in place mode. */
             body.embedded .op-bet-row { gap: 5px; flex-wrap: nowrap; overflow: hidden; }
             body.embedded .op-btn { font-size: 10px; padding: 0 8px; height: 30px; min-width: 0; }
-            body.embedded .op-action .op-bet-btn { height: 30px; font-size: 10px; min-width: 0; padding: 0 10px; }
+            body.embedded .op-action .op-bet-btn { height: 30px; font-size: 10px; min-width: 0; padding: 0 9px; letter-spacing: 0.12em; }
             body.embedded .op-action { flex: 0 0 auto; min-width: 0; }
-            body.embedded .op-slot[data-mode="cashout"] .op-action { flex: 1 1 auto; }
-            /* Cash Out stretches over this spot in cashout mode anyway — don't let
-               its wider label size the slot while PLACE BET is showing. */
-            body.embedded .op-slot[data-mode="place"] .op-action .op-cashout-btn { display: none; }
-            body.embedded .op-slot[data-mode="cashout"] .op-stepper { display: none; }
+            body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-action { flex: 1 1 auto; }
+            /* Cash Out and the result stretch over this spot in their modes anyway — don't
+               let their wider labels size the slot while PLACE BET is showing. */
+            body.embedded .op-slot:not([data-mode="cashout"]) .op-action .op-cashout-btn,
+            body.embedded .op-slot:not([data-mode="cashed"]) .op-action .op-cashed { display: none; }
+            body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-field { display: none; }
             body.embedded .op-autobet-btn  {
                 flex: 0 0 auto;
                 padding: 0 8px; height: 30px;
@@ -2249,18 +2409,25 @@
             body.embedded .op-slot[data-mode="cashout"] .op-cashout-btn {
                 height: 48px; font-size: 16px;
             }
-            body.embedded .op-slot[data-mode="cashout"] .op-autobet-btn {
+            body.embedded .op-slot[data-mode="cashed"] .op-cashed {
+                height: 48px; font-size: 12px; letter-spacing: 0.08em; gap: 6px;
+            }
+            body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-autobet-btn {
                 height: 48px;
             }
+            /* A running auto bet: AUTO over its count, in the same narrow button. */
+            body.embedded .op-autobet-btn[data-active="true"] { flex-direction: column; gap: 1px; line-height: 1.05; }
+            body.embedded .op-autobet-btn[data-active="true"] .op-autobet-dot { display: none; }
 
             /* The slots take the bet row's place (row 3), one row each. With two, a
                slot's Cash Out stays 40px high so the bar's height holds. */
             body.embedded .op-slots { order: 1; flex: 1 0 100%; gap: 5px; }
             body.embedded .op-slots > .op-bet-row { flex: 0 0 auto; }
             body.embedded .op-slot-toggle { width: 28px; height: 30px; border-radius: 6px; }
-            body.embedded.two-bets { --op-bar-h: 150px; }
+            body.embedded.two-bets { --op-bar-h: 178px; }
             body.embedded.two-bets .op-slot[data-mode="cashout"] .op-cashout-btn,
-            body.embedded.two-bets .op-slot[data-mode="cashout"] .op-autobet-btn { height: 40px; font-size: 14px; }
+            body.embedded.two-bets .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-autobet-btn { height: 40px; font-size: 14px; }
+            body.embedded.two-bets .op-slot[data-mode="cashed"] .op-cashed { height: 40px; }
         }
 
         /* Desktop — scale the wager controls + cashout CTA ~20% larger. */
@@ -2272,21 +2439,23 @@
             body.embedded .op-sep                          { height: 26px; }
             body.embedded .op-phase                        { font-size: 10px; padding: 3px 9px; }
             body.embedded .op-input                        { font-size: 14px; padding: 6px 10px; }
-            body.embedded .op-input[data-kind="stake"]     { width: 76px; }
+            body.embedded .op-input[data-kind="stake"]     { width: 84px; }
             body.embedded .op-input[data-kind="auto"]      { width: 72px; }
             body.embedded .op-stepper-auto .op-input       { width: 66px; }
             body.embedded .op-step                         { font-size: 17px; padding: 0 12px; }
-            body.embedded .op-clear                        { font-size: 14px; padding: 0 11px; }
             body.embedded .op-btn                          { font-size: 13px; padding: 0 18px; height: 36px; }
             body.embedded .op-cashout-btn,
             body.embedded .op-action .op-bet-btn           { font-size: 14px; height: 40px; min-width: 180px; }
             body.embedded .op-cashout-btn .op-cashout-x    { font-size: 12px; }
+            body.embedded .op-cashout-auto                 { font-size: 9.5px; }
+            body.embedded .op-cashed                       { font-size: 12px; height: 40px; }
+            body.embedded .op-cap                          { font-size: 9px; }
             body.embedded .op-status                       { font-size: 11px; max-width: 260px; }
             body.embedded .op-last                         { padding: 5px 12px; }
             body.embedded .op-last-mult                    { font-size: 15px; }
             body.embedded .op-last-payout                  { font-size: 14px; }
             body.embedded .op-slot-toggle                  { width: 36px; height: 36px; font-size: 18px; }
-            body.embedded.two-bets                         { --op-bar-h: 112px; }
+            body.embedded.two-bets                         { --op-bar-h: 124px; }
         }
 
         /* Fullscreen mode — center the HUD as a floating pill, 10% larger.
@@ -3088,7 +3257,15 @@
             </svg>
             <span class="menu-label">My bets</span>
         </button>
-        <button id="audio-btn" class="menu-item audio-btn" type="button" role="menuitem" title="Sound">
+        <button id="rules-btn" class="menu-item" type="button" role="menuitem" aria-haspopup="dialog" title="Rules" data-close>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3.5 2.2h6.3l2.7 2.7v8.9h-9z"/>
+                <path d="M9.6 2.4v2.7h2.7"/>
+                <path d="M5.8 7.6h4.4M5.8 9.8h4.4M5.8 12h2.6"/>
+            </svg>
+            <span class="menu-label">Rules</span>
+        </button>
+        <button id="audio-btn"class="menu-item audio-btn" type="button" role="menuitem" title="Sound">
             <svg class="audio-icon-on" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M3 6h2l4-3v10L5 10H3V6Z"/>
                 <path d="M11 6c0.8 0.6 1.2 1.4 1.2 2s-0.4 1.4-1.2 2"/>
@@ -3756,32 +3933,51 @@
             <div class="op-slots">
                 @foreach ([0, 1] as $slot)
                 <div class="op-bet-row op-slot" data-slot="{{ $slot }}" data-mode="place"@if ($slot === 1) hidden @endif>
-                    <div class="op-stepper">
-                        <button class="op-step op-stake-down" type="button" aria-label="Decrease stake{{ $slot ? ' (bet 2)' : '' }}">−</button>
-                        <input class="op-input op-stake" data-kind="stake" type="number" step="0.01" min="0.01" value="10.00" inputmode="decimal" aria-label="Stake{{ $slot ? ' (bet 2)' : '' }}">
-                        <button class="op-step op-stake-up" type="button" aria-label="Increase stake{{ $slot ? ' (bet 2)' : '' }}">+</button>
+                    {{-- Each field says what it is above it. data-mode: place → placed (bet
+                         in, waiting for the dive) → cashout (diving) → cashed (cashed out). --}}
+                    <div class="op-field">
+                        <span class="op-cap">Bet <span class="op-cap-currency"></span></span>
+                        <div class="op-stepper">
+                            <button class="op-step op-stake-down" type="button" aria-label="Decrease stake{{ $slot ? ' (bet 2)' : '' }}">−</button>
+                            <input class="op-input op-stake" data-kind="stake" type="number" step="0.01" min="0.01" value="10.00" inputmode="decimal" aria-label="Stake{{ $slot ? ' (bet 2)' : '' }}">
+                            <button class="op-step op-stake-up" type="button" aria-label="Increase stake{{ $slot ? ' (bet 2)' : '' }}">+</button>
+                        </div>
                     </div>
-                    <div class="op-stepper op-stepper-auto">
-                        <button class="op-step op-auto-down" type="button" aria-label="Decrease auto cashout{{ $slot ? ' (bet 2)' : '' }}">−</button>
-                        <input class="op-input op-auto" data-kind="auto" type="number" step="0.01" min="1.01" placeholder="auto ×" inputmode="decimal" aria-label="Auto cashout{{ $slot ? ' (bet 2)' : '' }}">
-                        <button class="op-step op-auto-up" type="button" aria-label="Increase auto cashout{{ $slot ? ' (bet 2)' : '' }}">+</button>
-                        <button class="op-clear op-auto-clear" type="button" aria-label="Clear auto cashout{{ $slot ? ' (bet 2)' : '' }}" title="Clear">×</button>
+                    {{-- Auto cash-out: the switch turns it on and off; − / + or typing a value turns it on. --}}
+                    <div class="op-field op-field-auto" data-on="false">
+                        <button class="op-cap op-switch" type="button" role="switch" aria-checked="false"
+                                aria-label="Auto cash out{{ $slot ? ' (bet 2)' : '' }}">
+                            <i class="op-switch-track" aria-hidden="true"><i></i></i>
+                            <span class="op-cap-text" aria-hidden="true">Auto cash out</span>
+                            <b class="op-cap-state" aria-hidden="true">Off</b>
+                        </button>
+                        <div class="op-stepper op-stepper-auto">
+                            <button class="op-step op-auto-down" type="button" aria-label="Decrease auto cash out{{ $slot ? ' (bet 2)' : '' }}">−</button>
+                            <input class="op-input op-auto" data-kind="auto" type="number" step="0.01" min="1.01" placeholder="off" inputmode="decimal" aria-label="Auto cash out at{{ $slot ? ' (bet 2)' : '' }}">
+                            <button class="op-step op-auto-up" type="button" aria-label="Increase auto cash out{{ $slot ? ' (bet 2)' : '' }}">+</button>
+                        </div>
                     </div>
                     <button class="op-btn op-autobet-btn" type="button"
-                            data-active="false" aria-pressed="false"
-                            title="When ON, automatically place this bet every round with its stake + auto-cashout.">
+                            data-active="false" aria-pressed="false" aria-haspopup="dialog"
+                            title="Auto bet: place this bet for a number of rounds">
                         <span class="op-autobet-label-full">AUTO BET</span>
                         <span class="op-autobet-label-short">AUTO</span>
+                        <span class="op-autobet-count"></span>
                         <span class="op-autobet-dot" aria-hidden="true"></span>
                     </button>
-                    {{-- Place Bet and Cash Out share one slot so the button the player
-                         needs is always under the cursor when the round flips. --}}
+                    {{-- Place Bet, Cash Out and the cashed-out result share one spot so the
+                         button the player needs is always under the cursor when the round flips. --}}
                     <div class="op-action">
                         <button class="op-btn op-bet-btn" disabled>Place Bet</button>
                         <button class="op-btn op-cashout-btn" disabled>
-                            Cash Out
-                            <span class="op-cashout-x"></span>
+                            <span class="op-cashout-main">Cash Out <span class="op-cashout-x"></span></span>
+                            <span class="op-cashout-auto"></span>
                         </button>
+                        <div class="op-cashed" role="status">
+                            <span class="op-cashed-label">Cashed out</span>
+                            <b class="op-cashed-x"></b>
+                            <span class="op-cashed-win"></span>
+                        </div>
                     </div>
                     @if ($slot === 0)
                     <button class="op-slot-toggle op-add-slot" type="button" title="Add a second bet" aria-label="Add a second bet" hidden>+</button>
@@ -3996,6 +4192,7 @@
         const sheet = (function roundSheet() {
             const ROUNDS_URL = @json(url('/v1/rounds'));
             const $sheet = document.getElementById('sheet');
+            const $card  = $sheet.querySelector('.sheet-card');
             const $title = document.getElementById('sheet-title');
             const $pill  = document.getElementById('sheet-pill');
             const $time  = document.getElementById('sheet-time');
@@ -4038,6 +4235,7 @@
                     $close.focus({ preventScroll: true });
                 }
                 view = name;
+                $card.dataset.view = name;
                 $back.hidden = !back;
                 return ++token;
             }
@@ -4239,6 +4437,14 @@
             return {
                 openRound,
                 openBets,
+                close,
+                el,
+                /** Another panel in the same dialog (Rules, Auto bet): its title and content. */
+                panel(name, title, ...content) {
+                    show(name);
+                    head(title);
+                    $body.replaceChildren(...content);
+                },
                 /** The host answers bet_history: offer My bets. request() asks it for them. */
                 enableBets({ request, money }) {
                     bets.request = request;
@@ -4256,6 +4462,60 @@
                 /** Something changed the player's bets (a bet, a cashout, a round over). */
                 betsChanged() {
                     if (view === 'bets' && !bets.pending) askForBets();
+                },
+            };
+        })();
+
+        // ---------- Rules: how to play, the bet limits and the RTP ----------
+        // The limits are the player's own, from the page hosting the game (player_info.limits,
+        // passed on by the operator bridge); without them the rules say the casino sets them.
+        const rules = (function rulesPanel() {
+            const RTP = @json($rtp ?? null);
+            const BETTING_SECONDS = @json((int) config('crash.betting_seconds', 10));
+            const opts = { limits: null, currency: '', twoBets: false, money: (v) => Number(v).toFixed(2) };
+            const { el } = sheet;
+
+            function open() {
+                const { limits, currency, money } = opts;
+                const amount = (v, none) => (v === null || v === undefined ? none : `${money(v)} ${currency}`.trim());
+                const pct = RTP === null ? null : `${(Number(RTP) * 100).toFixed(2)}%`;
+                const h = (text) => el('h3', {}, text);
+                const p = (...children) => el('p', {}, ...children);
+
+                sheet.panel('rules', 'Rules', el('div', { class: 'rules' },
+                    h('How to play'),
+                    el('ol', {},
+                        el('li', {}, `Place your bet while betting is open: ${BETTING_SECONDS} seconds before each dive.`),
+                        el('li', {}, 'The sub dives and the multiplier climbs from 1.00×.'),
+                        el('li', {}, 'Cash out at any moment of the dive: you win your bet × the multiplier at that moment.'),
+                        el('li', {}, 'If the hull implodes before you cash out, the bet is lost.')),
+                    h('Auto cash out'),
+                    p('Switch it on and set a multiplier (1.01× or more). The bet is cashed out the moment the dive reaches it, by our server, so it works even if your connection drops. You can still cash out sooner yourself.'),
+                    h('Auto bet'),
+                    p('Places the same bet, with its auto cash out, for the number of rounds you choose, and shows how many it has placed (3/10). It stops after the last one, when you press it again, or when a bet is refused, for example when your balance runs out. While it runs, its bet and auto cash out are locked.'),
+                    opts.twoBets ? h('Two bets') : null,
+                    opts.twoBets ? p('+ adds a second bet in the same round, with its own amount, auto cash out and auto bet.') : null,
+                    h('Limits'),
+                    limits
+                        ? el('dl', { class: 'rules-grid' },
+                            el('div', {}, el('dt', {}, 'Min bet'), el('dd', {}, amount(limits.min_bet, `0.01 ${currency}`.trim()))),
+                            el('div', {}, el('dt', {}, 'Max bet'), el('dd', {}, amount(limits.max_bet, 'No limit'))),
+                            el('div', {}, el('dt', {}, 'Max win'), el('dd', {}, amount(limits.max_win, 'No limit'))))
+                        : p('Your casino sets the minimum and maximum bet; a bet outside them is refused, with the reason.'),
+                    limits?.max_win ? el('p', { class: 'is-muted' }, 'Max win is per bet: a bet that reaches it is cashed out automatically.') : null,
+                    pct ? h('Return to player') : null,
+                    pct ? p(`The game’s theoretical return to player (RTP) is ${pct}.`) : null,
+                    h('Provably fair'),
+                    p('Every result is fixed before betting opens: we publish the SHA-256 of the round’s server seed in advance and reveal the seed once the round is over. Tap a past result at the top of the screen to check it.'),
+                    h('If you lose connection'),
+                    p('A bet with auto cash out is still cashed out at its multiplier. A bet without it stays in the round, and is lost if the hull implodes before you cash out.')));
+            }
+            document.getElementById('rules-btn')?.addEventListener('click', open);
+
+            return {
+                /** What the bridge learns from the host: the player's limits and currency, two bets or not. */
+                configure(next) {
+                    Object.assign(opts, next);
                 },
             };
         })();
@@ -5331,22 +5591,19 @@
             .listen('.round.started',        () => audio.sfx('start'))
             .listen('.round.crashed',        () => audio.sfx('crash'));
 
-        // The operator panel's buttons, in either bet slot (only shown when embedded).
+        // The operator panel's buttons, in either bet slot (only shown when embedded). The
+        // win sound plays once a cash-out is confirmed, however it came (operatorBridge).
         document.getElementById('op-panel')?.addEventListener('click', (e) => {
             if (e.target.closest('.op-bet-btn')) audio.sfx('bet');
-            else if (e.target.closest('.op-cashout-btn')) audio.sfx('win');
         });
 
         // postMessage results from the parent — play feedback SFX based on outcome.
         window.addEventListener('message', (event) => {
             const { type, payload } = event.data || {};
             if (type === 'cashout_result') {
-                if (payload?.success) audio.sfx('win');
-                else if (payload?.error === 'round_crashed') audio.sfx('loss');
+                if (payload?.error === 'round_crashed') audio.sfx('loss');
             } else if (type === 'bet_placed_result' && payload?.success === false) {
                 audio.sfx('loss');
-            } else if (type === 'auto_cashout_fired') {
-                audio.sfx('win');
             }
         });
 
@@ -5426,11 +5683,51 @@
                 phase: 'waiting',          // synced to the in-page Echo state machine
                 roundUuid: null,
                 playerId: null,
+                currency: '',
+                balance: null,             // the last balance the host gave, for auto bet's total
                 maxSlots: 1,               // 2 once the host takes two bets a round (player_info.bet_slots)
                 placing: [],               // slots whose place_bet awaits its result, in the order sent
             };
+            const unit = () => (opState.currency ? ' ' + opState.currency : '');
 
-            // A bet slot: its own stake, auto-cashout, AUTO BET and bet. Slot 0 is the bar
+            function setBalance(value) {
+                opState.balance = value === null || value === undefined || value === '' ? null : String(value);
+                $balance.textContent = money(value) + unit();
+            }
+
+            // The player's bet limits (player_info.limits) as numbers, null for none. Until the
+            // host gives them, only the smallest stake there is. The server checks them again.
+            const limits = { min: 0.01, max: null, maxWin: null };
+            function setLimits(given) {
+                const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+                limits.min = Math.max(0.01, num(given?.min_bet) ?? 0.01);
+                limits.max = num(given?.max_bet);
+                limits.maxWin = num(given?.max_win);
+                for (const slot of slots) {
+                    slot.$stake.min = String(limits.min);
+                    if (limits.max === null) slot.$stake.removeAttribute('max');
+                    else slot.$stake.max = String(limits.max);
+                    const v = parseFloat(slot.$stake.value);
+                    if (Number.isFinite(v)) slot.$stake.value = clampStake(v).toFixed(2);
+                }
+            }
+            // Why a stake can't be bet, or null.
+            function stakeProblem(value) {
+                const v = Number(value);
+                if (!Number.isFinite(v) || v <= 0) return 'enter a bet amount';
+                if (v < limits.min) return `the minimum bet is ${money(String(limits.min))}${unit()}`;
+                if (limits.max !== null && v > limits.max) return `the maximum bet is ${money(String(limits.max))}${unit()}`;
+                if (limits.maxWin !== null && v >= limits.maxWin) return `a bet must be below the max win, ${money(String(limits.maxWin))}${unit()}`;
+                return null;
+            }
+            // The nearest stake the limits allow (a stake must stay below the max win).
+            function clampStake(v) {
+                let top = limits.max ?? Infinity;
+                if (limits.maxWin !== null) top = Math.min(top, limits.maxWin - 0.01);
+                return Math.min(Math.max(v, limits.min), top);
+            }
+
+            // A bet slot: its own stake, auto cash-out, AUTO BET and bet. Slot 0 is the bar
             // as it always was; slot 1 is the second bet.
             function makeSlot(index) {
                 const $root = $panel.querySelector(`.op-slot[data-slot="${index}"]`);
@@ -5439,17 +5736,30 @@
                     index,
                     $root,
                     $stake: q('.op-stake'),
+                    $currency: q('.op-cap-currency'),
                     $auto: q('.op-auto'),
+                    $autoField: q('.op-field-auto'),
+                    $switch: q('.op-switch'),
                     $bet: q('.op-bet-btn'),
                     $co: q('.op-cashout-btn'),
                     $coX: q('.op-cashout-x'),
+                    $coAuto: q('.op-cashout-auto'),
+                    $cashed: q('.op-cashed'),
                     $autoBet: q('.op-autobet-btn'),
+                    $autoCount: q('.op-autobet-count'),
                     betId: null,
                     betRoundUuid: null,
                     autoCashoutAt: null,       // threshold sent with the active bet
                     autoCashoutFired: false,   // local guard: already asked parent to cashout
                     cashingOut: false,         // a cashout is on its way to the parent
-                    autoBet: false,            // when true, fire a bet on every betting_opened
+                    clicked: false,            // the player pressed Cash Out (else the cash-out was automatic)
+                    won: null,                 // { betId } once the round's bet is cashed out, until the next betting
+                    autoOn: false,             // auto cash-out switched on, at the multiplier in $auto
+                    autoLast: '',              // its multiplier while switched off, back when it's on again
+                    autoBet: false,            // AUTO BET running: a bet on every betting_opened…
+                    autoRounds: 0,             // …this many bets in all…
+                    autoDone: 0,               // …of which this many are placed
+                    lastRounds: 10,            // what the auto bet dialog offers next
                     lastAutoBetRound: null,    // round_uuid we last fired auto-bet for (de-dupe guard)
                     // Restore AUTO BET across reloads. Keyed by host so a user sharing the
                     // machine doesn't inherit someone else's armed state.
@@ -5467,21 +5777,69 @@
                 slot.autoCashoutAt = null;
                 slot.autoCashoutFired = false;
                 slot.cashingOut = false;
+                slot.clicked = false;
             }
 
-            function setAutoBet(slot, enabled, reason = '') {
-                slot.autoBet = !!enabled;
-                slot.$autoBet.dataset.active = enabled ? 'true' : 'false';
-                slot.$autoBet.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            // AUTO BET places the slot's bet every round until autoDone reaches autoRounds. While
+            // it runs the slot's stake and auto cash-out are locked, so the total the player saw
+            // when starting it holds. A reload picks it up where it was.
+            function renderAutoBet(slot) {
+                const on = slot.autoBet;
+                slot.$autoBet.dataset.active = String(on);
+                slot.$autoBet.setAttribute('aria-pressed', String(on));
+                slot.$autoBet.setAttribute('aria-haspopup', on ? 'false' : 'dialog');
+                slot.$autoCount.textContent = on ? `${slot.autoDone}/${slot.autoRounds}` : '';
+                slot.$autoBet.title = on
+                    ? `Auto bet: ${slot.autoDone} of ${slot.autoRounds} bets placed. Click to stop.`
+                    : 'Auto bet: place this bet for a number of rounds';
+                slot.$root.dataset.auto = String(on);
+                for (const $c of slot.$root.querySelectorAll('.op-field input, .op-field button')) $c.disabled = on;
+            }
+            function saveAutoBet(slot) {
                 try {
-                    if (enabled) localStorage.setItem(slot.autoBetKey, '1');
+                    if (slot.autoBet) localStorage.setItem(slot.autoBetKey, JSON.stringify({ rounds: slot.autoRounds, done: slot.autoDone }));
                     else localStorage.removeItem(slot.autoBetKey);
                 } catch (_) { /* privacy mode / quota */ }
-                if (reason) setStatus(tag(slot) + reason, enabled ? 'ok' : 'err');
+            }
+            function startAutoBet(slot, rounds, done = 0) {
+                slot.autoBet = true;
+                slot.autoRounds = rounds;
+                slot.autoDone = done;
+                renderAutoBet(slot);
+                saveAutoBet(slot);
+            }
+            function stopAutoBet(slot, reason = '', kind = '') {
+                if (!slot.autoBet) return;
+                slot.autoBet = false;
+                renderAutoBet(slot);
+                saveAutoBet(slot);
+                if (reason) setStatus(tag(slot) + reason, kind);
+            }
+            function restoreAutoBet(slot) {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem(slot.autoBetKey) ?? 'null'); } catch (_) { /* unreadable: dropped below */ }
+                const rounds = Number(saved?.rounds);
+                const done = Number(saved?.done);
+                if (Number.isInteger(rounds) && Number.isInteger(done) && done >= 0 && done < rounds) startAutoBet(slot, rounds, done);
+                else saveAutoBet(slot); // nothing to restore, or an older "1" without a count: cleared
+            }
+
+            // Auto cash-out: on at the multiplier in the field (1.01× or more), or off with the
+            // field empty. The switch flips it; − / + or typing a multiplier turns it on.
+            function renderAutoCashout(slot) {
+                slot.$autoField.dataset.on = String(slot.autoOn);
+                slot.$switch.setAttribute('aria-checked', String(slot.autoOn));
+                slot.$switch.querySelector('.op-cap-state').textContent = slot.autoOn ? 'On' : 'Off';
+            }
+            function setAutoCashout(slot, on) {
+                if (!on && slot.$auto.value) slot.autoLast = slot.$auto.value;
+                slot.$auto.value = on ? (slot.$auto.value || slot.autoLast || '1.50') : '';
+                slot.autoOn = on;
+                renderAutoCashout(slot);
             }
 
             // The second bet opens and closes with + / −. It closes only without a bet
-            // in play, and closing it disarms its AUTO BET.
+            // in play, and closing it stops its AUTO BET.
             function setTwo(open) {
                 if (!open && (slots[1].betId || opState.placing.includes(slots[1]))) return;
                 slots[1].$root.hidden = !open;
@@ -5491,10 +5849,8 @@
                 $addSlot.disabled = open;
                 $addSlot.setAttribute('aria-hidden', String(open));
                 document.body.classList.toggle('two-bets', open);
-                if (!open && slots[1].autoBet) setAutoBet(slots[1], false);
-                if (open) {
-                    try { if (localStorage.getItem(slots[1].autoBetKey) === '1') setAutoBet(slots[1], true); } catch (_) {}
-                }
+                if (!open) stopAutoBet(slots[1]);
+                if (open && !slots[1].autoBet) restoreAutoBet(slots[1]);
                 try { localStorage.setItem(SLOTS_KEY, open ? '2' : '1'); } catch (_) {}
                 updateButtons();
             }
@@ -5512,17 +5868,125 @@
 
             function updateButtons() {
                 for (const slot of slots) {
+                    const held = !!slot.betId && slot.betRoundUuid === opState.roundUuid;
                     const canBet = opState.phase === 'betting' && !slot.betId && !opState.placing.includes(slot)
                         && !!opState.parentOrigin && !slot.$root.hidden;
-                    const canCashout = opState.phase === 'running' && !!slot.betId && slot.betRoundUuid === opState.roundUuid;
+                    const canCashout = opState.phase === 'running' && held;
                     slot.$bet.disabled = !canBet;
                     slot.$co.disabled = !canCashout || slot.cashingOut;
-                    // Single-CTA mode when a bet is held + round running: hide bet inputs, blow up cashout.
-                    slot.$root.dataset.mode = (slot.betId && opState.phase === 'running') ? 'cashout' : 'place';
+                    // One action at a time: Place Bet → Bet placed (until the dive) → Cash Out while
+                    // diving (inputs hidden, the button blown up) → the cashed-out result.
+                    const mode = slot.won && ['running', 'crashed'].includes(opState.phase) ? 'cashed'
+                        : slot.betId && opState.phase === 'running' ? 'cashout'
+                        : held && ['betting', 'waiting'].includes(opState.phase) ? 'placed'
+                        : 'place';
+                    slot.$root.dataset.mode = mode;
+                    slot.$bet.textContent = mode === 'placed' ? 'Bet placed' : 'Place Bet';
+                    slot.$coAuto.textContent = slot.autoCashoutAt ? `auto at ${Number(slot.autoCashoutAt).toFixed(2)}×` : '';
                     slot.$co.classList.toggle('pulse', canCashout && !slot.cashingOut);
                 }
                 $removeSlot.disabled = !!(slots[1].betId || opState.placing.includes(slots[1]));
                 applyPhaseChip(opState.phase);
+            }
+
+            // One of the slot's bets was cashed out: by the player, its auto cash-out or its max
+            // win. Whichever word comes first says so (the host's cashout_result, or the round's
+            // live bet list); later ones about the same bet change nothing.
+            function cashedOut(slot, betId, multiplier, payout, auto) {
+                if (slot.won && String(slot.won.betId) === String(betId)) return;
+                slot.won = { betId };
+                forgetBet(slot);
+                const m = Number(multiplier);
+                const x = Number.isFinite(m) ? `${m.toFixed(2)}×` : '';
+                slot.$cashed.querySelector('.op-cashed-label').textContent = auto ? 'Auto cashed out' : 'Cashed out';
+                slot.$cashed.querySelector('.op-cashed-x').textContent = x;
+                slot.$cashed.querySelector('.op-cashed-win').textContent = payout ? `+${money(payout)}` : '';
+                setStatus(`${tag(slot)}${auto ? 'auto ' : ''}cashed out @ ${x} · won ${money(payout)}${unit()}`, 'ok');
+                showLast('win', multiplier, payout);
+                spawnFlyWin(multiplier, payout);
+                audio.sfx('win');
+                sheet.betsChanged();
+                updateButtons();
+            }
+
+            // Auto bet's dialog: what it repeats (the slot's bet and auto cash-out), for how many
+            // rounds, and what all of that comes to.
+            function openAutoBet(slot) {
+                const { el } = sheet;
+                const CHOICES = [10, 20, 50, 100];
+                const MAX_ROUNDS = 1000;
+                const stake = Number(slot.$stake.value);
+                const problem = stakeProblem(slot.$stake.value);
+                const autoAt = slot.autoOn ? Number(slot.$auto.value) : null;
+                let rounds = slot.lastRounds;
+
+                const $custom = el('input', {
+                    class: 'ab-custom', type: 'number', min: '1', max: String(MAX_ROUNDS), step: '1',
+                    inputmode: 'numeric', placeholder: 'Other', 'aria-label': 'Other number of rounds',
+                });
+                const $chips = CHOICES.map((n) => el('button', {
+                    type: 'button', class: 'ab-chip', 'aria-pressed': 'false',
+                    onclick: () => { $custom.value = ''; pick(n); },
+                }, String(n)));
+                const $calc = el('span');
+                const $total = el('b');
+                const $note = el('p', { class: 'ab-note' });
+                const $start = el('button', { type: 'button', class: 'ab-start', onclick: begin });
+
+                function pick(n) {
+                    rounds = n;
+                    for (const $c of $chips) $c.setAttribute('aria-pressed', String($custom.value === '' && Number($c.textContent) === n));
+                    render();
+                }
+                function render() {
+                    const total = stake * rounds;
+                    const balance = opState.balance === null ? NaN : Number(opState.balance);
+                    $calc.textContent = rounds >= 1 ? `Total: ${rounds} × ${money(String(stake))}` : 'Total';
+                    $total.textContent = rounds >= 1 && !problem ? `${money(total.toFixed(2))}${unit()}` : '—';
+                    $note.classList.toggle('is-warn', !!problem || total > balance);
+                    $note.textContent = problem ? `Can’t start: ${problem}.`
+                        : total > balance ? `That’s more than your balance (${money(opState.balance)}${unit()}). Auto bet stops when a bet is refused.`
+                        : 'The most it can cost: what you lose if no bet wins.';
+                    $start.disabled = !!problem || !(rounds >= 1);
+                    $start.textContent = rounds >= 1 ? `Start · ${rounds} ${rounds === 1 ? 'round' : 'rounds'}` : 'Start';
+                }
+                function begin() {
+                    sheet.close();
+                    slot.lastRounds = rounds;
+                    startAutoBet(slot, rounds);
+                    setStatus(`${tag(slot)}auto bet on · ${rounds} ${rounds === 1 ? 'round' : 'rounds'}`, 'ok');
+                    // Started while betting is open, with no bet in yet: this round is its first.
+                    if (
+                        opState.phase === 'betting' &&
+                        !slot.betId &&
+                        !opState.placing.includes(slot) &&
+                        opState.parentOrigin &&
+                        slot.lastAutoBetRound !== opState.roundUuid
+                    ) {
+                        slot.lastAutoBetRound = opState.roundUuid;
+                        triggerBet(slot);
+                    }
+                }
+                $custom.addEventListener('input', () => {
+                    const n = Math.floor(Number($custom.value));
+                    pick(Number.isFinite(n) && n >= 1 ? Math.min(n, MAX_ROUNDS) : 0);
+                });
+
+                sheet.panel('autobet', twoOpen() ? `Auto bet · bet ${slot.index + 1}` : 'Auto bet',
+                    el('dl', { class: 'ab-what' },
+                        el('div', {}, el('dt', {}, 'Each bet'), el('dd', {}, `${money(slot.$stake.value)}${unit()}`)),
+                        el('div', {}, el('dt', {}, 'Auto cash out'), autoAt
+                            ? el('dd', {}, `at ${autoAt.toFixed(2)}×`)
+                            : el('dd', { class: 'is-off' }, 'Off: you cash out each bet'))),
+                    el('span', { class: 'ab-label' }, 'Number of rounds'),
+                    el('div', { class: 'ab-rounds', role: 'group', 'aria-label': 'Number of rounds' }, ...$chips, $custom),
+                    el('div', { class: 'ab-total' }, $calc, $total),
+                    $note,
+                    el('div', { class: 'ab-actions' },
+                        el('button', { type: 'button', class: 'ab-cancel', onclick: () => sheet.close() }, 'Cancel'),
+                        $start));
+                if (!CHOICES.includes(rounds)) $custom.value = String(rounds);
+                pick(rounds);
             }
 
             // Which slot a result is for. Orange's host pages echo the slot a place_bet
@@ -5534,7 +5998,9 @@
                 if (i >= 0) opState.placing.splice(i, 1);
                 return slot;
             }
-            const slotOfBet = (betId) => slots.find((s) => s.betId !== null && betId !== undefined && String(s.betId) === String(betId));
+            // The slot holding a bet, or showing it cashed out.
+            const slotOfBet = (betId) => (betId === undefined || betId === null ? undefined
+                : slots.find((s) => (s.betId !== null && String(s.betId) === String(betId)) || (s.won && String(s.won.betId) === String(betId))));
 
             // Mirror the in-page Echo state machine onto our buttons.
             window.addEventListener('message', (event) => {
@@ -5556,7 +6022,11 @@
                             ? payload.username
                             : `#${payload.id}`;
                         $player.title = `#${payload.id}`;
-                        $balance.textContent = `${money(payload.balance)} ${payload.currency}`;
+                        setBalance(payload.balance);
+                        for (const slot of slots) slot.$currency.textContent = payload.currency || '';
+                        // The limits the player's bets are played with, when the page knows them.
+                        if (payload.limits) setLimits(payload.limits);
+                        rules.configure({ limits: payload.limits ?? null, currency: payload.currency || '', money });
                         setStatus('connected to operator', 'ok');
                         // Pages that answer bet_history say so (Orange's own host pages do).
                         if (payload.bet_history === true && !document.documentElement.classList.contains('has-bets')) {
@@ -5570,6 +6040,7 @@
                         // Pages that take two bets a round say so (Orange's own host pages do).
                         if (Number(payload.bet_slots) >= 2 && opState.maxSlots < 2) {
                             opState.maxSlots = 2;
+                            rules.configure({ twoBets: true });
                             let two = false;
                             try { two = localStorage.getItem(SLOTS_KEY) === '2'; } catch (_) {}
                             setTwo(two);
@@ -5583,7 +6054,7 @@
                         break;
 
                     case 'balance_update':
-                        $balance.textContent = `${money(payload.balance)} ${opState.currency || ''}`.trim();
+                        setBalance(payload.balance);
                         break;
 
                     case 'bet_placed_result': {
@@ -5594,19 +6065,32 @@
                             slot.autoCashoutAt = payload.auto_cashout_at ?? slot.autoCashoutAt ?? null;
                             slot.autoCashoutFired = false;
                             slot.cashingOut = false;
-                            setStatus(`${tag(slot)}bet #${payload.bet_id} placed @ ${money(payload.amount)}`, 'ok');
+                            const placed = `bet #${payload.bet_id} placed @ ${money(payload.amount)}`;
+                            if (slot.autoBet) {
+                                // Every bet placed while auto bet runs is one of its own.
+                                slot.autoDone += 1;
+                                if (slot.autoDone >= slot.autoRounds) {
+                                    stopAutoBet(slot, `auto bet done (${slot.autoRounds}/${slot.autoRounds}) · ${placed}`, 'ok');
+                                } else {
+                                    renderAutoBet(slot);
+                                    saveAutoBet(slot);
+                                    setStatus(`${tag(slot)}auto bet ${slot.autoDone}/${slot.autoRounds} · ${placed}`, 'ok');
+                                }
+                            } else {
+                                setStatus(tag(slot) + placed, 'ok');
+                            }
                         } else {
                             slot.autoCashoutAt = null;
-                            // Pause auto-bet on failure — otherwise an insufficient-balance
+                            // Stop auto bet on failure — otherwise an insufficient-balance
                             // error (or any structural reject) would loop every round
                             // and spam the operator with rejected calls.
                             if (slot.autoBet) {
-                                setAutoBet(slot, false, `bet failed: ${payload.error || 'unknown'} — auto-bet paused`);
+                                stopAutoBet(slot, `bet failed: ${payload.error || 'unknown'} — auto bet stopped`, 'err');
                             } else {
                                 setStatus(`${tag(slot)}bet failed: ${payload.error || 'unknown'}`, 'err');
                             }
                         }
-                        if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
+                        if (payload.player_balance) setBalance(payload.player_balance);
                         if (payload.success) {
                             sheet.betsChanged();
                             liveBets.mine(payload.bet_id);
@@ -5616,23 +6100,32 @@
                     }
 
                     case 'cashout_result': {
-                        const slot = slotOfBet(payload.bet_id) ?? slots.find((s) => s.cashingOut) ?? slots[0];
+                        // The bet it names (one still held, or already shown cashed out); from a
+                        // page that doesn't name it, the one being cashed out.
+                        const slot = payload.bet_id !== undefined && payload.bet_id !== null
+                            ? slotOfBet(payload.bet_id)
+                            : slots.find((s) => s.cashingOut) ?? slots[0];
+                        if (payload.player_balance) setBalance(payload.player_balance);
+                        if (!slot) break; // a bet this page no longer holds
                         if (payload.success) {
-                            setStatus(`${tag(slot)}cashed out @ ${payload.multiplier}× · payout ${money(payload.payout)}`, 'ok');
-                            showLast('win', payload.multiplier, payload.payout);
-                            spawnFlyWin(payload.multiplier, payload.payout);
-                            forgetBet(slot);
-                        } else if (payload.error === 'round_crashed') {
+                            cashedOut(slot, payload.bet_id ?? slot.betId, payload.multiplier, payload.payout, payload.is_auto ?? !slot.clicked);
+                            break;
+                        }
+                        if (payload.error === 'round_crashed') {
                             setStatus(`${tag(slot)}round crashed — bet #${payload.bet_id} lost`, 'err');
                             showLast('loss', payload.error_message?.replace(/[^0-9.]/g, ''), null);
                             forgetBet(slot);
                         } else if (payload.error === 'already_in_flight') {
                             /* parent already cashing out — ignore the duplicate response */
+                        } else if (payload.error === 'already_settled') {
+                            // Settled already, by its auto cash-out most likely: Cash Out stays off,
+                            // and the round's live bet list brings the result (round.bets below).
+                            slot.cashingOut = true;
+                            setStatus(`${tag(slot)}bet already settled`);
                         } else {
                             slot.cashingOut = false;
                             setStatus(`${tag(slot)}cashout failed: ${payload.error || 'unknown'}`, 'err');
                         }
-                        if (payload.player_balance) $balance.textContent = money(payload.player_balance) + (opState.currency ? ' ' + opState.currency : '');
                         sheet.betsChanged();
                         updateButtons();
                         break;
@@ -5658,6 +6151,7 @@
                         // forget it — that bet can't be cashed out against this round.
                         for (const slot of slots) {
                             if (slot.betRoundUuid && slot.betRoundUuid !== payload.round_uuid) forgetBet(slot);
+                            if (payload.phase === 'betting') slot.won = null;
                         }
                         updateButtons();
                         break;
@@ -5674,6 +6168,7 @@
                     opState.placing = []; // a result that never came can't hold a slot past its round
                     for (const slot of slots) {
                         if (slot.betRoundUuid && slot.betRoundUuid !== e.round_uuid) forgetBet(slot);
+                        slot.won = null; // the last round's result gives way to the new bet
                     }
                     updateButtons();
 
@@ -5719,6 +6214,14 @@
                         }
                     }
                 })
+                .listen('.round.bets', (e) => {
+                    // Every cash-out shows in the round's live bet list, ours too: the word of an
+                    // auto cash-out when the host has none to give (Orange's own pages don't).
+                    for (const row of e.bets ?? []) {
+                        const slot = row.multiplier ? slots.find((s) => s.betId !== null && String(s.betId) === String(row.id)) : null;
+                        if (slot) cashedOut(slot, row.id, row.multiplier, row.payout, !slot.clicked);
+                    }
+                })
                 .listen('.round.crashed', () => {
                     opState.phase = 'crashed';
                     for (const slot of slots) slot.$coX.textContent = '—';
@@ -5738,12 +6241,19 @@
                     setStatus('parent not ready', 'err');
                     return;
                 }
-                const autoAt = slot.$auto.value ? Number(slot.$auto.value) : null;
+                // Outside the player's limits: said here, rather than refused by the server.
+                const problem = stakeProblem(slot.$stake.value);
+                if (problem) {
+                    if (slot.autoBet) stopAutoBet(slot, `${problem} — auto bet stopped`, 'err');
+                    else setStatus(tag(slot) + problem, 'err');
+                    return;
+                }
+                const autoAt = slot.autoOn ? Number(slot.$auto.value) : null;
                 slot.autoCashoutAt = Number.isFinite(autoAt) && autoAt > 1 ? autoAt : null;
                 slot.autoCashoutFired = false;
                 slot.$bet.disabled = true;
                 opState.placing.push(slot);
-                setStatus(tag(slot) + (slot.autoBet ? 'auto-bet · placing…' : 'placing bet…'));
+                setStatus(tag(slot) + (slot.autoBet ? `auto bet ${slot.autoDone + 1}/${slot.autoRounds} · placing…` : 'placing bet…'));
                 const payload = {
                     amount: money(slot.$stake.value),
                     auto_cashout_at: slot.autoCashoutAt,
@@ -5764,68 +6274,67 @@
                     const cur = parseFloat($stake.value);
                     const base = Number.isFinite(cur) && cur > 0 ? cur : 0;
                     const step = base >= 100 ? 10 : base >= 20 ? 5 : 1;
-                    const next = Math.max(0.01, +(base + direction * step).toFixed(2));
+                    const next = clampStake(+(base + direction * step).toFixed(2));
                     $stake.value = next.toFixed(2);
                     $stake.dispatchEvent(new Event('input', { bubbles: true }));
                 }
                 // Stakes have two decimals, like the money they come out of: typing
-                // stops at the second decimal, and the field settles on "0.00" form.
+                // stops at the second decimal, and the field settles on "0.00" form,
+                // within the player's limits (and says so when it had to move).
                 $stake.addEventListener('input', () => {
                     const cut = $stake.value.replace(/^(\d*\.\d{2})\d+$/, '$1');
                     if (cut !== $stake.value) $stake.value = cut;
                 });
                 $stake.addEventListener('change', () => {
                     const v = parseFloat($stake.value);
-                    if (Number.isFinite(v) && v > 0) $stake.value = money($stake.value);
+                    if (!Number.isFinite(v) || v <= 0) return;
+                    const allowed = clampStake(v);
+                    if (allowed !== v) setStatus(tag(slot) + stakeProblem(v), 'err');
+                    $stake.value = allowed.toFixed(2);
                 });
                 slot.$root.querySelector('.op-stake-down').addEventListener('click', () => stepStake(-1));
                 slot.$root.querySelector('.op-stake-up').addEventListener('click', () => stepStake(+1));
 
-                // Auto cashout stepper — 0.10× per click, snaps to nearest tenth.
-                // From empty, the first + jumps to 1.50× (a sensible default);
+                // Auto cash-out stepper — 0.10× per click. From off, the first click
+                // turns it on at its last multiplier, or 1.50× (a sensible default);
                 // − below 1.01 (the upstream minimum) just clamps to 1.01.
                 function stepAuto(direction) {
                     const cur = parseFloat($auto.value);
                     let next;
-                    if (!Number.isFinite(cur) || cur <= 0) {
-                        next = 1.50;
+                    if (!slot.autoOn || !Number.isFinite(cur) || cur <= 0) {
+                        next = Number(slot.autoLast) || 1.50;
                     } else {
                         next = +(cur + direction * 0.10).toFixed(2);
                     }
                     if (next < 1.01) next = 1.01;
-                    $auto.value = next;
+                    $auto.value = next.toFixed(2);
                     $auto.dispatchEvent(new Event('input', { bubbles: true }));
                 }
                 slot.$root.querySelector('.op-auto-down').addEventListener('click', () => stepAuto(-1));
                 slot.$root.querySelector('.op-auto-up').addEventListener('click', () => stepAuto(+1));
-                slot.$root.querySelector('.op-auto-clear').addEventListener('click', () => {
-                    $auto.value = '';
-                    $auto.dispatchEvent(new Event('input', { bubbles: true }));
+                slot.$switch.addEventListener('click', () => setAutoCashout(slot, !slot.autoOn));
+                // A multiplier in the field means on; an empty field, off.
+                $auto.addEventListener('input', () => {
+                    slot.autoOn = $auto.value !== '';
+                    renderAutoCashout(slot);
+                });
+                $auto.addEventListener('change', () => {
+                    const v = parseFloat($auto.value);
+                    if (Number.isFinite(v)) $auto.value = Math.max(1.01, v).toFixed(2);
                 });
 
                 slot.$bet.addEventListener('click', () => triggerBet(slot));
 
+                // AUTO BET: off, it asks for how many rounds (and shows the total); on, it stops.
                 slot.$autoBet.addEventListener('click', () => {
-                    const next = !slot.autoBet;
-                    setAutoBet(slot, next, next ? 'auto-bet armed · next round will bet' : 'auto-bet off');
-                    // If user armed it during the current betting window and has no
-                    // active bet yet, fire immediately so they don't sit out this round.
-                    if (
-                        next &&
-                        opState.phase === 'betting' &&
-                        !slot.betId &&
-                        !opState.placing.includes(slot) &&
-                        opState.parentOrigin &&
-                        slot.lastAutoBetRound !== opState.roundUuid
-                    ) {
-                        slot.lastAutoBetRound = opState.roundUuid;
-                        triggerBet(slot);
-                    }
+                    if (slot.autoBet) stopAutoBet(slot, `auto bet stopped after ${slot.autoDone} of ${slot.autoRounds}`);
+                    else openAutoBet(slot);
                 });
 
                 slot.$co.addEventListener('click', () => {
                     if (!slot.betId || !opState.parentOrigin) return;
                     slot.cashingOut = true;
+                    slot.clicked = true;
                     slot.$co.disabled = true;
                     setStatus(tag(slot) + 'cashing out…');
                     postToParent({
@@ -5836,11 +6345,9 @@
                 });
 
             }
-            // Sync the first bet's AUTO BET with localStorage; the second's is restored
-            // when that bet opens (setTwo).
-            try {
-                if (localStorage.getItem(slots[0].autoBetKey) === '1') setAutoBet(slots[0], true);
-            } catch (_) {}
+            // Restore the first bet's AUTO BET; the second's is restored when that bet
+            // opens (setTwo).
+            restoreAutoBet(slots[0]);
 
             $home.addEventListener('click', () => postToParent({ type: 'back_to_lobby', payload: {} }));
 
