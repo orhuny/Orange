@@ -329,6 +329,14 @@ report['fox-aim.webp'] = {
 # The delivered muzzle strip (muzzle.png) is clipped flat on every frame, so it is not used:
 # the scene draws the blunderbuss's flash itself (SVG) and puffs grey clouds for the smoke.
 
+# --- BANG!: the word and the burst behind it, animated by the scene's crash styles ---------------
+word = trim(key(load('bang-word.png')))
+img = scale(to_image(word), 900 / word.shape[1])
+report['bang-word.webp'] = {'size': img.size, 'bytes': save_webp(img, 'bang-word.webp', quality=88)}
+burst = trim(key(load('bang-burst.png')))
+img = scale(to_image(burst), 760 / burst.shape[1])
+report['bang-burst.webp'] = {'size': img.size, 'bytes': save_webp(img, 'bang-burst.webp', quality=86)}
+
 logo = trim(key(load('lucky_duck_winged_mascot_logo.png')))
 img = scale(to_image(logo), 960 / logo.shape[1])
 report['logo.webp'] = {'size': img.size, 'bytes': save_webp(img, 'logo.webp', quality=88)}

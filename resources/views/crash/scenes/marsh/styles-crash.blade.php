@@ -25,14 +25,51 @@
             45%  { transform: translate(calc(-50% + var(--dx) * 0.45), calc(-50% + var(--dy) * 0.35)) rotate(200deg); }
             100% { opacity: 0; transform: translate(calc(-50% + var(--dx) * 0.6), calc(-50% + var(--dy) * 0.35 + 160px)) rotate(400deg); }
         }
-        /* BANG!: a fat cartoon word in gold, not the hull breach glitch. */
-        :root[data-theme="luckyduck"] .crash-banner { top: 26%; }
-        :root[data-theme="luckyduck"] .crash-banner b { background: repeating-linear-gradient(-45deg, #fcd34d 0 6px, transparent 6px 10px); }
-        :root[data-theme="luckyduck"] .crash-banner span {
-            font-family: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
-            font-size: clamp(40px, 9vw, 96px); font-weight: 900; letter-spacing: 0.04em;
-            color: #fde047; -webkit-text-stroke: 2px #14532d;
-            text-shadow: 0 5px 0 #14532d, 0 0 26px rgba(253, 224, 71, 0.75);
+        /* BANG!: the drawn word (bang-word.webp, 900 × 413) on a comic burst (bang-burst.webp,
+           760 × 641, the banner's ::before), not the hull breach glitch. The burst spins in with
+           an overshoot and pulses; the word slams in from twice its size, wobbles, shakes, holds,
+           then both go, the word floating up. The banner's text stays, for screen readers. It
+           sits on the shot's path, a third of the way from the gun to Lucky (--bang-x / --bang-y,
+           set by the scene's script), so his hit stays in sight. */
+        :root[data-theme="luckyduck"] .crash-banner {
+            display: block; left: var(--bang-x, 50%); top: var(--bang-y, 30%); width: min(58vw, 430px); gap: 0;
+            transform: translate(-50%, -50%);
         }
-        :root[data-theme="luckyduck"] .crashed .crash-banner span { animation: marsh-bang 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) var(--boom-at); }
-        @keyframes marsh-bang { from { transform: scale(0.3) rotate(-8deg); } to { transform: none; } }
+        @media (orientation: portrait) { :root[data-theme="luckyduck"] .crash-banner { width: 68vw; } }
+        :root[data-theme="luckyduck"] .crash-banner b { display: none; }
+        :root[data-theme="luckyduck"] .crash-banner::before {
+            content: ""; position: absolute; left: 50%; top: 50%; width: 112%; aspect-ratio: 760 / 641;
+            translate: -50% -50%; scale: 0;
+            background: url("{{ $sceneDef['art']('bang-burst.webp') }}") center / contain no-repeat;
+        }
+        :root[data-theme="luckyduck"] .crash-banner span {
+            position: relative; display: block; width: 100%; aspect-ratio: 900 / 413;
+            font-size: 0; color: transparent; -webkit-text-stroke: 0; text-shadow: none;
+            background: url("{{ $sceneDef['art']('bang-word.webp') }}") center / contain no-repeat;
+        }
+        :root[data-theme="luckyduck"] .crashed .crash-banner { animation: marsh-bang-banner 1.9s linear var(--boom-at) forwards; }
+        @keyframes marsh-bang-banner { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+        :root[data-theme="luckyduck"] .crashed .crash-banner::before { animation: marsh-bang-burst 1.9s cubic-bezier(0.2, 0.9, 0.3, 1) var(--boom-at) forwards; }
+        @keyframes marsh-bang-burst {
+            0%   { scale: 0; rotate: -30deg; }
+            12%  { scale: 1.14; rotate: 5deg; }
+            22%  { scale: 0.95; rotate: -1deg; }
+            32%  { scale: 1.03; rotate: 0deg; }
+            50%  { scale: 0.99; }
+            68%  { scale: 1.02; }
+            80%  { scale: 1; }
+            100% { scale: 1.3; rotate: 10deg; }
+        }
+        :root[data-theme="luckyduck"] .crashed .crash-banner span { animation: marsh-bang-word 1.9s ease-out var(--boom-at) forwards; }
+        @keyframes marsh-bang-word {
+            0%   { scale: 2.3; rotate: -12deg; opacity: 0; }
+            7%   { opacity: 1; }
+            14%  { scale: 0.86; rotate: 4deg; }
+            22%  { scale: 1.08; rotate: -2deg; translate: 0 0; }
+            26%  { translate: -5px 2px; }
+            30%  { translate: 5px -2px; }
+            34%  { translate: -3px 1px; }
+            40%  { scale: 1; rotate: 0deg; translate: 0 0; }
+            80%  { scale: 1; translate: 0 0; opacity: 1; }
+            100% { scale: 1.08; translate: 0 -18px; opacity: 0; }
+        }

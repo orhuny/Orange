@@ -127,6 +127,21 @@
             }
         }
 
+        // BANG! goes on the shot's path, a third of the way from the gun (the firing pose's bell,
+        // 88.6% / 25.3% of the fox) to Lucky, kept on screen and below the top status rows.
+        const $banner = document.querySelector('.crash-banner');
+        function placeBang() {
+            if (!L) layout();
+            const fox = $fox.getBoundingClientRect(), sc = $marsh.getBoundingClientRect();
+            const gx = fox.left - sc.left + fox.width * 0.886, gy = fox.top - sc.top + fox.height * 0.253;
+            const { x, y } = duckAt(lastM);
+            const bw = $banner.offsetWidth, bh = $banner.offsetHeight;
+            const bx = Math.max(bw / 2 + 8, Math.min(L.W - bw / 2 - 8, gx + (x - gx) * 0.36));
+            const by = Math.max(bh / 2 + 76, Math.min(L.H - bh / 2, gy + (y - gy) * 0.36));
+            $stage.style.setProperty('--bang-x', `${bx.toFixed(0)}px`);
+            $stage.style.setProperty('--bang-y', `${by.toFixed(0)}px`);
+        }
+
         const scene = {
             // Every animation frame of a round, at its multiplier.
             frame(m) {
@@ -141,6 +156,7 @@
             crashed(point) {
                 setSky(point);
                 setPose('hit');
+                placeBang();
             },
             reset() {
                 L = null; // measured afresh each round (the HUD may have changed size)
