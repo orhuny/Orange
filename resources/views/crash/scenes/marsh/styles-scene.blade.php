@@ -127,8 +127,9 @@
         @keyframes marsh-drop { to { transform: translate(-4vw, 80vh) rotate(-40deg); } }
 
         /* ---------- The fox ----------
-           His arm turns from the shoulder (the sleeve's end, 1.5% / 67.7% of the arm) by --aim,
-           set by the script; the flash and the smoke come out of the bell (99.3% / 21.6%). */
+           His arm (behind him: the blind hides the sleeve and the paws) turns by --aim, set by the
+           script, about the sleeve's end (1.5% / 67.7% of the arm), placed low inside the blind;
+           the flash and the smoke come out of the bell (99.3% / 21.6%). */
         .marsh .fox {
             position: absolute; left: -1%; bottom: -1%; z-index: 8;
             width: clamp(210px, 25vw, 400px); aspect-ratio: 640 / 361;
@@ -136,7 +137,7 @@
         @media (orientation: portrait) { .marsh .fox { width: clamp(150px, 40vw, 260px); } }
         .marsh .fox-body { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; }
         .marsh .fox-arm {
-            position: absolute; left: 36%; top: 52%; width: 86%; aspect-ratio: 600 / 206;
+            position: absolute; left: 58%; top: 82%; width: 86%; aspect-ratio: 600 / 206;
             transform-origin: 1.5% 67.7%; translate: -1.5% -67.7%; rotate: var(--aim, -12deg);
         }
         .marsh .fox-gun { display: block; width: 100%; height: 100%; user-select: none; }

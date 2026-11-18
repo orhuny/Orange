@@ -32,10 +32,10 @@
 
             <div class="strip strip-reeds" style="--k: 1.2"><b></b></div>
 
-            {{-- The fox in his blind, bottom left. His arm is its own layer: the script turns it
-                 toward Lucky from the shoulder; the flash and the smoke sit at the gun's mouth. --}}
+            {{-- The fox in his blind, bottom left. His gun arm is its own layer, behind him: the
+                 script turns it toward Lucky from low inside the blind, so the barrel pokes out past
+                 his face; the flash and the smoke sit at the gun's mouth. --}}
             <div class="fox" aria-hidden="true">
-                <img class="fox-body" src="{{ $art('fox-body.webp') }}" alt="" draggable="false">
                 <div class="fox-arm">
                     <img class="fox-gun" src="{{ $art('fox-gun.webp') }}" alt="" draggable="false">
                     <div class="muzzle">
@@ -49,6 +49,7 @@
                         </svg>
                     </div>
                 </div>
+                <img class="fox-body" src="{{ $art('fox-body.webp') }}" alt="" draggable="false">
             </div>
 
             {{-- Gold coins and feathers that burst from Lucky when a bet cashes out. --}}

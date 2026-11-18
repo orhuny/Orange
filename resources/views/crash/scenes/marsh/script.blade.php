@@ -67,8 +67,8 @@
                 home: { x: W * (portrait ? 0.62 : 0.7), y: Math.min(waterTop + dh * 0.08, H - hudRoom - dh * 0.42) },
                 cruise: { x: W * (portrait ? 0.6 : 0.62), y: Math.max(H * (portrait ? 0.3 : 0.27), Math.min(H * 0.42, H - hudRoom - dh * 0.75)) },
                 climb: H * 0.1,
-                // The arm's pivot: 36% / 52% of the fox (styles-scene).
-                pivot: { x: fox.left - scene.left + fox.width * 0.36, y: fox.top - scene.top + fox.height * 0.52 },
+                // The arm's pivot: 58% / 82% of the fox, inside the blind (styles-scene).
+                pivot: { x: fox.left - scene.left + fox.width * 0.58, y: fox.top - scene.top + fox.height * 0.82 },
             };
         }
         new ResizeObserver(() => { L = null; place(lastM); }).observe($marsh);
@@ -107,8 +107,8 @@
             $stage.style.setProperty('--hero-x', `${x.toFixed(0)}px`);
             $stage.style.setProperty('--hero-y', `${y.toFixed(0)}px`);
             // The gun follows him (eased, so it swings rather than snaps), raised 4° for the
-            // barrel sitting above the shoulder.
-            const target = Math.max(-64, Math.min(-3, Math.atan2(y - L.pivot.y, x - L.pivot.x) * 180 / Math.PI - 4));
+            // barrel sitting above the pivot; never steeper than 48°, where it would cross his face.
+            const target = Math.max(-48, Math.min(-6, Math.atan2(y - L.pivot.y, x - L.pivot.x) * 180 / Math.PI - 4));
             aim += flying ? (target - aim) * 0.12 : target - aim;
             $arm.style.rotate = `${aim.toFixed(2)}deg`;
             // The scenery scrolls by what has been flown.
