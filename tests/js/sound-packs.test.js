@@ -36,6 +36,10 @@ class FakeAudioContext {
 
     createConvolver() { return this.node({ buffer: null }); }
 
+    createWaveShaper() { return this.node({ curve: null, oversample: 'none' }); }
+
+    createDelay() { return this.node({ delayTime: param(0) }); }
+
     createDynamicsCompressor() {
         return this.node({ threshold: param(-24), knee: param(30), ratio: param(12), attack: param(0.003), release: param(0.25) });
     }

@@ -267,22 +267,82 @@
         }
 
         /** The blunderbuss: a hammer click, a wide crack, a low thump and its echo off the water. */
+        // The gun's own bus, built once: a soft clipper (tanh) that gives the blast its punch and
+        // keeps its peak in hand, then the marsh's answer: a slapback off the far bank and the
+        // echoes after it, each darker and quieter (a delay with a dark, fading feedback loop).
+        let gunIn = null;
+        function gun(bus) {
+            if (gunIn) return gunIn;
+            gunIn = ctx.createGain();
+            const clip = ctx.createWaveShaper();
+            const curve = new Float32Array(2048);
+            for (let i = 0; i < curve.length; i++) {
+                const x = (i / (curve.length - 1)) * 2 - 1;
+                curve[i] = Math.tanh(2.4 * x) / Math.tanh(2.4);
+            }
+            clip.curve = curve;
+            clip.oversample = '4x';
+            const level = ctx.createGain();
+            level.gain.value = 0.62;
+            gunIn.connect(clip).connect(level);
+            out(level, bus, 0.18);
+            const delay = ctx.createDelay(1);
+            delay.delayTime.value = 0.21;
+            const dark = ctx.createBiquadFilter();
+            dark.type = 'lowpass';
+            dark.frequency.value = 1100;
+            const feedback = ctx.createGain();
+            feedback.gain.value = 0.36;
+            const echo = ctx.createGain();
+            echo.gain.value = 0.42;
+            level.connect(delay).connect(dark);
+            dark.connect(feedback).connect(delay);
+            dark.connect(echo);
+            out(echo, bus, 0.35);
+            return gunIn;
+        }
+
+        /** Filtered noise into the gun bus: a burst that snaps open and dies away. */
+        function burst(into, { at, dur, type, freq, to = null, q = 0.7, peak, attack = 0.0008, buffer = white }) {
+            const src = ctx.createBufferSource();
+            const f = ctx.createBiquadFilter();
+            const g = ctx.createGain();
+            src.buffer = buffer;
+            f.type = type;
+            f.Q.value = q;
+            f.frequency.setValueAtTime(freq, at);
+            if (to) f.frequency.exponentialRampToValueAtTime(to, at + dur);
+            g.gain.setValueAtTime(0.0001, at);
+            g.gain.exponentialRampToValueAtTime(peak, at + attack);
+            g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+            src.connect(f).connect(g).connect(into);
+            src.start(at, Math.random());
+            src.stop(at + dur + 0.02);
+        }
+
+        /** The blunderbuss, in layers: the flintlock (the hammer's snap, the priming pan's hiss),
+         *  then the report (a broadband crack, the blast's body darkening as it dies, a low thump),
+         *  and the rumble rolling over the marsh; the gun bus adds the punch and the echoes. The
+         *  report lands 25 ms after the snap, with the flash on screen. */
         function shot({ at, bus, gain = 0.3 }) {
-            hiss({ at, bus, gain: gain * 0.2, dur: 0.015, type: 'bandpass', freq: 3000, q: 3, wet: 0 }); // the hammer
-            const b = at + 0.04;
-            hiss({ at: b, bus, gain: gain * 1.2, dur: 0.12, type: 'highpass', freq: 900, wet: 0.4 });
-            hiss({ at: b, bus, gain: gain, dur: 0.55, type: 'lowpass', freq: 2200, to: 180, q: 0.5, wet: 0.45 });
+            const into = gun(bus);
+            burst(into, { at, dur: 0.012, type: 'bandpass', freq: 3600, q: 5, peak: gain * 0.5 });
+            burst(into, { at: at + 0.006, dur: 0.03, type: 'highpass', freq: 5500, peak: gain * 0.25, attack: 0.003 });
+            const b = at + 0.025;
+            burst(into, { at: b, dur: 0.035, type: 'highpass', freq: 1400, q: 0.5, peak: gain * 2.6 });
+            burst(into, { at: b, dur: 0.38, type: 'lowpass', freq: 7000, to: 320, q: 0.6, peak: gain * 1.9, attack: 0.001 });
             const o = ctx.createOscillator();
             const g = ctx.createGain();
-            o.type = 'sine';
-            o.frequency.setValueAtTime(110, b);
-            o.frequency.exponentialRampToValueAtTime(38, b + 0.4);
-            env(g, b, gain * 1.2, 0.004, 0.5);
-            o.connect(g);
-            out(g, bus, 0.3);
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(170, b);
+            o.frequency.exponentialRampToValueAtTime(40, b + 0.3);
+            g.gain.setValueAtTime(0.0001, b);
+            g.gain.exponentialRampToValueAtTime(gain * 2.6, b + 0.004);
+            g.gain.exponentialRampToValueAtTime(0.0001, b + 0.45);
+            o.connect(g).connect(into);
             o.start(b);
-            o.stop(b + 0.55);
-            hiss({ at: b + 0.22, bus, gain: gain * 0.25, dur: 0.6, type: 'lowpass', freq: 900, to: 200, q: 0.5, wet: 0.6, buffer: brown }); // the echo
+            o.stop(b + 0.5);
+            burst(into, { at: b + 0.05, dur: 1.5, type: 'lowpass', freq: 520, to: 90, q: 0.5, peak: gain * 0.6, attack: 0.07, buffer: brown });
         }
 
         function effectsBus() {
@@ -332,7 +392,7 @@
                     kazoo(midi(59), midi(43), { at: t + 0.56, bus, gain: 0.06, dur: 0.9 });
                     break;
                 case 'shot': // a miss: the blunderbuss (lighter than the hit), the spray whizzing past, a cheeky quack
-                    shot({ at: t, bus, gain: 0.16 });
+                    shot({ at: t, bus, gain: 0.12 });
                     hiss({ at: t + 0.12, bus, gain: 0.05, dur: 0.35, type: 'bandpass', freq: 3200, to: 900, q: 3, wet: 0.2 });
                     quack({ at: t + 0.5, bus, gain: 0.045, pitch: 1.2, dur: 0.1 });
                     break;
