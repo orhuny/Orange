@@ -13,6 +13,23 @@ return (static function (): array {
     };
 
     return [
+        // The page's <title> is this, then the game's name.
+        'titlePrefix' => '',
+        // The sound pack (js/orange/sound-marsh.js, loaded by sounds.blade.php).
+        'packs' => ['luckyduck' => 'marsh'],
+        // The page's words for a round: the status line, the crash banner and the rules.
+        'text' => [
+            'round' => 'flight',
+            'rise' => 'Lucky takes off',
+            'lose' => 'the fox shoots Lucky down',
+            'bettingIn' => 'Take-off in',
+            'liftOff' => 'Ready for take-off…',
+            'running' => 'FLYING',
+            'crashed' => 'SHOT DOWN',
+            'nextIn' => 'Next flight in',
+            'awaiting' => 'Awaiting next flight…',
+            'banner' => 'Bang!',
+        ],
         // The token keys every scene fills (see the page's token block): the sky runs from
         // `shallow` at the horizon to `abyss` at dusk; hud* are the gold accents, panel the
         // reed-green chrome.

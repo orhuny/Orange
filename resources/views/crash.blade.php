@@ -53,7 +53,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deep Dive — {{ $game?->name ?? 'Orange Crash' }}</title>
+    <title>{{ $sceneDef['titlePrefix'] }}{{ $game?->name ?? 'Orange Crash' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{-- Apply the theme before first paint so the page never flashes the
          default palette. Priority: player's saved choice → ?theme= (operator
@@ -1923,6 +1923,7 @@
             <span class="menu-label fs-label-enter">Fullscreen</span>
             <span class="menu-label fs-label-exit">Exit fullscreen</span>
         </button>
+        @if (count($themes) > 1)
         <div class="menu-sep" role="separator"></div>
         @foreach ($themes as $key => $t)
         <button type="button" class="theme-opt" role="menuitemradio" aria-checked="false" data-theme="{{ $key }}" title="Theme: {{ $t['label'] }}">
@@ -1931,6 +1932,7 @@
             <span class="menu-label">Theme: {{ $t['label'] }}</span>
         </button>
         @endforeach
+        @endif
     </div>
 
     @if ($liveRounds ?? null)
@@ -1986,8 +1988,8 @@
         <div class="history-wrap" aria-label="Recent crashes">
             <div class="history-label">Recent crashes</div>
             <div id="history" class="history"></div>
-            {{-- Round status sits under the rail, clear of the diving sub. --}}
-            <div id="state" class="state">Awaiting next dive…</div>
+            {{-- Round status sits under the rail, clear of the scene's hero. --}}
+            <div id="state" class="state">{{ $sceneDef['text']['awaiting'] }}</div>
             @includeIf("crash.scenes.{$scene}.hud-warnings")
         </div>
 
@@ -2102,7 +2104,7 @@
         <div class="crash-flash"></div>
         <div id="debris" class="crash-debris"></div>
         @includeIf("crash.scenes.{$scene}.crash-layers")
-        <div class="crash-banner"><b></b><span>Hull breach</span><b></b></div>
+        <div class="crash-banner"><b></b><span>{{ $sceneDef['text']['banner'] }}</span><b></b></div>
 
         <!-- Activity log -->
         <div id="log" class="log"></div>
@@ -2116,69 +2118,16 @@
         const $state = document.getElementById('state');
         const $log = document.getElementById('log');
         if (new URLSearchParams(location.search).has('debug')) document.body.classList.add('debug');
-        const $pressArc = document.getElementById('pressureArc');
-        const $pressVal = document.getElementById('pressureValue');
-        const $hullFill = document.getElementById('hullFill');
-        const $hullVal = document.getElementById('hullValue');
-        const $pressNeedle = document.getElementById('pressureNeedle');
-        const $hullLevel = document.getElementById('hullLevel');
-        const $pressGauge = $pressArc.closest('.gauge');
-        const $hullGauge = $hullFill.closest('.gauge');
-        // Pressure dial sweeps 270°; hull colour runs green (120°) → red (0°).
-        function setGauges(norm, hull, pressLevel) {
-            $pressArc.style.strokeDasharray = (75 * norm).toFixed(2) + ' 100';
-            $pressNeedle.style.transform = 'rotate(' + (-135 + 270 * norm).toFixed(1) + 'deg)';
-            $pressGauge.dataset.level = pressLevel;
-            $hullGauge.dataset.level = hull <= 30 ? 'crit' : (hull <= 60 ? 'warn' : 'ok');
-            $hullGauge.style.setProperty('--hull-c', 'hsl(' + Math.round(hull * 1.2) + ' 80% 50%)');
-            $hullLevel.style.transform = 'scaleY(' + (hull / 100) + ')';
-            $hullFill.style.width = hull + '%';
-        }
+
+        // The scene's words (scenes/{scene}/scene.php: the round, how it rises and is lost,
+        // the status line) and its scenery (scenes/{scene}/script.blade.php), which defines
+        // `scene`: the page calls scene.frame(m) every animation frame of a round,
+        // scene.update(m) with each multiplier it shows, scene.crashed(point) when the round
+        // ends and scene.reset() before the next.
+        const TEXT = @json($sceneDef['text']);
+        @include("crash.scenes.{$scene}.script")
         const $cashout = document.getElementById('cashout');
         const $cashoutHint = document.getElementById('cashoutHint');
-
-        // Rising bubbles in depth layers, for parallax. --base is a bubble's own
-        // speed and --layer its depth (see .bubble): far ones crawl, near ones
-        // rush past. The parent stage class drives --speed / --drift-x, so all
-        // layers speed up together in deeper dive states without resetting a
-        // bubble. Fewer on phones. Every player sees the same dive (a device's
-        // reduced-motion setting doesn't change it: the dive is the game).
-        const fewer = window.matchMedia('(max-width: 600px)').matches ? 0.6 : 1;
-        function spawnBubbles(id, count, { min, max, layer, band }) {
-            const host = document.getElementById(id);
-            for (let i = 0; i < count; i++) {
-                const b = document.createElement('div');
-                b.className = 'bubble';
-                const size = min + Math.random() * (max - min);
-                b.style.width = b.style.height = size + 'px';
-                // Spawn across a band reaching offscreen right (wider for faster
-                // layers) so the leftward dive drift keeps the screen populated;
-                // without this the right side empties as soon as the sub moves.
-                b.style.left = (-10 + Math.random() * band) + 'vw';
-                b.style.setProperty('--layer', layer);
-                b.style.setProperty('--base', (6 + Math.random() * 10) + 's');
-                b.style.animationDelay = (-Math.random() * 12) + 's';
-                host.appendChild(b);
-            }
-        }
-        spawnBubbles('bubbles', 64, { min: 4, max: 18, layer: 1, band: 150 });
-        spawnBubbles('bubbles-far', Math.round(90 * fewer), { min: 2, max: 6, layer: 0.45, band: 150 });
-        spawnBubbles('bubbles-dive', Math.round(90 * fewer), { min: 3, max: 14, layer: 1.2, band: 230 });
-        spawnBubbles('bubbles-near', Math.round(18 * fewer), { min: 24, max: 56, layer: 2, band: 300 });
-
-        // ambient silt particles. Spawn slightly past the right edge so the
-        // strong leftward drift during dive keeps the visible area populated
-        // instead of emptying out as everything streams toward upper-left.
-        const particleHost = document.getElementById('particles');
-        for (let i = 0; i < 50; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.left = (-5 + Math.random() * 130) + 'vw';
-            p.style.animationDuration = (8 + Math.random() * 14) + 's';
-            p.style.animationDelay = (-Math.random() * 16) + 's';
-            p.style.opacity = (0.3 + Math.random() * 0.5);
-            particleHost.appendChild(p);
-        }
 
         // 24 hull fragments — preset random vectors, only animated when .crashed fires
         const debrisHost = document.getElementById('debris');
@@ -2553,12 +2502,12 @@
                 sheet.panel('rules', 'Rules', el('div', { class: 'rules' },
                     h('How to play'),
                     el('ol', {},
-                        el('li', {}, `Place your bet while betting is open: ${BETTING_SECONDS} seconds before each dive.`),
-                        el('li', {}, 'The sub dives and the multiplier climbs from 1.00×.'),
-                        el('li', {}, 'Cash out at any moment of the dive: you win your bet × the multiplier at that moment.'),
-                        el('li', {}, 'If the hull implodes before you cash out, the bet is lost.')),
+                        el('li', {}, `Place your bet while betting is open: ${BETTING_SECONDS} seconds before each ${TEXT.round}.`),
+                        el('li', {}, `${TEXT.rise} and the multiplier climbs from 1.00×.`),
+                        el('li', {}, `Cash out at any moment of the ${TEXT.round}: you win your bet × the multiplier at that moment.`),
+                        el('li', {}, `If ${TEXT.lose} before you cash out, the bet is lost.`)),
                     h('Auto cash out'),
-                    p('Switch it on and set a multiplier (1.01× or more). The bet is cashed out the moment the dive reaches it, by our server, so it works even if your connection drops. You can still cash out sooner yourself.'),
+                    p(`Switch it on and set a multiplier (1.01× or more). The bet is cashed out the moment the ${TEXT.round} reaches it, by our server, so it works even if your connection drops. You can still cash out sooner yourself.`),
                     h('Auto bet'),
                     p('Places the same bet, with its auto cash out, for the number of rounds you choose, and shows how many it has placed (3/10). It stops after the last one, when you press it again, or when a bet is refused, for example when your balance runs out. While it runs, its bet and auto cash out are locked.'),
                     opts.twoBets ? h('Two bets') : null,
@@ -2576,7 +2525,7 @@
                     h('Provably fair'),
                     p('Every result is fixed before betting opens: we publish the SHA-256 of the round’s server seed in advance and reveal the seed once the round is over. Tap a past result at the top of the screen to check it.'),
                     h('If you lose connection'),
-                    p('A bet with auto cash out is still cashed out at its multiplier. A bet without it stays in the round, and is lost if the hull implodes before you cash out.'),
+                    p(`A bet with auto cash out is still cashed out at its multiplier. A bet without it stays in the round, and is lost if ${TEXT.lose} before you cash out.`),
                     // What the platform does (crash:loop's orphan rounds, the stake confirmation,
                     // wallet:reconcile): keep this in step with them.
                     h('Malfunction'),
@@ -2890,74 +2839,6 @@
             for (const s of state) $stage.classList.add(s);
         }
 
-        // Dive progress 0..1 on a log scale up to config('crash.depth_max_multiplier'),
-        // so depth, pressure and hull keep moving on any realistic round instead of
-        // maxing out early. With 1000x: 2x ≈ 1.1 km, 10x ≈ 3.7 km, 100x ≈ 7.3 km.
-        const DIVE_MAX_X = @json((float) config('crash.depth_max_multiplier', 1000));
-        const diveProgress = (m) => Math.min(1, Math.max(0, Math.log(m) / Math.log(DIVE_MAX_X)));
-        const $depthMeter = document.getElementById('depth-meter');
-        const $backdrop = document.querySelector('.backdrop');
-        const $seabedFog = document.querySelector('.seabed-fog');
-        const $walls = document.querySelector('.walls');
-        const $depthVal = document.getElementById('depth-value');
-        const $depthZone = document.getElementById('depth-zone');
-        const MAX_DEPTH_M = 10994;
-        // How far the camera has descended, in % of the screen height, at multiplier m.
-        // Distance grows with m - 1, so the speed grows with the multiplier itself (it
-        // rises by e^(g·t)): ~11%/s at 1x, ~21 at 2x, ~42 at 4x. From DESCENT_CAP_X on
-        // the speed holds (~74%/s) so the looping walls never strobe.
-        const DESCENT_PER_X = 176;
-        const DESCENT_CAP_X = 7;
-        function descent(m) {
-            const x = Math.max(1, m);
-            if (x <= DESCENT_CAP_X) return DESCENT_PER_X * (x - 1);
-            return DESCENT_PER_X * (DESCENT_CAP_X - 1 + DESCENT_CAP_X * Math.log(x / DESCENT_CAP_X));
-        }
-
-        // Moves the backdrop and the trench walls to the descent at multiplier m: the
-        // walls fall by it, the reef (further away) by 80% of it until it has left the
-        // screen; the walls hang from the reef's lower edge and scroll inside that.
-        const $scene = document.querySelector('.scene');
-        const $wallStrips = [...document.querySelectorAll('.wall b')];
-        let tileHeights = null; // px per repeat of each strip's art
-        function tiles() {
-            tileHeights ??= $wallStrips.map((b) => b.clientWidth * (parseFloat(getComputedStyle(b.parentNode).getPropertyValue('--tile-ratio')) || 0));
-            return tileHeights;
-        }
-        window.addEventListener('resize', () => { tileHeights = null; });
-        new MutationObserver(() => { tileHeights = null; })
-            .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-        // The jellyfish hang in the water, so the sub passes them: they rise with the
-        // descent (a little slower than the walls, being further off) and, once above
-        // the screen, come round again from below it, out of sight. `translate`, so
-        // their bob (the float animation, on `transform`) carries on.
-        const $jellies = [...document.querySelectorAll('.jelly')];
-        const JELLY_PARALLAX = 0.9;
-        const JELLY_WRAP_MARGIN = 140; // px beyond each edge, more than a jelly is tall
-        function setScenery(m) {
-            const h = $scene?.clientHeight || window.innerHeight;
-            const fall = descent(m) / 100 * h;
-            const rise = Math.min(1.25 * h, fall * 0.8);
-            const lift = `translate3d(0, ${(-rise).toFixed(2)}px, 0)`;
-            if ($backdrop) $backdrop.style.transform = lift;
-            // The floor sinks into the water as soon as the reef starts rising, all the
-            // way by the time it has risen an eighth of the screen.
-            const sunk = Math.min(1, rise / (0.125 * h)).toFixed(3);
-            if ($seabedFog) $seabedFog.style.opacity = sunk;
-            if ($walls) $walls.style.setProperty('--walls-in', sunk); // where the cliffs reach into the painting
-            if ($walls) $walls.style.transform = lift;
-            tiles().forEach((tile, i) => {
-                const y = tile > 0 ? (fall - rise) % tile : 0;
-                $wallStrips[i].style.transform = `translate3d(0, ${(-y).toFixed(2)}px, 0)`;
-            });
-            const span = h + 2 * JELLY_WRAP_MARGIN;
-            for (const $j of $jellies) {
-                const home = parseFloat($j.style.top) / 100 * h; // its place at the surface
-                const y = ((home - fall * JELLY_PARALLAX + JELLY_WRAP_MARGIN) % span + span) % span - JELLY_WRAP_MARGIN;
-                $j.style.translate = `0 ${(y - home).toFixed(2)}px`;
-            }
-        }
-
         // The descent runs on its own clock, not on the ticks: ticks carry multipliers
         // rounded to 0.01 (early in a dive several in a row repeat the same value)
         // and can arrive late, which made the scenery stutter. The clock computes
@@ -2971,7 +2852,7 @@
             // change nobody sees), never in one step.
             const gap = descentClock.target - descentClock.start;
             descentClock.start += Math.max(-0.5, Math.min(0.5, gap * 0.05));
-            setScenery(Math.exp(descentClock.g * Math.max(0, now - descentClock.start) / 1000));
+            scene.frame(Math.exp(descentClock.g * Math.max(0, now - descentClock.start) / 1000));
             descentClock.raf = requestAnimationFrame(descentFrame);
         }
         function syncDescent(elapsedSeconds, growthRate) {
@@ -2998,30 +2879,10 @@
             descentClock.on = false;
             cancelAnimationFrame(descentClock.raf);
         }
-        const depthFmt = new Intl.NumberFormat('en-US');
-        function setDepth(m) {
-            const p = diveProgress(m);
-            const metres = Math.round(p * MAX_DEPTH_M);
-            $depthMeter.style.setProperty('--p', p.toFixed(4));
-            $depthVal.textContent = depthFmt.format(metres) + ' m';
-            $depthZone.textContent = metres === 0 ? 'SURFACE'
-                : metres < 200 ? 'SUNLIGHT ZONE'
-                : metres < 1000 ? 'TWILIGHT ZONE'
-                : metres < 4000 ? 'MIDNIGHT ZONE'
-                : metres < 6000 ? 'ABYSSAL ZONE'
-                : 'HADAL ZONE';
-        }
 
         function updateMultiplierUI(m) {
             $mult.textContent = m.toFixed(2) + 'x';
-            setDepth(m);
-            // Same dive progress as the depth meter: ~1 bar per 10 m of water.
-            const norm = diveProgress(m);
-            const pressure = Math.round(1 + norm * MAX_DEPTH_M / 10);
-            const hull = Math.max(0, Math.round(100 - norm * 100));
-            $pressVal.textContent = pressure;
-            $hullVal.textContent = hull;
-            setGauges(norm, hull, m >= 8 ? 'crit' : (m >= 3 ? 'warn' : 'ok'));
+            scene.update(m);
 
             const tiers = ['running'];
             if (m >= 8)  tiers.push('critical');
@@ -3079,13 +2940,9 @@
         function resetIdleVisuals() {
             stopTween(1);
             stopDescent();
-            setScenery(1); // glides back up to the surface (the betting state's transition)
-            setDepth(1);
+            scene.reset(); // back to the start (the betting state's transition)
             rebuildDebris(); // fresh vectors for the next crash, built while nothing is animating
             $mult.textContent = '1.00x';
-            $pressVal.textContent = '0';
-            $hullVal.textContent = '100';
-            setGauges(0, 100, 'ok');
         }
 
         function attachEcho() {
@@ -3096,22 +2953,22 @@
                     setStage(['betting']);
                     resetIdleVisuals();
                     $cashout.disabled = true;
-                    $cashoutHint.textContent = 'awaiting dive';
+                    $cashoutHint.textContent = `awaiting ${TEXT.round}`;
                     log(`betting_opened ${e.round_uuid.slice(0,8)}…`);
                     liveBets.seen(e.round_uuid, { fresh: true });
-                    startCountdown(e.betting_seconds || 10, 'Diving in', () => {
-                        $state.textContent = 'Pressurising…';
+                    startCountdown(e.betting_seconds || 10, TEXT.bettingIn, () => {
+                        $state.textContent = TEXT.liftOff;
                     });
                 })
                 .listen('.round.started', (e) => {
                     cancelCountdown();
                     setStage(['running']);
-                    $state.textContent = 'DIVING';
+                    $state.textContent = TEXT.running;
                     $cashout.disabled = false;
                     $cashoutHint.textContent = 'cash out at current x';
                     syncDescent(0, Number(e.growth_rate));
                     liveBets.seen(e.round_uuid);
-                    log(`dive started · growth ${e.growth_rate}/s`);
+                    log(`${TEXT.round} started · growth ${e.growth_rate}/s`);
                 })
                 .listen('.round.tick', (e) => {
                     if ($stage.classList.contains('crashed')) return;
@@ -3123,7 +2980,7 @@
                     // Tick implies running. If user opened the page mid-round and
                     // missed betting_opened/started, sync state text + cashout button.
                     const elapsed = Number(e.elapsed_seconds ?? 0).toFixed(1);
-                    $state.textContent = `DIVING · ${elapsed}s`;
+                    $state.textContent = `${TEXT.running} · ${elapsed}s`;
                     if ($cashout.disabled) {
                         $cashout.disabled = false;
                         $cashoutHint.textContent = 'cash out at current x';
@@ -3134,17 +2991,17 @@
                         log('💥 raw: ' + JSON.stringify(e));
                         const cp = Number(e.crash_point ?? e.crashPoint ?? e.data?.crash_point ?? NaN);
                         stopTween(Number.isFinite(cp) ? cp : tween.to);
-                        stopDescent(); // the scenery holds where the sub imploded
+                        stopDescent(); // the scenery holds where the round ended
                         setStage(['crashed', 'critical']);
                         if (Number.isFinite(cp)) {
                             $mult.textContent = cp.toFixed(2) + 'x';
-                            setDepth(cp);
-                            $state.textContent = `IMPLODED @ ${cp.toFixed(2)}x`;
-                            log(`💥 imploded @ ${cp.toFixed(2)}x`);
+                            scene.crashed(cp);
+                            $state.textContent = `${TEXT.crashed} @ ${cp.toFixed(2)}x`;
+                            log(`💥 ${TEXT.crashed.toLowerCase()} @ ${cp.toFixed(2)}x`);
                             pushHistory(cp, e.round_uuid);
                             liveBets.crashed(e.round_uuid, cp);
                         } else {
-                            $state.textContent = 'IMPLODED (no crash_point)';
+                            $state.textContent = `${TEXT.crashed} (no crash_point)`;
                             log('⚠ crash_point missing in payload');
                         }
                         $cashout.disabled = true;
@@ -3156,7 +3013,7 @@
                 .listen('.round.settled', (e) => {
                     log(`settled · seed ${e.server_seed?.slice(0,12)}…`);
                     sheet.betsChanged(); // the round's bets are settled now
-                    // Hold the IMPLODED splash for ~1.2s so the player can read
+                    // Hold the crash splash for ~1.2s so the player can read
                     // the crash point, then snap back to a neutral idle and
                     // start a visible countdown until the next betting window.
                     setTimeout(() => {
@@ -3165,8 +3022,8 @@
                         setStage(['waiting']);
                         resetIdleVisuals();
                         const wait = Number(e.next_round_in_seconds ?? 5);
-                        startCountdown(wait, 'Next dive in', () => {
-                            $state.textContent = 'Awaiting next dive…';
+                        startCountdown(wait, TEXT.nextIn, () => {
+                            $state.textContent = TEXT.awaiting;
                         });
                     }, 1200);
                 })
@@ -3308,7 +3165,7 @@
             let ctx, master, musicTimer, musicStep = 0, musicEnabled = true, started = false;
             const STORAGE_KEY = 'orange.audio.muted';
             let themeAmbience = null; // the running ambience of a theme pack, if any
-            const PACKS = { burton: 'gothic', jackpot: 'jackpot' };
+            const PACKS = @json($sceneDef['packs']);
             const packs = {};
 
             /** The current theme's sound pack, or null for the built-in underwater set. */

@@ -68,7 +68,25 @@ return (static function (): array {
     $themes = array_replace(array_flip($enabledThemes), array_intersect_key($themes, array_flip($enabledThemes)));
 
     return [
+        // The page's <title> is this, then the game's name.
+        'titlePrefix' => 'Deep Dive — ',
         'themes' => $themes,
+        // Each skin's sound pack (js/orange/sound-*.js, loaded by sounds.blade.php); other
+        // skins play the built-in underwater set.
+        'packs' => ['burton' => 'gothic', 'jackpot' => 'jackpot'],
+        // The page's words for a round: the status line, the crash banner and the rules.
+        'text' => [
+            'round' => 'dive',              // "seconds before each dive", "at any moment of the dive"
+            'rise' => 'The sub dives',      // "… and the multiplier climbs from 1.00×."
+            'lose' => 'the hull implodes',  // "If … before you cash out, the bet is lost."
+            'bettingIn' => 'Diving in',     // the betting countdown: "Diving in 7s"
+            'liftOff' => 'Pressurising…',   // betting over, the round about to start
+            'running' => 'DIVING',
+            'crashed' => 'IMPLODED',        // "IMPLODED @ 2.47x"
+            'nextIn' => 'Next dive in',
+            'awaiting' => 'Awaiting next dive…',
+            'banner' => 'Hull breach',
+        ],
         // The built-in intro's backdrop per skin.
         'introBg' => [
             'burton' => ['landscape' => asset('images/bg-gothic-landscape.jpg'), 'portrait' => asset('images/bg-gothic-portrait.jpg')],
