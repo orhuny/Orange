@@ -3,7 +3,6 @@
         // him; the sky turns from day to dusk with the multiplier.
         const $marsh = document.querySelector('.scene.marsh');
         const $duck = $marsh.querySelector('.duck-wrap');
-        const $arm = $marsh.querySelector('.fox-arm');
         const $fox = $marsh.querySelector('.fox');
         const $loot = $marsh.querySelector('.loot');
         const LOOT = [@json($sceneDef['art']('coin.webp')), @json($sceneDef['art']('feather.webp'))];
@@ -67,14 +66,14 @@
                 home: { x: W * (portrait ? 0.62 : 0.7), y: Math.min(waterTop + dh * 0.08, H - hudRoom - dh * 0.42) },
                 cruise: { x: W * (portrait ? 0.6 : 0.62), y: Math.max(H * (portrait ? 0.3 : 0.27), Math.min(H * 0.42, H - hudRoom - dh * 0.75)) },
                 climb: H * 0.1,
-                // The arm's pivot: 58% / 82% of the fox, inside the blind (styles-scene).
-                pivot: { x: fox.left - scene.left + fox.width * 0.58, y: fox.top - scene.top + fox.height * 0.82 },
+                // Where he holds the gun (half-way up the fox), to aim from.
+                eye: { x: fox.left - scene.left + fox.width * 0.55, y: fox.top - scene.top + fox.height * 0.4 },
             };
         }
         new ResizeObserver(() => { L = null; place(lastM); }).observe($marsh);
 
         const ease = (p) => 1 - Math.pow(1 - p, 3);
-        let aim = -12;
+        let aim = 0; // the fox's pose: 0 low, 1 mid, 2 high
         let pose = 'idle';
         function setPose(next) {
             if (pose === next) return;
@@ -106,11 +105,14 @@
             $duck.style.transform = `translate3d(${(x - L.dw / 2).toFixed(1)}px, ${(y - L.dh / 2).toFixed(1)}px, 0)`;
             $stage.style.setProperty('--hero-x', `${x.toFixed(0)}px`);
             $stage.style.setProperty('--hero-y', `${y.toFixed(0)}px`);
-            // The gun follows him (eased, so it swings rather than snaps), raised 4° for the
-            // barrel sitting above the pivot; never steeper than 48°, where it would cross his face.
-            const target = Math.max(-48, Math.min(-6, Math.atan2(y - L.pivot.y, x - L.pivot.x) * 180 / Math.PI - 4));
-            aim += flying ? (target - aim) * 0.12 : target - aim;
-            $arm.style.rotate = `${aim.toFixed(2)}deg`;
+            // The fox takes the pose nearest the angle up to Lucky (low under ~25°, high over ~45°),
+            // with 3° of give so he doesn't flick between two poses on a boundary.
+            const up = Math.atan2(L.eye.y - y, x - L.eye.x) * 180 / Math.PI;
+            const want = up < 25 ? 0 : up < 45 ? 1 : 2;
+            if (want !== aim && (!flying || Math.abs(up - (want > aim ? [25, 45][want - 1] : [25, 45][aim - 1])) > 3)) {
+                aim = want;
+                $fox.dataset.aim = String(aim);
+            }
             // The scenery scrolls by what has been flown.
             const dist = (flown + travel(m)) * L.W;
             for (const s of $strips) {

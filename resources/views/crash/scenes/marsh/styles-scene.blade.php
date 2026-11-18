@@ -127,23 +127,33 @@
         @keyframes marsh-drop { to { transform: translate(-4vw, 80vh) rotate(-40deg); } }
 
         /* ---------- The fox ----------
-           His arm (behind him: the blind hides the sleeve and the paws) turns by --aim, set by the
-           script, about the sleeve's end (1.5% / 67.7% of the arm), placed low inside the blind;
-           the flash and the smoke come out of the bell (99.3% / 21.6%). */
+           Four poses in one strip (520 × 536 a cell): aiming low, mid, high (data-aim, set by the
+           script) and firing (at the crash). He sits on the bet bar when the game is embedded
+           (--op-bar-h); on a phone the bar and the multiplier fill the bottom, so he sits above
+           the multiplier row (--hud-room), where Lucky floats too. --mx / --my: the pose's bell. */
         .marsh .fox {
-            position: absolute; left: -1%; bottom: -1%; z-index: 8;
-            width: clamp(210px, 25vw, 400px); aspect-ratio: 640 / 361;
+            position: absolute; left: 0; bottom: var(--op-bar-h, 0px); z-index: 8;
+            width: clamp(170px, 19vw, 300px); aspect-ratio: 520 / 536;
+            --mx: 96.2%; --my: 37.6%;
         }
-        @media (orientation: portrait) { .marsh .fox { width: clamp(150px, 40vw, 260px); } }
-        .marsh .fox-body { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; }
-        .marsh .fox-arm {
-            position: absolute; left: 58%; top: 82%; width: 86%; aspect-ratio: 600 / 206;
-            transform-origin: 1.5% 67.7%; translate: -1.5% -67.7%; rotate: var(--aim, -12deg);
+        @media (orientation: portrait) {
+            .marsh .fox { width: clamp(130px, 35vw, 210px); bottom: calc(var(--hud-room, 0px) - 10px); }
         }
-        .marsh .fox-gun { display: block; width: 100%; height: 100%; user-select: none; }
-        .marsh .muzzle { position: absolute; left: 99.3%; top: 21.6%; width: 0; height: 0; }
-        .marsh .muzzle .flash { position: absolute; left: -14px; top: -48px; width: 96px; height: 96px; opacity: 0; overflow: visible; }
-        .marsh .muzzle .smoke { position: absolute; left: -16px; top: -34px; width: 78px; opacity: 0; filter: grayscale(1) brightness(0.86) contrast(0.9); }
+        .marsh .fox[data-aim="1"] { --mx: 85.1%; --my: 25.6%; }
+        .marsh .fox[data-aim="2"] { --mx: 84%; --my: 16.1%; }
+        .marsh .fox-sprite {
+            position: absolute; inset: 0;
+            background: url("{{ $sceneDef['art']('fox-aim.webp') }}") 0 0 / 400% 100% no-repeat;
+        }
+        .marsh .fox[data-aim="1"] .fox-sprite { background-position: 33.333% 0; }
+        .marsh .fox[data-aim="2"] .fox-sprite { background-position: 66.667% 0; }
+        /* The shot: the firing pose, a kick back, the flash and the smoke from its bell. */
+        .crashed .marsh .fox { --mx: 88.6%; --my: 25.3%; animation: marsh-recoil 0.42s ease-out; }
+        .crashed .marsh .fox-sprite { background-position: 100% 0; }
+        @keyframes marsh-recoil { 22% { translate: -12px 5px; } }
+        .marsh .muzzle { position: absolute; left: var(--mx); top: var(--my); width: 0; height: 0; }
+        .marsh .muzzle .flash { position: absolute; left: -22px; top: -56px; width: 96px; height: 96px; opacity: 0; overflow: visible; }
+        .marsh .muzzle .smoke { position: absolute; left: -16px; top: -40px; width: 78px; opacity: 0; filter: grayscale(1) brightness(0.86) contrast(0.9); }
         .crashed .marsh .muzzle .flash { animation: marsh-flash 0.32s ease-out forwards; }
         @keyframes marsh-flash { 0% { opacity: 1; scale: 0.3; } 35% { opacity: 1; scale: 1.25; } 100% { opacity: 0; scale: 1.5; } }
         .crashed .marsh .muzzle .smoke { animation: marsh-smoke 1.7s ease-out var(--d) forwards; }
@@ -152,8 +162,6 @@
             14%  { opacity: 0.95; }
             100% { opacity: 0; translate: var(--dx) var(--dy); scale: 1.6; }
         }
-        .crashed .marsh .fox-arm { animation: marsh-recoil 0.42s ease-out; }
-        @keyframes marsh-recoil { 22% { translate: calc(-1.5% - 16px) calc(-67.7% + 7px); } }
 
         /* ---------- Cash-out loot: coins and golden feathers burst from Lucky ---------- */
         .marsh .loot { position: absolute; inset: 0; pointer-events: none; z-index: 9; }

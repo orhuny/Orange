@@ -281,26 +281,49 @@ hw = int(max(f.shape[1] for f in hit) * k) + 20
 hh = int(max(f.shape[0] for f in hit) * k) + 20
 report['duck-hit.webp'] = {'frames': len(hit), 'cell': (hw, hh), 'bytes': even_sheet(hit, 'duck-hit.webp', hw, hh, k)}
 
-# --- The fox, his gun arm, the muzzle flash, the logo ----------------------------------------------
-# The fox has no pink: a stricter key takes out the magenta the upscaling smudged into the reeds.
-fox = key(load('fox-body.png')[6:-10, 6:-6], lo=10.0, hi=110.0)
-img = to_image(trim(fox))
-img = scale(img, 640 / img.size[0])
-report['fox-body.webp'] = {'size': img.size, 'bytes': save_webp(img, 'fox-body.webp')}
+# --- The fox: four poses in his blind (aiming low, mid, high; firing) -----------------------------
+# The fox has no pink: a stricter key takes out any magenta smudged into the reeds. The blind is
+# the same in every pose, so the frames are lined up on it: its planks' bottom edge and centre.
+poses = [trim(key(c, lo=10.0, hi=110.0), pad=2) for c in cells(load('fox-aim.png'), 4, 1)]
+FOX_W = 520  # px: the output cell's width
 
-gun = trim(key(load('fox-gun.png')[6:-10, 6:-6]))
-img = scale(to_image(gun), 600 / gun.shape[1])
-a = np.asarray(img)[..., 3] > 60
-cols = np.nonzero(a.any(axis=0))[0]
-rows_at = lambda x: np.nonzero(a[:, x])[0]
-tip_x = int(cols.max())
-tip_rows = rows_at(tip_x - 4)
-pivot_rows = rows_at(int(cols.min()) + 6)
-report['fox-gun.webp'] = {
-    'size': img.size, 'bytes': save_webp(img, 'fox-gun.webp'),
-    # Fractions of the image: where the sleeve ends (the shoulder) and the bell's mouth.
-    'pivot': (round((cols.min() + 6) / img.size[0], 3), round(float(pivot_rows.mean()) / img.size[1], 3)),
-    'muzzle': (round(tip_x / img.size[0], 3), round(float(tip_rows.mean()) / img.size[1], 3)),
+
+def blind_centre(f):
+    a = f[..., 3] > 128
+    band = a[int(a.shape[0] * 0.92):]  # the planks along the bottom
+    xs = np.nonzero(band.any(axis=0))[0]
+    return (xs.min() + xs.max()) / 2
+
+
+def bell_mouth(f):
+    """The blunderbuss's mouth: the top-right end of the brass (the hat's buckle is further left)."""
+    r, g, b, a = (f[..., i] for i in range(4))
+    brass = (a > 200) & (r > 170) & (g > 120) & (b < 110) & (r - b > 90)
+    ys, xs = np.nonzero(brass)
+    score = xs - 0.5 * ys
+    best = np.argsort(score)[-40:]
+    return float(xs[best].mean()), float(ys[best].mean())
+
+
+centres = [blind_centre(f) for f in poses]
+left = max(c for c in centres) + 4
+right = max(f.shape[1] - c for f, c in zip(poses, centres)) + 4
+height = max(f.shape[0] for f in poses) + 4
+k = FOX_W / (left + right)
+cw, ch = FOX_W, int(np.ceil(height * k))
+sheet = Image.new('RGBA', (cw * len(poses), ch), (0, 0, 0, 0))
+mouths = []
+for i, (f, c) in enumerate(zip(poses, centres)):
+    img = scale(to_image(f), k)
+    x0 = int(round(left * k - c * k))
+    y0 = ch - img.size[1]  # sitting on the cell's bottom edge
+    sheet.alpha_composite(img, (i * cw + x0, y0))
+    mx, my = bell_mouth(f)
+    mouths.append((round((x0 + mx * k) / cw, 3), round((y0 + my * k) / ch, 3)))
+report['fox-aim.webp'] = {
+    'frames': len(poses), 'cell': (cw, ch), 'bytes': save_webp(sheet, 'fox-aim.webp'),
+    # Fractions of a cell, per pose: where the bell's mouth is (the scene's FOX_MUZZLE).
+    'muzzle': mouths,
 }
 
 # The delivered muzzle strip (muzzle.png) is clipped flat on every frame, so it is not used:

@@ -32,24 +32,22 @@
 
             <div class="strip strip-reeds" style="--k: 1.2"><b></b></div>
 
-            {{-- The fox in his blind, bottom left. His gun arm is its own layer, behind him: the
-                 script turns it toward Lucky from low inside the blind, so the barrel pokes out past
-                 his face; the flash and the smoke sit at the gun's mouth. --}}
-            <div class="fox" aria-hidden="true">
-                <div class="fox-arm">
-                    <img class="fox-gun" src="{{ $art('fox-gun.webp') }}" alt="" draggable="false">
-                    <div class="muzzle">
-                        <img class="smoke" src="{{ $art('cloud-3.webp') }}" alt="" draggable="false" style="--d: 0s; --dx: 30px; --dy: -26px;">
-                        <img class="smoke" src="{{ $art('cloud-4.webp') }}" alt="" draggable="false" style="--d: 0.05s; --dx: 58px; --dy: 8px;">
-                        <img class="smoke" src="{{ $art('cloud-6.webp') }}" alt="" draggable="false" style="--d: 0.1s; --dx: 10px; --dy: -54px;">
-                        <svg class="flash" viewBox="-50 -50 100 100" aria-hidden="true">
-                            <polygon points="0,-46 9,-15 40,-26 18,-3 46,8 14,10 22,40 0,16 -20,38 -12,9 -40,6 -16,-6 -34,-30 -6,-16"
-                                     fill="#fde047" stroke="#f97316" stroke-width="4" stroke-linejoin="round"/>
-                            <circle r="12" fill="#fffbeb"/>
-                        </svg>
-                    </div>
+            {{-- The fox in his blind, bottom left (on the bet bar; on a phone, above the multiplier).
+                 Four poses (fox-aim.webp): aiming low, mid and high, picked by the script from where
+                 Lucky is (data-aim), and firing at the crash; the flash and smoke come out of the
+                 pose's bell (--mx / --my). --}}
+            <div class="fox" data-aim="0" aria-hidden="true">
+                <div class="fox-sprite"></div>
+                <div class="muzzle">
+                    <img class="smoke" src="{{ $art('cloud-3.webp') }}" alt="" draggable="false" style="--d: 0s; --dx: 30px; --dy: -26px;">
+                    <img class="smoke" src="{{ $art('cloud-4.webp') }}" alt="" draggable="false" style="--d: 0.05s; --dx: 58px; --dy: 8px;">
+                    <img class="smoke" src="{{ $art('cloud-6.webp') }}" alt="" draggable="false" style="--d: 0.1s; --dx: 10px; --dy: -54px;">
+                    <svg class="flash" viewBox="-50 -50 100 100" aria-hidden="true">
+                        <polygon points="0,-46 9,-15 40,-26 18,-3 46,8 14,10 22,40 0,16 -20,38 -12,9 -40,6 -16,-6 -34,-30 -6,-16"
+                                 fill="#fde047" stroke="#f97316" stroke-width="4" stroke-linejoin="round"/>
+                        <circle r="12" fill="#fffbeb"/>
+                    </svg>
                 </div>
-                <img class="fox-body" src="{{ $art('fox-body.webp') }}" alt="" draggable="false">
             </div>
 
             {{-- Gold coins and feathers that burst from Lucky when a bet cashes out. --}}
