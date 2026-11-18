@@ -51,6 +51,7 @@ let ctx;
 beforeAll(async () => {
     await import('../../public/js/orange/sound-gothic.js');
     await import('../../public/js/orange/sound-jackpot.js');
+    await import('../../public/js/orange/sound-marsh.js');
 });
 
 beforeEach(() => {
@@ -62,8 +63,9 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-// Each illustrated theme's pack: Gothic Nightmare ("burton") and Jackpot Reef ("jackpot").
-describe.each(['gothic', 'jackpot'])('%s sound pack', (name) => {
+// Each illustrated skin's pack: Gothic Nightmare ("burton"), Jackpot Reef ("jackpot") and
+// Lucky Duck's marsh ("luckyduck").
+describe.each(['gothic', 'jackpot', 'marsh'])('%s sound pack', (name) => {
     let pack;
 
     beforeEach(() => {
@@ -123,6 +125,31 @@ describe('jackpot music', () => {
 
         expect(abyss).toBeGreaterThan(betting * 1.5); // drums, arpeggio, faster tempo
         expect(calmAgain).toBeLessThan(abyss);
+        background.stop();
+    });
+});
+
+describe('marsh music', () => {
+    it('builds as Lucky flies higher and calms down again', () => {
+        const background = window.OrangeSound.marsh(ctx, ctx.createGain()).ambience();
+        const notesIn = (seconds) => {
+            const before = ctx.started.length;
+            ctx.currentTime += seconds;
+            vi.advanceTimersByTime(seconds * 1000);
+            return ctx.started.length - before;
+        };
+
+        notesIn(2);
+        const betting = notesIn(4);
+        background.intensity(3);
+        notesIn(2);
+        const dusk = notesIn(4);
+        background.intensity(0);
+        notesIn(2);
+        const calmAgain = notesIn(4);
+
+        expect(dusk).toBeGreaterThan(betting * 1.5); // the full roll, washboard, the whistled tune, faster
+        expect(calmAgain).toBeLessThan(dusk);
         background.stop();
     });
 });
