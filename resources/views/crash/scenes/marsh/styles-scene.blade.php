@@ -243,15 +243,18 @@
            In his tub boat (fox-boat.webp: 8 poses, 520 × 336 a cell, the waterline at 95%): aiming
            low, mid, high; firing at those; reloading; paddling. The script picks the pose
            (background-position) and puts the muzzle at its bell (--mx / --my). He floats bottom
-           left, on the bet bar when the game is embedded (--op-bar-h), bobbing; the wake streams
-           out behind the boat while Lucky flies. */
+           left, out on the pond: behind the near reeds (z-index under .strip-reeds), his waterline
+           on the open water of the marsh strip, so the reeds hide the tub's bottom and he sits in the
+           water, not on the reeds; a little smaller than Lucky's scale, being further off. On the
+           bet bar when the game is embedded (--op-bar-h). He bobs; the wake streams out behind the
+           boat while Lucky flies. */
         .marsh .fox {
-            position: absolute; left: 0; bottom: calc(var(--op-bar-h, 0px) + 0.5%); z-index: 8;
-            width: clamp(190px, 22vw, 340px); aspect-ratio: 520 / 336;
+            position: absolute; left: 1.5%; bottom: calc(var(--op-bar-h, 0px) + 12%); z-index: 5;
+            width: clamp(160px, 18vw, 280px); aspect-ratio: 520 / 336;
             --mx: 81.9%; --my: 43.2%;
         }
         @media (orientation: portrait) {
-            .marsh .fox { width: clamp(140px, 40vw, 230px); }
+            .marsh .fox { width: clamp(120px, 33vw, 200px); bottom: calc(var(--op-bar-h, 0px) + 7.5%); }
         }
         .marsh .boat { position: absolute; inset: 0; transform-origin: 50% 95%; animation: marsh-boat 2.4s ease-in-out infinite alternate; }
         @keyframes marsh-boat { from { translate: 0 -2px; rotate: -1.5deg; } to { translate: 0 2px; rotate: 1.5deg; } }
