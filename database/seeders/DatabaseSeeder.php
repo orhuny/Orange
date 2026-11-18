@@ -67,6 +67,30 @@ class DatabaseSeeder extends Seeder
             ['min_bet' => '0.10', 'max_bet' => '100.00', 'max_win' => '10000.00'],
         );
 
+        // Sugar Orchard, the first slot: open only to operators it is enabled for. The stake of a
+        // bought feature is 100× the bet, and the limits apply to the stake, hence the high
+        // max bet. Placeholder EUR limits, like Dice's.
+        $slots = GameCategory::query()->updateOrCreate(['slug' => 'slots'], ['name' => 'Slots', 'sort_order' => 30]);
+        $orchard = Game::updateOrCreate(
+            ['code' => 'sugar-orchard'],
+            [
+                'type' => 'slot',
+                'slug' => 'sugar-orchard',
+                'access' => 'listed',
+                'category_id' => $slots->id,
+                'name' => 'Sugar Orchard',
+                'version' => 1,
+                'rtp_target' => 0.965,
+                'house_edge' => 0.035,
+                'config' => ['model' => 'sugar-orchard', 'variant' => 'v1-9650', 'theme' => 'sugar-orchard'],
+                'status' => 'active',
+            ],
+        );
+        GameLimit::updateOrCreate(
+            ['game_id' => $orchard->id, 'currency' => 'EUR'],
+            ['min_bet' => '0.20', 'max_bet' => '500.00', 'max_win' => '100000.00'],
+        );
+
         if (app()->environment(['local', 'testing'])) {
             $this->call(ConsumerOperatorSeeder::class);
         }
