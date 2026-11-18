@@ -18,9 +18,10 @@
             <div class="strip strip-marsh" style="--k: 0.55"><b></b></div>
 
             {{-- Lucky. The script places .duck-wrap (on the water, the take-off, the flight) and
-                 sets its pose: idle | lift | fly | dodge-dip | dodge-roll | hit. .duck-bob bobs him,
-                 .duck-fall carries the drop once he is hit; as he falls his eyes spin (.dizzy) and
-                 stars circle his head (.orbit). --}}
+                 sets its pose: idle | lift | fly | dodge-dip | dodge-roll | hit | emerge. .duck-bob bobs
+                 him, .duck-fall carries the drop once he is hit: his eyes spin (.dizzy) and stars
+                 circle his head (.orbit) as he tumbles, then he lands in the pond with a splash, feet
+                 up, and sinks (.duck-water); the next round he pops back up (emerge). --}}
             <div class="duck-wrap" data-pose="idle" aria-hidden="true">
                 <div class="duck-fall">
                     <div class="duck-bob">
@@ -33,21 +34,24 @@
                         <i class="dizzy dizzy-2"></i>
                         <i class="orbit"><b></b><b></b><b></b></i>
                     </div>
+                    <div class="duck-sprite duck-water"></div>
+                    <div class="duck-sprite water-splash"></div>
                 </div>
             </div>
 
             <div class="strip strip-reeds" style="--k: 1.2"><b></b></div>
 
-            {{-- The fox in his blind, bottom left (on the bet bar when embedded). Seven poses
-                 (fox.webp): aiming low, mid and high, firing at those, and reloading, picked by the
-                 script, which also puts the blast and the smoke at the pose's bell (--mx / --my). --}}
+            {{-- The fox in his tub boat on the pond, bottom left (on the bet bar when embedded).
+                 Eight poses (fox-boat.webp): aiming low, mid and high, firing at those, reloading and
+                 paddling, picked by the script, which also puts the muzzle at the pose's bell
+                 (--mx / --my). The boat bobs; its wake streams out behind it while Lucky flies. --}}
             <div class="fox" aria-hidden="true">
-                <div class="fox-sprite"></div>
-                <div class="muzzle">
-                    <img class="smoke" src="{{ $art('cloud-3.webp') }}" alt="" draggable="false" style="--d: 0s; --dx: 30px; --dy: -26px;">
-                    <img class="smoke" src="{{ $art('cloud-4.webp') }}" alt="" draggable="false" style="--d: 0.05s; --dx: 58px; --dy: 8px;">
-                    <img class="smoke" src="{{ $art('cloud-6.webp') }}" alt="" draggable="false" style="--d: 0.1s; --dx: 10px; --dy: -54px;">
-                    <img class="blast" src="{{ $art('muzzle-burst.webp') }}" alt="" draggable="false">
+                <div class="boat">
+                    <div class="wake"></div>
+                    <div class="fox-sprite"></div>
+                    <div class="muzzle">
+                        <img class="blast" src="{{ $art('muzzle-burst.webp') }}" alt="" draggable="false">
+                    </div>
                 </div>
             </div>
 

@@ -10,9 +10,10 @@
         const $loot = $marsh.querySelector('.loot');
         const LOOT = [@json($sceneDef['art']('coin.webp')), @json($sceneDef['art']('feather.webp'))];
         const SPRAY = @json($sceneDef['art']('shot-spray.webp'));
-        // fox.webp: 7 poses, 0-2 aiming low / mid / high, 3-5 firing at those, 6 reloading; and where
-        // the bell's mouth is in poses 0-5, as fractions of a pose (scripts/art/process-lucky-duck.py).
-        const FOX_MUZZLE = [[0.94, 0.371], [0.868, 0.252], [0.816, 0.157], [0.963, 0.39], [0.87, 0.289], [0.818, 0.164]];
+        // fox-boat.webp: 8 poses, 0-2 aiming low / mid / high, 3-5 firing at those, 6 reloading,
+        // 7 paddling; and where the bell's mouth is in poses 0-5, as fractions of a pose
+        // (scripts/art/process-lucky-duck.py).
+        const FOX_MUZZLE = [[0.819, 0.432], [0.802, 0.272], [0.693, 0.192], [0.792, 0.434], [0.745, 0.271], [0.672, 0.118]];
         // Each strip's art, width ÷ height (one repeat), for the scroll's wrap-around.
         const STRIP_RATIO = { 'strip-hills': 1448 / 270, 'strip-marsh': 1448 / 451, 'strip-reeds': 1448 / 546 };
         const $strips = [...$marsh.querySelectorAll('.strip')].map(($s) => ({
@@ -94,12 +95,12 @@
             if ($marsh.dataset.sky !== sky) $marsh.dataset.sky = sky;
         }
 
-        // The fox: where he aims (0 low, 1 mid, 2 high) and what he does (aim | fire | reload).
+        // The fox: where he aims (0 low, 1 mid, 2 high) and what he does (aim | fire | reload | paddle).
         let aim = 0;
         let act = 'aim';
         function renderFox() {
-            const frame = act === 'reload' ? 6 : act === 'fire' ? 3 + aim : aim;
-            $foxSprite.style.backgroundPosition = `${(frame / 6 * 100).toFixed(3)}% 0`;
+            const frame = act === 'paddle' ? 7 : act === 'reload' ? 6 : act === 'fire' ? 3 + aim : aim;
+            $foxSprite.style.backgroundPosition = `${(frame / 7 * 100).toFixed(3)}% 0`;
             const [mx, my] = FOX_MUZZLE[Math.min(frame, 5)];
             $fox.style.setProperty('--mx', `${(mx * 100).toFixed(1)}%`);
             $fox.style.setProperty('--my', `${(my * 100).toFixed(1)}%`);
@@ -128,12 +129,16 @@
             };
         }
 
-        function place(m, flying) {
+        // Moves Lucky to multiplier m, the fox's aim with him, and the scenery; `moveDuck` false
+        // leaves Lucky where he is (falling into the pond).
+        function place(m, flying, moveDuck = true) {
             if (!L) layout();
             const { x, y } = duckAt(m);
-            $duck.style.transform = `translate3d(${(x - L.dw / 2).toFixed(1)}px, ${(y - L.dh / 2).toFixed(1)}px, 0)`;
-            $stage.style.setProperty('--hero-x', `${x.toFixed(0)}px`);
-            $stage.style.setProperty('--hero-y', `${y.toFixed(0)}px`);
+            if (moveDuck) {
+                $duck.style.transform = `translate3d(${(x - L.dw / 2).toFixed(1)}px, ${(y - L.dh / 2).toFixed(1)}px, 0)`;
+                $stage.style.setProperty('--hero-x', `${x.toFixed(0)}px`);
+                $stage.style.setProperty('--hero-y', `${y.toFixed(0)}px`);
+            }
             // The fox takes the pose nearest the angle up to Lucky (low under ~25°, high over ~45°),
             // with 3° of give so he doesn't flick between two poses on a boundary; not while he
             // is firing or reloading.
@@ -178,10 +183,20 @@
             void $blast.offsetWidth; // restarts its animation
             $blast.classList.add('pop');
         }
+        // A puff of gun smoke from the bell, drifting up.
+        function puff() {
+            const from = bell();
+            const $p = document.createElement('i');
+            $p.className = 'puff';
+            $p.style.cssText = `--x:${from.x.toFixed(0)}px;--y:${from.y.toFixed(0)}px`;
+            $p.addEventListener('animationend', (e) => e.animationName === 'marsh-puff-drift' && $p.remove());
+            $shots.appendChild($p);
+        }
         function fire() {
             const over = shotN % 2 === 0; // even shots pass over him, odd ones under
             setAct('fire');
             popBlast();
+            puff();
             audio.sfx('shot');
             const from = bell();
             const { x, y } = duckAt(lastM);
@@ -202,8 +217,10 @@
                 pose = over ? 'dodge-dip' : 'dodge-roll';
                 $duck.dataset.pose = pose;
             });
+            // Then he reloads, paddles a stroke after Lucky, and aims again.
             later(340, () => act === 'fire' && setAct('reload'));
-            later(1400, () => act === 'reload' && setAct('aim'));
+            later(1150, () => act === 'reload' && setAct('paddle'));
+            later(1750, () => act === 'paddle' && setAct('aim'));
         }
         function shoot(m) {
             const t = Math.log(Math.max(1, m)) / G;
@@ -229,6 +246,24 @@
             $stage.style.setProperty('--bang-y', `${by.toFixed(0)}px`);
         }
 
+        // After the hit Lucky drops into the pond, at his spot on the water: he lands with a splash
+        // (the styles' --land-at, 1.88 s after the crash), feet up, and sinks (1.4 s later). The next
+        // round he pops back up there (emerge, 1.8 s) and floats as before; if the round resets
+        // while he is still falling, he finishes first.
+        const SUNK_MS = 3300;
+        const EMERGE_MS = 1800;
+        let crashedAt = 0;
+        let emergeTimer = 0;
+        function emerge() {
+            emergeTimer = 0;
+            place(1, false); // his spot on the water (where he sank)
+            setPose('emerge');
+            emergeTimer = setTimeout(() => {
+                emergeTimer = 0;
+                if (pose === 'emerge') setPose('idle');
+            }, EMERGE_MS);
+        }
+
         const scene = {
             // Every animation frame of a round, at its multiplier.
             frame(m) {
@@ -243,10 +278,18 @@
             },
             crashed(point) {
                 stopShooting();
+                clearTimeout(emergeTimer);
+                emergeTimer = 0;
+                crashedAt = performance.now();
                 setSky(point);
-                setPose('hit');
                 if (!L) layout();
-                setAct('fire'); // this one hits (the blast and smoke: .crashed, in the styles)
+                // The drop, from where he is hit to his spot on the pond.
+                const { x, y } = duckAt(lastM);
+                $duck.style.setProperty('--fall-x', `${(L.home.x - x).toFixed(0)}px`);
+                $duck.style.setProperty('--fall-y', `${(L.home.y - y).toFixed(0)}px`);
+                setPose('hit');
+                setAct('fire'); // this one hits (the big blast: .crashed, in the styles)
+                puff();
                 placeBang();
             },
             reset() {
@@ -257,9 +300,17 @@
                 flown += travel(lastM);
                 lastM = 1;
                 setSky(1);
-                setPose('idle');
                 setAct('aim');
-                place(1, false);
+                if (pose === 'hit') {
+                    // In the pond: he comes back up once he has sunk (now, or when he has).
+                    place(1, false, false);
+                    if (!emergeTimer) emergeTimer = setTimeout(emerge, Math.max(0, SUNK_MS - (performance.now() - crashedAt)));
+                } else if (pose === 'emerge') {
+                    place(1, false, false); // already coming back up
+                } else {
+                    setPose('idle');
+                    place(1, false);
+                }
             },
             // A bet cashed out: a few coins and golden feathers burst from Lucky.
             cashedOut() {

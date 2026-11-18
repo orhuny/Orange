@@ -91,8 +91,6 @@
             opacity: 0;
         }
 
-        .marsh .duck-wrap[data-pose="idle"] { animation: marsh-duck-in 0.8s ease-out; }
-        @keyframes marsh-duck-in { from { opacity: 0; } }
         .marsh [data-pose="idle"] .duck-takeoff { animation: marsh-duck-idle 3.4s step-end infinite; }
         @keyframes marsh-duck-idle {
             0%   { background-position: 0 0; }
@@ -137,7 +135,7 @@
            soot and stars, the tumble, the fall, the feathers) and Lucky drops out of the sky. */
         .marsh [data-pose="hit"] .duck-bob { animation: marsh-vanish 0s linear var(--boom-at) forwards; }
         @keyframes marsh-vanish { to { opacity: 0; } }
-        .marsh [data-pose="hit"] .duck-hit { animation: marsh-show 0s linear var(--boom-at) forwards, marsh-duck-hit 2s step-end var(--boom-at) forwards; }
+        .marsh [data-pose="hit"] .duck-hit { animation: marsh-show 0s linear var(--boom-at) forwards, marsh-duck-hit 2s step-end var(--boom-at) forwards, marsh-vanish 0s linear var(--land-at) forwards; }
         @keyframes marsh-show { to { opacity: 1; } }
         @keyframes marsh-duck-hit {
             0%        { background-position: 0 0; }
@@ -200,43 +198,100 @@
             100%  { left: 100%; top: 50%;  scale: 0.85; }
         }
 
-        .marsh [data-pose="hit"] .duck-fall { animation: marsh-drop 1.25s cubic-bezier(0.55, 0, 1, 0.45) calc(var(--boom-at) + 1.15s) forwards; }
-        @keyframes marsh-drop { to { transform: translate(-4vw, 80vh) rotate(-40deg); } }
+        .marsh [data-pose="hit"] .duck-fall { animation: marsh-drop 0.55s cubic-bezier(0.55, 0, 1, 0.45) calc(var(--boom-at) + 1.15s) forwards; }
+        @keyframes marsh-drop { to { transform: translate(var(--fall-x, 0px), var(--fall-y, 60vh)); } }
+
+        /* In the pond (duck-water.webp: 6 frames, 149 × 95 a cell at the flight's scale, put so its
+           ripple sits where the floating take-off frame's does). He lands at --land-at with a splash,
+           feet up and twitching, then sinks; the next round he pops up, shakes off, straightens his
+           bandana and floats smug (emerge), which is where the floating idle frame takes over. */
+        .marsh { --land-at: calc(var(--boom-at) + 1.7s); }
+        .marsh .duck-water {
+            inset: auto; left: 35.34%; top: 39.74%; width: 52.84%; aspect-ratio: 149 / 95;
+            background-image: url("{{ $sceneDef['art']('duck-water.webp') }}"); background-size: 600% 100%;
+            opacity: 0;
+        }
+        .marsh [data-pose="hit"] .duck-water {
+            animation: marsh-show 0s linear var(--land-at) forwards, marsh-sink 1.4s step-end var(--land-at) forwards, marsh-twitch 0.18s linear var(--land-at) 7;
+        }
+        @keyframes marsh-sink { 0% { background-position: 0 0; } 100% { background-position: 20% 0; } }
+        @keyframes marsh-twitch { 50% { rotate: 3deg; translate: 0 -1px; } }
+        .marsh [data-pose="emerge"] .duck-water { opacity: 1; animation: marsh-emerge 1.8s step-end forwards; }
+        @keyframes marsh-emerge {
+            0%   { background-position: 40% 0; }
+            25%  { background-position: 60% 0; }
+            50%  { background-position: 80% 0; }
+            75%, 100% { background-position: 100% 0; }
+        }
+        .marsh [data-pose="emerge"] :is(.duck-takeoff, .duck-fly, .duck-dodge) { display: none; }
+        /* The splash (water-splash.webp: 4 frames, 292 × 188 a cell), as wide as Lucky, on the water line. */
+        .marsh .water-splash {
+            inset: auto; left: 12.6%; top: 14.3%; width: 100%; aspect-ratio: 292 / 188;
+            background-image: url("{{ $sceneDef['art']('water-splash.webp') }}"); background-size: 400% 100%;
+            opacity: 0;
+        }
+        .marsh [data-pose="hit"] .water-splash { animation: marsh-splash 0.7s step-end var(--land-at) forwards; }
+        @keyframes marsh-splash {
+            0%   { opacity: 1; background-position: 0 0; }
+            20%  { background-position: 33.333% 0; }
+            45%  { background-position: 66.667% 0; }
+            70%  { background-position: 100% 0; }
+            100% { opacity: 0; background-position: 100% 0; }
+        }
 
         /* ---------- The fox ----------
-           Seven poses in one strip (520 × 532 a cell): aiming low, mid, high; firing at those;
-           reloading. The script picks the pose (background-position) and puts the muzzle at its
-           bell (--mx / --my). He sits bottom left, in the reeds, on the bet bar when the game is
-           embedded (--op-bar-h). */
+           In his tub boat (fox-boat.webp: 8 poses, 520 × 336 a cell, the waterline at 95%): aiming
+           low, mid, high; firing at those; reloading; paddling. The script picks the pose
+           (background-position) and puts the muzzle at its bell (--mx / --my). He floats bottom
+           left, on the bet bar when the game is embedded (--op-bar-h), bobbing; the wake streams
+           out behind the boat while Lucky flies. */
         .marsh .fox {
-            position: absolute; left: 0; bottom: var(--op-bar-h, 0px); z-index: 8;
-            width: clamp(170px, 19vw, 300px); aspect-ratio: 520 / 532;
-            --mx: 94%; --my: 37.1%;
+            position: absolute; left: 0; bottom: calc(var(--op-bar-h, 0px) + 0.5%); z-index: 8;
+            width: clamp(190px, 22vw, 340px); aspect-ratio: 520 / 336;
+            --mx: 81.9%; --my: 43.2%;
         }
         @media (orientation: portrait) {
-            .marsh .fox { width: clamp(118px, 32vw, 200px); }
+            .marsh .fox { width: clamp(140px, 40vw, 230px); }
         }
+        .marsh .boat { position: absolute; inset: 0; transform-origin: 50% 95%; animation: marsh-boat 2.4s ease-in-out infinite alternate; }
+        @keyframes marsh-boat { from { translate: 0 -2px; rotate: -1.5deg; } to { translate: 0 2px; rotate: 1.5deg; } }
         .marsh .fox-sprite {
             position: absolute; inset: 0;
-            background: url("{{ $sceneDef['art']('fox.webp') }}") 0 0 / 700% 100% no-repeat;
+            background: url("{{ $sceneDef['art']('fox-boat.webp') }}") 0 0 / 800% 100% no-repeat;
         }
+        .marsh .wake {
+            position: absolute; right: 78%; bottom: 1%; width: 70%; aspect-ratio: 308 / 53;
+            background: url("{{ $sceneDef['art']('boat-wake.webp') }}") 0 0 / 300% 100% no-repeat;
+            opacity: 0; transition: opacity 0.6s ease;
+        }
+        .running .marsh .wake { opacity: 1; animation: marsh-wake 0.5s steps(3, jump-none) infinite; }
+        @keyframes marsh-wake { to { background-position: 100% 0; } }
         .marsh .muzzle { position: absolute; left: var(--mx); top: var(--my); width: 0; height: 0; }
-        /* Every shot: a blast at the bell. The one that hits (the crash): a bigger blast, a kick
-           back and the smoke. */
+        /* Every shot: a blast at the bell. The one that hits (the crash): a bigger blast and a kick back. */
         .marsh .muzzle .blast { position: absolute; left: 0; top: 0; width: clamp(46px, 5.5vw, 84px); height: auto; translate: -30% -50%; opacity: 0; }
         .marsh .muzzle .blast.pop { animation: marsh-blast 0.32s ease-out; }
         @keyframes marsh-blast { 0% { opacity: 1; scale: 0.3; } 35% { opacity: 1; scale: 1.15; } 100% { opacity: 0; scale: 1.35; } }
         .crashed .marsh .muzzle .blast { animation: marsh-blast-big 0.45s ease-out forwards; }
         @keyframes marsh-blast-big { 0% { opacity: 1; scale: 0.4; } 35% { opacity: 1; scale: 1.7; } 100% { opacity: 0; scale: 2; } }
-        .marsh .muzzle .smoke { position: absolute; left: -16px; top: -40px; width: 78px; opacity: 0; filter: grayscale(1) brightness(0.86) contrast(0.9); }
-        .crashed .marsh .muzzle .smoke { animation: marsh-smoke 1.7s ease-out var(--d) forwards; }
-        @keyframes marsh-smoke {
-            0%   { opacity: 0; translate: 0 0; scale: 0.3; }
-            14%  { opacity: 0.95; }
-            100% { opacity: 0; translate: var(--dx) var(--dy); scale: 1.6; }
-        }
         .crashed .marsh .fox { animation: marsh-recoil 0.42s ease-out; }
         @keyframes marsh-recoil { 22% { translate: -12px 5px; } }
+
+        /* Gun smoke, from the bell on every shot (gunsmoke.webp: 6 frames, puff to wisp), drifting up. */
+        .marsh .puff {
+            position: absolute; left: var(--x); top: var(--y); width: clamp(56px, 7vw, 110px); aspect-ratio: 1;
+            translate: -22% -62%;
+            background: url("{{ $sceneDef['art']('gunsmoke.webp') }}") 0 0 / 600% 100% no-repeat;
+            animation: marsh-puff 1.2s step-end forwards, marsh-puff-drift 1.2s ease-out forwards;
+        }
+        @keyframes marsh-puff {
+            0%   { background-position: 0 0; }
+            12%  { background-position: 20% 0; }
+            28%  { background-position: 40% 0; }
+            48%  { background-position: 60% 0; }
+            68%  { background-position: 80% 0; }
+            86%, 100% { background-position: 100% 0; }
+        }
+        @keyframes marsh-puff-drift { 80% { opacity: 1; } to { transform: translate(26px, -34px); opacity: 0; } }
 
         /* A missed shot: the spray flies from the bell along --a, past Lucky, off the screen. */
         .marsh .shots { position: absolute; inset: 0; pointer-events: none; z-index: 9; }

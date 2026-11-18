@@ -281,25 +281,36 @@ hw = int(max(f.shape[1] for f in hit) * k) + 20
 hh = int(max(f.shape[0] for f in hit) * k) + 20
 report['duck-hit.webp'] = {'frames': len(hit), 'cell': (hw, hh), 'bytes': even_sheet(hit, 'duck-hit.webp', hw, hh, k)}
 
-# --- The fox: seven poses in his blind --------------------------------------------------------------
-# From two sheets drawn alike (the same straw-and-plank blind): fox-aim.png aims low, mid and
-# high; fox-fire.png fires low, mid and high, and reloads. Frames: 0-2 aim, 3-5 fire, 6 reload.
-# The fox has no pink: a stricter key takes out any magenta smudged into the reeds. The frames
-# are lined up on the blind (its bottom edge and centre) and scaled so it is the same width.
-poses = [trim(key(c, lo=10.0, hi=110.0), pad=2) for c in cells(load('fox-aim.png'), 4, 1)][:3] + [trim(key(c, lo=10.0, hi=110.0), pad=2) for c in cells(load('fox-fire.png'), 4, 1)]
-FOX_W = 520  # px: the output cell's width
+# --- The fox: eight poses in his tub boat ------------------------------------------------------------
+# Two sheets drawn alike (the same half-barrel tub): fox-boat-aim.png aims low, mid, high and
+# paddles; fox-boat-fire.png fires low, mid, high and reloads. Frames: 0-2 aim, 3-5 fire,
+# 6 reload, 7 paddle. Lined up and scaled on the tub's iron hoops (the same in every frame).
 
 
-def blind_band(f):
-    """The blind's planks along the bottom: their left and right edge."""
-    a = f[..., 3] > 128
-    band = a[int(a.shape[0] * 0.93):]
-    xs = np.nonzero(band.any(axis=0))[0]
-    return float(xs.min()), float(xs.max())
+def despeck(f, keep=0.02):
+    """Clears the specks a generator leaves between frames: shapes under `keep` of the largest."""
+    boxes = components(f, min_area=1, threshold=60)
+    if not boxes:
+        return f
+    big = max(b[4] for b in boxes)
+    out = f.copy()
+    for x0, y0, x1, y1, area in boxes:
+        if area < big * keep:
+            out[y0:y1, x0:x1, 3] = 0
+    return out
+
+
+def hoops(f):
+    """The tub's dark slate iron hoops: their left and right edge and their lowest row."""
+    r, g, b, a = (f[..., i] for i in range(4))
+    slate = (a > 200) & (b > r + 8) & (b >= g) & (r < 130) & (g < 140) & (b < 175)
+    slate[: int(f.shape[0] * 0.45)] = False  # the tub is in the lower half
+    ys, xs = np.nonzero(slate)
+    return float(np.percentile(xs, 2)), float(np.percentile(xs, 98)), float(np.percentile(ys, 98))
 
 
 def bell_mouth(f):
-    """The blunderbuss's mouth: the top-right end of the brass (the feather is further left)."""
+    """The blunderbuss's mouth: the top-right end of the brass."""
     r, g, b, a = (f[..., i] for i in range(4))
     brass = (a > 200) & (r > 170) & (g > 120) & (b < 110) & (r - b > 90)
     ys, xs = np.nonzero(brass)
@@ -308,30 +319,47 @@ def bell_mouth(f):
     return float(xs[best].mean()), float(ys[best].mean())
 
 
-bands = [blind_band(f) for f in poses]
-width = float(np.median([r - l for l, r in bands]))
-scales = [width / (r - l) for l, r in bands]                 # every blind as wide as the median
-centres = [(l + r) / 2 * k for (l, r), k in zip(bands, scales)]
+aim_cells = [despeck(key(c, lo=10.0, hi=110.0)) for c in cells(load('fox-boat-aim.png'), 4, 1)]
+fire_cells = [despeck(key(c, lo=10.0, hi=110.0)) for c in cells(load('fox-boat-fire.png'), 4, 1)]
+poses = [trim(f, pad=2) for f in aim_cells[:3] + fire_cells + [aim_cells[3]]]
+FOX_W = 520  # px: the output cell's width
+marks = [hoops(f) for f in poses]
+width = float(np.median([r - l for l, r, _ in marks]))
+scales = [width / (r - l) for l, r, _ in marks]           # every tub as wide as the median
+centres = [(l + r) / 2 * k for (l, r, _), k in zip(marks, scales)]
+bottoms = [y * k for (_, _, y), k in zip(marks, scales)]   # the hoops' lowest row
 left = max(centres) + 4
 right = max(f.shape[1] * k - c for f, k, c in zip(poses, scales, centres)) + 4
-height = max(f.shape[0] * k for f, k in zip(poses, scales)) + 4
+above = max(bottoms) + 4
+below = max(f.shape[0] * k - y for f, k, y in zip(poses, scales, bottoms)) + 4
 z = FOX_W / (left + right)
-cw, ch = FOX_W, int(np.ceil(height * z))
+cw, ch = FOX_W, int(np.ceil((above + below) * z))
 sheet = Image.new('RGBA', (cw * len(poses), ch), (0, 0, 0, 0))
 mouths = []
-for i, (f, k, c) in enumerate(zip(poses, scales, centres)):
+for i, (f, k, c, y) in enumerate(zip(poses, scales, centres, bottoms)):
     img = scale(to_image(f), k * z)
     x0 = int(round((left - c) * z))
-    y0 = ch - img.size[1]  # sitting on the cell's bottom edge
+    y0 = int(round((above - y) * z))
     sheet.alpha_composite(img, (i * cw + x0, y0))
-    if i < 6:  # the reload holds the gun upright: no shot from it
+    if i < 6:  # the reload holds the gun upright, the paddling lays it down: no shot from them
         mx, my = bell_mouth(f)
         mouths.append((round((x0 + mx * k * z) / cw, 3), round((y0 + my * k * z) / ch, 3)))
-report['fox.webp'] = {
-    'frames': len(poses), 'cell': (cw, ch), 'bytes': save_webp(sheet, 'fox.webp'),
-    # Fractions of a cell, per aim and fire pose: where the bell's mouth is (the scene's FOX_MUZZLE).
-    'muzzle': mouths,
+report['fox-boat.webp'] = {
+    'frames': len(poses), 'cell': (cw, ch), 'bytes': save_webp(sheet, 'fox-boat.webp'),
+    # Fractions of a cell, per aim and fire pose: where the bell's mouth is (the scene's FOX_MUZZLE);
+    # and how far down the cell the tub's waterline is.
+    'muzzle': mouths, 'waterline': round(above * z / ch + 0.02, 3),
 }
+
+# The wake behind the tub: three frames that loop, lined up on their right end and water line.
+wake = [trim(despeck(key(c)), pad=2) for c in cells(load('boat-wake.png'), 3, 1)]
+wk = 300 / max(f.shape[1] for f in wake)
+ww, wh = 300 + 8, int(max(f.shape[0] for f in wake) * wk) + 8
+wsheet = Image.new('RGBA', (ww * 3, wh), (0, 0, 0, 0))
+for i, f in enumerate(wake):
+    img = scale(to_image(f), wk)
+    wsheet.alpha_composite(img, (i * ww + ww - 4 - img.size[0], wh - 4 - img.size[1]))
+report['boat-wake.webp'] = {'frames': 3, 'cell': (ww, wh), 'bytes': save_webp(wsheet, 'boat-wake.webp')}
 
 # --- Near misses: the shot's spray, the muzzle blast, Lucky dodging ----------------------------------
 spray = trim(key(load('shot-spray.png')))
@@ -369,6 +397,81 @@ report['bang-word.webp'] = {'size': img.size, 'bytes': save_webp(img, 'bang-word
 burst = trim(key(load('bang-burst.png')))
 img = scale(to_image(burst), 760 / burst.shape[1])
 report['bang-burst.webp'] = {'size': img.size, 'bytes': save_webp(img, 'bang-burst.webp', quality=86)}
+
+# --- Lucky in the water: the fall's end (feet up, sinking) and the next round's start (he pops up,
+# shakes off, straightens his bandana, floats smug). Lined up on the ripple under him and drawn at
+# the floating duck's scale (the take-off sheet's head height), so the swap to floating is seamless.
+
+
+def ripple(f):
+    """The ring of water under him: its centre and lowest row."""
+    r, g, b, a = (f[..., i] for i in range(4))
+    water = (a > 160) & (b > 180) & (g > 120) & (r < 140)
+    ys, xs = np.nonzero(water)
+    low = ys > np.percentile(ys, 50)
+    return float((xs[low].min() + xs[low].max()) / 2), float(np.percentile(ys, 99))
+
+
+water = [trim(despeck(key(c)), pad=2) for c in cells(load('duck-water.png'), 3, 2)]
+
+
+def body_width(f):
+    """How wide the duck is, leaving out the water around him."""
+    r, g, b, a = (f[..., i] for i in range(4))
+    body = (a > 160) & ~((b > 180) & (g > 120) & (r < 140))
+    xs = np.nonzero(body.any(axis=0))[0]
+    return float(xs.max() - xs.min())
+
+
+# The floating take-off frame (already at the flight's scale): the last water frame (floating
+# smug) is drawn as wide as it.
+t0 = Image.open(os.path.join(OUT, 'duck-takeoff.webp')).convert('RGBA')
+t0 = np.asarray(t0).astype(np.float32)[:, :t0.width // 4]
+wk = body_width(t0) / body_width(water[5])
+rip = [ripple(f) for f in water]
+left = max(x * wk for x, _ in rip) + 6
+right = max(f.shape[1] * wk - x * wk for f, (x, _) in zip(water, rip)) + 6
+above = max(y * wk for _, y in rip) + 6
+below = max(f.shape[0] * wk - y * wk for f, (_, y) in zip(water, rip)) + 6
+wcw, wch = int(np.ceil(left + right)), int(np.ceil(above + below))
+wsheet = Image.new('RGBA', (wcw * 6, wch), (0, 0, 0, 0))
+for i, (f, (x, y)) in enumerate(zip(water, rip)):
+    img = scale(to_image(f), wk)
+    wsheet.alpha_composite(img, (int(round(i * wcw + left - x * wk)), int(round(above - y * wk))))
+# Where the floating take-off frame's ripple is, in its cell, to put the water frames on it.
+tx, ty = ripple(t0)
+report['duck-water.webp'] = {
+    'frames': 6, 'cell': (wcw, wch), 'bytes': save_webp(wsheet, 'duck-water.webp'),
+    # The ripple's bottom centre: in a water cell, and in a take-off (flight-sized) cell.
+    'anchor': (round(left / wcw, 4), round(above / wch, 4)),
+    'takeoff_anchor': (round(tx / t0.shape[1], 4), round(ty / t0.shape[0], 4)),
+}
+
+# The splash where he lands: the four whole frames (2 and 5 of the sheet are cut off), on the water line.
+splash = [trim(despeck(key(c)), pad=2) for i, c in enumerate(cells(load('splash.png'), 3, 2)) if i in (0, 2, 3, 5)]
+sk = 280 / max(f.shape[1] for f in splash)
+srip = [ripple(f) for f in splash]
+sl = max(x * sk for x, _ in srip) + 6
+sr = max(f.shape[1] * sk - x * sk for f, (x, _) in zip(splash, srip)) + 6
+sa = max(y * sk for _, y in srip) + 6
+sb = max(f.shape[0] * sk - y * sk for f, (_, y) in zip(splash, srip)) + 6
+scw, sch = int(np.ceil(sl + sr)), int(np.ceil(sa + sb))
+ssheet = Image.new('RGBA', (scw * 4, sch), (0, 0, 0, 0))
+for i, (f, (x, y)) in enumerate(zip(splash, srip)):
+    img = scale(to_image(f), sk)
+    ssheet.alpha_composite(img, (int(round(i * scw + sl - x * sk)), int(round(sa - y * sk))))
+report['water-splash.webp'] = {'frames': 4, 'cell': (scw, sch), 'anchor': (round(sl / scw, 4), round(sa / sch, 4)),
+                         'bytes': save_webp(ssheet, 'water-splash.webp')}
+
+# Gun smoke for every shot: six frames, puff to wisp. The last ones came out pink from the magenta:
+# smoke is grey, so they lose that tint.
+smoke = [trim(despeck(key(c)), pad=2) for c in cells(load('gunsmoke.png'), 3, 2)]
+for i in (3, 4, 5):
+    f = smoke[i]
+    grey = f[..., :3].mean(axis=2, keepdims=True)
+    f[..., :3] = grey * 0.85 + f[..., :3] * 0.15 + np.array([4.0, 4.0, 12.0])  # a touch of the lavender shade
+gk = 200 / max(max(f.shape[0], f.shape[1]) for f in smoke)
+report['gunsmoke.webp'] = {'frames': 6, 'cell': (210, 210), 'bytes': even_sheet(smoke, 'gunsmoke.webp', 210, 210, gk)}
 
 # --- Dizzy: a spiral eye (spun over Lucky's eyes as he falls) and a star (circling his head) ------
 rgba = key(load('dizzy.png'))
