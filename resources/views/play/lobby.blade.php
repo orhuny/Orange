@@ -284,7 +284,7 @@
             document.body.classList.remove('game-has-home');
             $('lobby').hidden = true;
             $('game').classList.add('shown');
-            host.open(game.code, game.frame_url);
+            host.open(game.code, game.frame_url, game.name);
         }
         $('frame').addEventListener('load', () => {
             if ($('frame').getAttribute('src') !== 'about:blank') $('spinner').classList.add('gone');

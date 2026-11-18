@@ -224,11 +224,12 @@ export function startPlayHost(config) {
         outer,
         inner,
         api,
-        /** Lobby: load a game into the frame; its bets go to that game from now on. */
-        open(code, frameUrl) {
+        /** Lobby: load a game into the frame; its bets go to that game from now on. The
+         *  operator page is told which game, by code and by the name players see. */
+        open(code, frameUrl, name = null) {
             gameCode = code;
             config.frame.src = frameUrl;
-            outer.send('launch_game', { code });
+            outer.send('launch_game', name ? { code, name } : { code });
         },
         /** Lobby: unload the game. */
         close() {

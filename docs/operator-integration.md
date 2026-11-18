@@ -285,7 +285,7 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `cashout` | `{ bet_id }` | User clicked Cash Out in the iframe |
 | `enter_fullscreen` | `{}` | User clicked the fullscreen toggle |
 | `exit_fullscreen` | `{}` | User clicked the toggle while in fullscreen |
-| `launch_game` | `{ code }` | (new, informational) The player opened another game from the lobby |
+| `launch_game` | `{ code, name }` | (new, informational) The player opened another game from the lobby: its code and the name players see (for your page's title) |
 | `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it (the game menu's Home) |
 | `bet_history` | `{}` | (new, optional) The player opened My bets. Sent only if your `player_info` said `bet_history: true` |
 
@@ -610,7 +610,7 @@ page serves it from the player API, so you don't need to do anything for it.
   over the last week). Games in maintenance are shown greyed out.
 - **Playing:** a tile opens the game in the same iframe, with a "← Lobby" bar. Bets are direct
   play, as described above.
-- **Bridge messages to your page:** `launch_game` `{ code }` when a game opens, and
+- **Bridge messages to your page:** `launch_game` `{ code, name }` when a game opens (show `name` as the game's title), and
   `back_to_lobby` when the player returns.
 
 Look and embedding are set on your operator configuration (flat keys):
