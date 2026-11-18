@@ -32,10 +32,10 @@
            sits on the shot's path, a third of the way from the gun to Lucky (--bang-x / --bang-y,
            set by the scene's script), so his hit stays in sight. */
         :root[data-theme="luckyduck"] .crash-banner {
-            display: block; left: var(--bang-x, 50%); top: var(--bang-y, 30%); width: min(58vw, 430px); gap: 0;
+            display: block; left: var(--bang-x, 50%); top: var(--bang-y, 30%); width: min(40vw, 300px); gap: 0;
             transform: translate(-50%, -50%);
         }
-        @media (orientation: portrait) { :root[data-theme="luckyduck"] .crash-banner { width: 68vw; } }
+        @media (orientation: portrait) { :root[data-theme="luckyduck"] .crash-banner { width: 48vw; } }
         :root[data-theme="luckyduck"] .crash-banner b { display: none; }
         :root[data-theme="luckyduck"] .crash-banner::before {
             content: ""; position: absolute; left: 50%; top: 50%; width: 112%; aspect-ratio: 760 / 641;
