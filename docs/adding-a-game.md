@@ -104,3 +104,76 @@ Pint, PHPStan (no baseline growth), `php artisan test` and `npm run test:js` mus
 
 Add a section to `docs/operator-integration.md` §11, like "Dice": the params, the response
 outcome, and how relay operators answer `place_bet` for it.
+
+---
+
+# Adding a crash scene (a new-looking crash game)
+
+A second crash game with its own look, like Lucky Duck next to Orange Crash, is **not** a new
+game type: it is a crash game (`type=crash`) with its own code, rounds and limits, played in its
+own **scene**. The engine, the maths, the bet bar, the menu, history, All bets, rules and the
+audio engine are shared; a scene brings the art, the motion, the words and the sounds.
+
+## How a game picks its scene
+
+- `config('crash.scenes')` lists them (`dive`, `marsh`), with a label and optional intro
+  overrides (`intro.title`, `intro.tagline`).
+- `games.config.scene` picks one: the **Scene** field in the admin panel's engine settings.
+  `CrashEngine::validateConfig` refuses an unknown scene; a game without one plays the dive.
+- `/crash?game={code}` (`CrashPageController`) renders `crash.blade.php` with that scene. The
+  page listens on `game.{code}`, shows that game's history and live bets, and keeps that game's
+  saved state (skin, armed auto bet, two bets) apart from the others'.
+
+## What a scene is: `resources/views/crash/scenes/{scene}/`
+
+`scene.php` (required) returns the scene's data:
+
+| Key | What |
+|---|---|
+| `themes` | its skins, each a label and the colour tokens (see the dive's for the keys); the first is the default, and with one skin the menu shows no picker |
+| `titlePrefix` | put before the game's name in the `<title>` |
+| `packs` | skin → sound pack (`window.OrangeSound.<pack>`, from `js/orange/sound-<pack>.js`) |
+| `text` | the round's words: `round`, `rise`, `lose` (the rules), `bettingIn`, `liftOff`, `running`, `crashed`, `nextIn`, `awaiting`, `banner` |
+| `introBg`, `sprites` | per skin: the built-in intro's backdrop, and the crash sprite to preload |
+
+`script.blade.php` (required) runs inside the page's main module and defines `scene`:
+
+```js
+const scene = {
+    frame(m) {},       // every animation frame of a round (the multiplier from the round's clock)
+    update(m) {},      // with each multiplier the readout shows
+    crashed(point) {}, // the round ended at `point`
+    reset() {},        // back to the start, before the next round
+    cashedOut(m) {},   // optional: a bet cashed out (Lucky Duck's coins)
+};
+```
+
+The page also sets the stage classes the CSS keys on: `waiting`, `betting`, `running`, and the
+tiers `deep` (≥1.8x), `abyss` (≥3.5x), `critical` (≥8x), then `crashed critical`.
+
+Every other partial is optional (the page `@includeIf`s them where they belong):
+`styles-skins`, `styles-scene`, `styles-hud`, `styles-sonar`, `styles-crash`, `styles-intro`
+(CSS, in that order in the page's `<style>`), `scene` (the scenery, inside `#stage`), `hud-meter`,
+`hud-warnings`, `hud-left`, `hud-right`, `hud-extra`, `crash-layers`, `intro-scene`, `sounds`.
+
+Two Blade details: a rendered partial is left-trimmed, so start each with content, not a
+directive or a Blade comment; and the crash layers (flash, shockwave, debris, banner) are shared,
+so a scene restyles them under `:root[data-theme="<its skin>"]` in `styles-crash`.
+
+## Art
+
+Generated art comes as images on flat magenta (`#FF00FF`). Keep the sources out of git
+(`storage/app/art/<scene>/`) and build the served files with a script, as
+`scripts/art/process-lucky-duck.py` does: key out the magenta, line frames up on a fixed point,
+make strips tile, pack sheets into equal frames.
+
+## Checklist
+
+1. The scene folder, its `config('crash.scenes')` entry and its sound pack (in
+   `tests/js/sound-packs.test.js`).
+2. `CrashPageTest`: the game renders its scene and none of another's.
+3. Replay a round in a browser at desktop and phone sizes: betting, take-off, each tier, the crash.
+4. Admin panel: **Games → New**, type crash, a new code, **Scene**; limits per currency; enable
+   for operators (play mode `direct` for the lobby); a thumbnail.
+5. Run one more `crash:loop --game=<code>` (`scripts/start-stack.ps1 -CrashGames`, and in
+   production).
