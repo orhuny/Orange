@@ -244,3 +244,16 @@ it('keeps the RTP target and the variant in step', function (): void {
         ->and($engine->validateConfig($game, ['variant' => 'v1-9550', 'bet_steps' => '5, 1, 1.5'])['bet_steps'])->toBe(['1.00', '1.50', '5.00'])
         ->and($engine->maxMultiplier($game->forceFill(['config' => ['variant' => 'v1-9550']])))->toBe('5000.0000');
 });
+
+it('serves the slot page with its theme, paytable and the shared bridge', function (): void {
+    slotSetup(config: ['buy' => false]);
+
+    get('/games/slot?game=sugar-orchard')->assertOk()
+        ->assertSee('slot-game.js', false)
+        ->assertSee('bridge.js', false)
+        ->assertSee('symbols\/toffee.webp', false)
+        ->assertSee('"paytable":', false)
+        ->assertSee('"features":{"ante":true,"buy":false}', false)
+        ->assertDontSee('"tables":', false);
+    get('/games/slot?game=nope')->assertNotFound();
+});
