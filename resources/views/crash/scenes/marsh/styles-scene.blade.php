@@ -264,8 +264,8 @@
         }
 
         /* ---------- The fox ----------
-           In his tub boat (fox-boat.webp: 8 poses, 520 × 336 a cell, the waterline at 95%): aiming
-           low, mid, high; firing at those; reloading; paddling. The script picks the pose
+           In his tub boat (fox-boat.webp: 7 poses, 520 × 337 a cell, the waterline at 95%): aiming
+           low, mid, high; firing at those; reloading. The script picks the pose
            (background-position) and puts the muzzle at its bell (--mx / --my). He floats bottom
            left, out on the pond: behind the near reeds (z-index under .strip-reeds), his waterline
            on the open water of the marsh strip, so the reeds hide the tub's bottom and he sits in the
@@ -274,8 +274,8 @@
            boat while Lucky flies. */
         .marsh .fox {
             position: absolute; left: 1.5%; bottom: calc(var(--op-bar-h, 0px) + 12%); z-index: 5;
-            width: clamp(160px, 18vw, 280px); aspect-ratio: 520 / 336;
-            --mx: 81.9%; --my: 43.2%;
+            width: clamp(160px, 18vw, 280px); aspect-ratio: 520 / 337;
+            --mx: 81.8%; --my: 43.1%;
         }
         @media (orientation: portrait) {
             .marsh .fox { width: clamp(120px, 33vw, 200px); bottom: calc(var(--op-bar-h, 0px) + 7.5%); }
@@ -284,7 +284,7 @@
         @keyframes marsh-boat { from { translate: 0 -2px; rotate: -1.5deg; } to { translate: 0 2px; rotate: 1.5deg; } }
         .marsh .fox-sprite {
             position: absolute; inset: 0;
-            background: url("{{ $sceneDef['art']('fox-boat.webp') }}") 0 0 / 800% 100% no-repeat;
+            background: url("{{ $sceneDef['art']('fox-boat.webp') }}") 0 0 / 700% 100% no-repeat;
         }
         .marsh .wake {
             position: absolute; right: 78%; bottom: 1%; width: 70%; aspect-ratio: 308 / 53;

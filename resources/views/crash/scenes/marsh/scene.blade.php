@@ -43,8 +43,8 @@
             <div class="strip strip-reeds" style="--k: 1.2"><b></b></div>
 
             {{-- The fox in his tub boat on the pond, bottom left (on the bet bar when embedded).
-                 Eight poses (fox-boat.webp): aiming low, mid and high, firing at those, reloading and
-                 paddling, picked by the script, which also puts the muzzle at the pose's bell
+                 Seven poses (fox-boat.webp): aiming low, mid and high, firing at those and reloading,
+                 picked by the script, which also puts the muzzle at the pose's bell
                  (--mx / --my). The boat bobs; its wake streams out behind it while Lucky flies. --}}
             <div class="fox" aria-hidden="true">
                 <div class="boat">

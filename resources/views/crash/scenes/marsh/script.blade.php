@@ -10,10 +10,10 @@
         const $loot = $marsh.querySelector('.loot');
         const LOOT = [@json($sceneDef['art']('coin.webp')), @json($sceneDef['art']('feather.webp'))];
         const SPRAY = @json($sceneDef['art']('shot-spray.webp'));
-        // fox-boat.webp: 8 poses, 0-2 aiming low / mid / high, 3-5 firing at those, 6 reloading,
-        // 7 paddling; and where the bell's mouth is in poses 0-5, as fractions of a pose
+        // fox-boat.webp: 7 poses, 0-2 aiming low / mid / high, 3-5 firing at those, 6 reloading;
+        // and where the bell's mouth is in poses 0-5, as fractions of a pose
         // (scripts/art/process-lucky-duck.py).
-        const FOX_MUZZLE = [[0.819, 0.432], [0.802, 0.272], [0.693, 0.192], [0.792, 0.434], [0.745, 0.271], [0.672, 0.118]];
+        const FOX_MUZZLE = [[0.818, 0.431], [0.804, 0.271], [0.693, 0.191], [0.792, 0.433], [0.745, 0.27], [0.671, 0.118]];
         // Each strip's art, width ÷ height (one repeat), for the scroll's wrap-around.
         const STRIP_RATIO = { 'strip-hills': 1448 / 270, 'strip-marsh': 1448 / 451, 'strip-reeds': 1448 / 546 };
         const $strips = [...$marsh.querySelectorAll('.strip')].map(($s) => ({
@@ -95,12 +95,12 @@
             if ($marsh.dataset.sky !== sky) $marsh.dataset.sky = sky;
         }
 
-        // The fox: where he aims (0 low, 1 mid, 2 high) and what he does (aim | fire | reload | paddle).
+        // The fox: where he aims (0 low, 1 mid, 2 high) and what he does (aim | fire | reload).
         let aim = 0;
         let act = 'aim';
         function renderFox() {
-            const frame = act === 'paddle' ? 7 : act === 'reload' ? 6 : act === 'fire' ? 3 + aim : aim;
-            $foxSprite.style.backgroundPosition = `${(frame / 7 * 100).toFixed(3)}% 0`;
+            const frame = act === 'reload' ? 6 : act === 'fire' ? 3 + aim : aim;
+            $foxSprite.style.backgroundPosition = `${(frame / 6 * 100).toFixed(3)}% 0`;
             const [mx, my] = FOX_MUZZLE[Math.min(frame, 5)];
             $fox.style.setProperty('--mx', `${(mx * 100).toFixed(1)}%`);
             $fox.style.setProperty('--my', `${(my * 100).toFixed(1)}%`);
@@ -217,10 +217,9 @@
                 pose = over ? 'dodge-dip' : 'dodge-roll';
                 $duck.dataset.pose = pose;
             });
-            // Then he reloads, paddles a stroke after Lucky, and aims again.
+            // Then he reloads and aims again.
             later(340, () => act === 'fire' && setAct('reload'));
-            later(1150, () => act === 'reload' && setAct('paddle'));
-            later(1750, () => act === 'paddle' && setAct('aim'));
+            later(1400, () => act === 'reload' && setAct('aim'));
         }
         function shoot(m) {
             const t = Math.log(Math.max(1, m)) / G;

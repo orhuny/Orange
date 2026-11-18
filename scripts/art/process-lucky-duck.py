@@ -281,10 +281,11 @@ hw = int(max(f.shape[1] for f in hit) * k) + 20
 hh = int(max(f.shape[0] for f in hit) * k) + 20
 report['duck-hit.webp'] = {'frames': len(hit), 'cell': (hw, hh), 'bytes': even_sheet(hit, 'duck-hit.webp', hw, hh, k)}
 
-# --- The fox: eight poses in his tub boat ------------------------------------------------------------
-# Two sheets drawn alike (the same half-barrel tub): fox-boat-aim.png aims low, mid, high and
-# paddles; fox-boat-fire.png fires low, mid, high and reloads. Frames: 0-2 aim, 3-5 fire,
-# 6 reload, 7 paddle. Lined up and scaled on the tub's iron hoops (the same in every frame).
+# --- The fox: seven poses in his tub boat ------------------------------------------------------------
+# Two sheets drawn alike (the same half-barrel tub): fox-boat-aim.png aims low, mid and high (its
+# fourth frame, paddling, isn't used); fox-boat-fire.png fires low, mid, high and reloads.
+# Frames: 0-2 aim, 3-5 fire, 6 reload. Lined up and scaled on the tub's iron hoops (the same in
+# every frame).
 
 
 def despeck(f, keep=0.02):
@@ -321,7 +322,7 @@ def bell_mouth(f):
 
 aim_cells = [despeck(key(c, lo=10.0, hi=110.0)) for c in cells(load('fox-boat-aim.png'), 4, 1)]
 fire_cells = [despeck(key(c, lo=10.0, hi=110.0)) for c in cells(load('fox-boat-fire.png'), 4, 1)]
-poses = [trim(f, pad=2) for f in aim_cells[:3] + fire_cells + [aim_cells[3]]]
+poses = [trim(f, pad=2) for f in aim_cells[:3] + fire_cells]
 FOX_W = 520  # px: the output cell's width
 marks = [hoops(f) for f in poses]
 width = float(np.median([r - l for l, r, _ in marks]))
@@ -341,7 +342,7 @@ for i, (f, k, c, y) in enumerate(zip(poses, scales, centres, bottoms)):
     x0 = int(round((left - c) * z))
     y0 = int(round((above - y) * z))
     sheet.alpha_composite(img, (i * cw + x0, y0))
-    if i < 6:  # the reload holds the gun upright, the paddling lays it down: no shot from them
+    if i < 6:  # the reload holds the gun upright: no shot from it
         mx, my = bell_mouth(f)
         mouths.append((round((x0 + mx * k * z) / cw, 3), round((y0 + my * k * z) / ch, 3)))
 report['fox-boat.webp'] = {
