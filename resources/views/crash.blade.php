@@ -1543,6 +1543,157 @@
             display: none;
         }
 
+
+        /* ---------- Bet bar: the holo glass skin ----------
+           A pane of frosted glass the game shows through, in each game's theme colours: a light
+           running along its top edge, soft rounded capsules, cyan captions, and a glowing button
+           with a sheen passing over it. Only the look: no sizes, paddings or (on phones)
+           letter-spacing here, so the layout above, and the phone rules that fit the bar in one
+           row, stay as they are. Font: Sora, served from public/fonts/sora (SIL Open Font License,
+           its text beside it); its tabular digits keep amounts from jittering as they change. */
+        @font-face { font-family: "HUD Sora"; font-weight: 400 800; font-style: normal; font-display: swap;
+            src: url("{{ asset('fonts/sora/sora-latin-ext.woff2') }}") format("woff2");
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+        @font-face { font-family: "HUD Sora"; font-weight: 400 800; font-style: normal; font-display: swap;
+            src: url("{{ asset('fonts/sora/sora-latin.woff2') }}") format("woff2");
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+        body.embedded {
+            --op-f: "HUD Sora", "Segoe UI", system-ui, sans-serif;
+            --op-cyan-rgb: 103, 232, 249;
+        }
+        body.embedded .operator-panel {
+            font-family: var(--op-f);
+            font-variant-numeric: tabular-nums;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.14)),
+                rgba(var(--panel-rgb),0.78);
+            backdrop-filter: blur(16px) saturate(1.5);
+            -webkit-backdrop-filter: blur(16px) saturate(1.5);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -12px 30px -14px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.22);
+        }
+        /* The light running along the top edge: the old top line, now a moving glint. */
+        body.embedded .operator-panel::before {
+            left: 24px; right: 24px; top: -1px; height: 1px; opacity: 1;
+            background: linear-gradient(90deg, transparent, rgba(var(--hud-rgb),0.95), rgba(var(--op-cyan-rgb),0.95), transparent) 0 0 / 50% 100% no-repeat;
+            animation: op-holo-sweep 3.6s linear infinite;
+        }
+        @keyframes op-holo-sweep { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+
+        body.embedded .op-id .op-name { font-weight: 600; color: rgba(255,255,255,0.82); }
+        body.embedded .op-id .op-balance { font-weight: 800; text-shadow: 0 0 18px rgba(var(--hud-rgb),0.5); }
+        body.embedded .op-sep { background: linear-gradient(transparent, rgba(255,255,255,0.22), transparent); }
+
+        body.embedded .op-phase {
+            font-weight: 700; opacity: 1;
+            background: rgba(0,0,0,0.28);
+            border-color: rgba(255,255,255,0.16);
+        }
+        body.embedded .op-phase::before { animation: op-holo-ping 1.4s ease-out infinite; }
+        @keyframes op-holo-ping {
+            from { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 70%, transparent); }
+            to   { box-shadow: 0 0 0 6px transparent; }
+        }
+
+        body.embedded .op-status { font-weight: 600; color: rgba(var(--op-cyan-rgb),0.9); }
+
+        /* Fields: cyan captions; the steppers are recessed glass capsules. */
+        body.embedded .op-cap { font-weight: 700; color: rgba(var(--op-cyan-rgb),0.85); }
+        body.embedded .op-field-auto[data-on="false"] .op-cap { color: var(--text-muted); }
+        body.embedded .op-stepper {
+            border-color: transparent;
+            border-radius: 14px;
+            background: rgba(0,0,0,0.3);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
+        }
+        body.embedded .op-stepper:focus-within { border-color: transparent; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), inset 0 0 0 1px var(--hud), 0 0 12px rgba(var(--hud-rgb),0.35); }
+        body.embedded .op-field-auto[data-on="true"] .op-stepper { border-color: transparent; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(34,197,94,0.7), 0 0 10px rgba(34,197,94,0.25); }
+        body.embedded .op-stepper .op-input { background: transparent; }
+        body.embedded .op-step { background: rgba(255,255,255,0.06); }
+        body.embedded .op-step:hover { background: rgba(var(--hud-rgb),0.2); }
+        body.embedded .op-input { font-family: inherit; font-weight: 700; color: #fff; }
+
+        /* Buttons: soft capsules. Place Bet a glowing gold gradient with a sheen; a bet in, gold
+           glass; Cash Out a glowing green gradient; the result, green glass. */
+        body.embedded .op-btn { border-radius: 14px; font-family: inherit; font-weight: 800; }
+        body.embedded .op-bet-btn {
+            color: #1d1405; border-color: transparent;
+            background: linear-gradient(135deg, #fef08a, var(--hud) 45%, var(--hud-dark));
+            box-shadow: 0 0 22px rgba(var(--hud-rgb),0.42), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        body.embedded .op-bet-btn::before,
+        body.embedded .op-cashout-btn::before { background: #fff; opacity: 0; }
+        body.embedded .op-bet-btn:hover:not(:disabled) { box-shadow: 0 0 30px rgba(var(--hud-rgb),0.65), inset 0 1px 0 rgba(255,255,255,0.6); }
+        body.embedded .op-bet-btn:hover:not(:disabled)::before,
+        body.embedded .op-cashout-btn:hover:not(:disabled)::before { opacity: 0.18; }
+        body.embedded .op-bet-btn:not(:disabled)::after {
+            content: ""; position: absolute; inset: 0; translate: -120% 0; pointer-events: none;
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.55) 48%, transparent 66%);
+            animation: op-holo-sheen 2.8s ease-in-out infinite;
+        }
+        @keyframes op-holo-sheen { 60%, 100% { translate: 120% 0; } }
+        body.embedded .op-slot[data-mode="placed"] .op-bet-btn:disabled {
+            opacity: 1; filter: none; color: var(--hud); border-color: transparent;
+            background: rgba(var(--hud-rgb),0.13);
+            box-shadow: inset 0 0 0 1px rgba(var(--hud-rgb),0.65), 0 0 18px rgba(var(--hud-rgb),0.2);
+        }
+        body.embedded .op-cashout-btn {
+            color: #04220f; border-color: transparent;
+            background: linear-gradient(135deg, #bbf7d0, #4ade80 45%, #16a34a);
+            box-shadow: 0 0 26px rgba(34,197,94,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        body.embedded .op-cashout-btn:hover:not(:disabled) { box-shadow: 0 0 34px rgba(34,197,94,0.75), inset 0 1px 0 rgba(255,255,255,0.6); }
+        @keyframes op-cashout-pulse {
+            0%, 100% { box-shadow: 0 0 18px rgba(34,197,94,0.4), inset 0 1px 0 rgba(255,255,255,0.6); }
+            50%      { box-shadow: 0 0 34px rgba(34,197,94,0.85), inset 0 1px 0 rgba(255,255,255,0.6); }
+        }
+        body.embedded .op-cashed {
+            border-color: transparent; border-radius: 14px;
+            color: #bbf7d0; background: rgba(34,197,94,0.15);
+            box-shadow: inset 0 0 0 1px rgba(34,197,94,0.6), 0 0 16px rgba(34,197,94,0.25);
+        }
+        body.embedded .op-autobet-btn {
+            border-color: transparent; background: rgba(0,0,0,0.24);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+        }
+        body.embedded .op-autobet-btn[data-active="true"] {
+            border-color: transparent; background: rgba(var(--hud-rgb),0.1);
+            box-shadow: inset 0 0 0 1px rgba(var(--hud-rgb),0.6), 0 0 14px rgba(var(--hud-rgb),0.3);
+        }
+        body.embedded .op-slot-toggle {
+            border-color: transparent; border-radius: 12px;
+            background: rgba(0,0,0,0.24); box-shadow: inset 0 0 0 1px rgba(var(--hud-rgb),0.5);
+            font-family: inherit;
+        }
+        body.embedded .op-last { border-radius: 12px; }
+
+        /* Wide screens: a little more room for the balance. */
+        @media (min-width: 720px) {
+            body.embedded .op-id .op-name { letter-spacing: 0.06em; }
+            body.embedded .op-id .op-balance { font-size: 17px; }
+        }
+        /* Phones: tighter capsules for the tighter row. */
+        @media (max-width: 719px) {
+            body.embedded .op-stepper,
+            body.embedded .op-btn,
+            body.embedded .op-cashed,
+            body.embedded .op-slot-toggle { border-radius: 10px; }
+            body.embedded .operator-panel { border-radius: 16px 16px 0 0; }
+        }
+
+        /* Fullscreen: the floating bar is a whole glass pane. */
+        :fullscreen .operator-panel,
+        body.is-fullscreen .operator-panel {
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            body.embedded .operator-panel::before,
+            body.embedded .op-phase::before,
+            body.embedded .op-bet-btn:not(:disabled)::after { animation: none; }
+        }
+
         @includeIf("crash.scenes.{$scene}.styles-sonar")
         /* ---------- Strobes (critical) ---------- */
         .strobe {
