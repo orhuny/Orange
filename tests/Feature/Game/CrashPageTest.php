@@ -49,6 +49,32 @@ it('plays each crash game on its own rounds, channel and saved state', function 
         ->assertSee('"orange.embed.slots"', false);
 });
 
+it('draws each crash game in its own scene', function (): void {
+    Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'type' => 'crash']);
+    Game::factory()->create(['code' => 'lucky-duck', 'slug' => 'lucky-duck', 'type' => 'crash', 'name' => 'Lucky Duck', 'config' => ['scene' => 'marsh']]);
+
+    // Lucky Duck: the marsh, its art, its words and its rules; none of the dive.
+    get('/crash?game=lucky-duck')->assertOk()
+        ->assertSee('class="scene marsh"', false)
+        ->assertSee('images/lucky-duck/duck-fly.webp', false)
+        ->assertSee('images/lucky-duck/fox-gun.webp', false)
+        ->assertSee('const TEXT = {"round":"flight"', false)
+        ->assertSee('<span>Bang!</span>', false)
+        ->assertSee('data-theme', false)
+        ->assertDontSee('class="sub-wrap', false)
+        ->assertDontSee('id="depth-meter"', false)
+        ->assertDontSee('class="theme-opt"', false); // one skin: no picker
+
+    // The dive: the sub, the depth meter and the skin picker; none of the marsh.
+    get('/crash')->assertOk()
+        ->assertSee('class="sub-wrap', false)
+        ->assertSee('id="depth-meter"', false)
+        ->assertSee('class="theme-opt"', false)
+        ->assertSee('<span>Hull breach</span>', false)
+        ->assertDontSee('class="scene marsh"', false)
+        ->assertDontSee('images/lucky-duck/', false);
+});
+
 it('shows only the sea life switched on in config', function (): void {
     config()->set('crash.sea_life', ['fish' => false, 'creatures' => false, 'octopi' => false, 'jellyfish' => false]);
 

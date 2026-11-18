@@ -5,12 +5,9 @@
 // requires this for its skins and art; a closure, so nothing here lands in the page's variables.
 
 return (static function (): array {
-    // An image in public/images/lucky-duck, cache-busted by its mtime; null until it exists.
-    $art = static function (string $file): ?string {
-        $path = public_path("images/lucky-duck/{$file}");
-
-        return is_file($path) ? asset("images/lucky-duck/{$file}").'?v='.filemtime($path) : null;
-    };
+    // The scene's art, built by scripts/art/process-lucky-duck.py: a URL cache-busted by the
+    // file's mtime, per file in public/images/lucky-duck.
+    $art = static fn (string $file): string => asset("images/lucky-duck/{$file}").'?v='.filemtime(public_path("images/lucky-duck/{$file}"));
 
     return [
         // The page's <title> is this, then the game's name.
@@ -41,11 +38,12 @@ return (static function (): array {
                 'panel' => '#14240f', 'text' => '#fefce8', 'muted' => '#b5c49a',
             ],
         ],
+        'art' => $art,
         // The built-in intro's backdrop.
         'introBg' => [
             'luckyduck' => ['landscape' => $art('sky-day-landscape.jpg'), 'portrait' => $art('sky-day-portrait.jpg')],
         ],
         // The crash sprite (the duck hit), preloaded so it is decoded before the first crash.
-        'sprites' => array_filter(['luckyduck' => $art('duck-hit.webp')]),
+        'sprites' => ['luckyduck' => $art('duck-hit.webp')],
     ];
 })();

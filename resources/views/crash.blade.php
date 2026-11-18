@@ -3592,6 +3592,7 @@
             function spawnFlyWin(multiplier, payout) {
                 const m = Number(multiplier);
                 if (!Number.isFinite(m)) return;
+                scene.cashedOut?.(m); // the scene's own flourish, if it has one
                 const node = document.createElement('div');
                 node.className = 'fly-win';
                 const multSpan = document.createElement('div');
