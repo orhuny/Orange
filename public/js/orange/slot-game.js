@@ -493,20 +493,41 @@ export function startSlot(cfg) {
         showWin(0n);
         if (state.balance !== null) $('balance').textContent = money(toUnits(state.balance) - toUnits(amount));
 
-        const clearing = dropOut();
-        const result = await placeBet(amount, mode);
-        await clearing;
+        try {
+            const clearing = dropOut();
+            const result = await placeBet(amount, mode);
+            await clearing;
 
-        if (!result.success || !result.outcome) {
-            await dropIn(state.cells);
-            toast(errorText(result.error));
+            if (!result.success || !result.outcome) {
+                await dropIn(state.cells);
+                toast(errorText(result.error));
+                stopAuto();
+            } else {
+                state.result = result;
+                state.fairness = result.fairness ?? null;
+                const payout = toUnits(result.payout_amount ?? '0') ?? 0n;
+                if (result.player_balance) {
+                    state.balance = result.player_balance;
+                } else if (state.balance !== null) {
+                    // A relay operator that doesn't report the balance: work it out.
+                    state.balance = money(toUnits(state.balance) - toUnits(amount) + payout);
+                }
+                try {
+                    await playOutcome(plan(result.outcome), true);
+                } catch (e) {
+                    // Never leave the game stuck mid-animation: the bet is settled either way.
+                    console.error(e);
+                    $('overlay').hidden = true;
+                    document.body.classList.remove('free');
+                    $('fs-hud').hidden = true;
+                    render(state.cells);
+                }
+                showWin(payout);
+            }
+        } catch (e) {
+            console.error(e);
+            toast(errorText('unknown'));
             stopAuto();
-        } else {
-            state.result = result;
-            state.fairness = result.fairness ?? null;
-            if (result.player_balance) state.balance = result.player_balance;
-            await playOutcome(plan(result.outcome), true);
-            showWin(toUnits(result.payout_amount ?? '0') ?? 0n);
         }
 
         state.busy = false;
@@ -525,6 +546,7 @@ export function startSlot(cfg) {
             insufficient_funds: 'Not enough balance for this bet.',
             timeout: 'The casino did not answer. Your balance is unchanged unless the bet appears in your history.',
             not_connected: 'Not connected to the casino yet.',
+            unknown: 'Something went wrong. Please check your balance and bet history.',
         })[code] ?? `The bet was not placed (${code || 'unknown error'}).`;
     }
 
