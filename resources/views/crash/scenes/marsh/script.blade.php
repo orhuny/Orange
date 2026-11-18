@@ -54,16 +54,17 @@
             const W = $marsh.clientWidth, H = $marsh.clientHeight;
             const portrait = H > W;
             const dw = $duck.offsetWidth, dh = $duck.offsetHeight;
+            // The pond: the open water in the marsh strip's art starts about half-way down it.
             const marshStrip = $marsh.querySelector('.strip-marsh');
-            const waterTop = H - marshStrip.offsetHeight * 0.52; // the open water in the marsh art
+            const water = marshStrip.offsetTop + marshStrip.offsetHeight * 0.5;
             const hudRoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hud-room')) || 220;
             const fox = $fox.getBoundingClientRect(), scene = $marsh.getBoundingClientRect();
             for (const s of $strips) s.tile = s.$b.clientHeight * s.ratio; // px per repeat
             L = {
                 W, H, dw, dh,
-                // On the water, right of the multiplier (centred, at the bottom) and left of the
-                // docked All bets panel; never under the multiplier row on a phone.
-                home: { x: W * (portrait ? 0.62 : 0.7), y: Math.min(waterTop + dh * 0.08, H - hudRoom - dh * 0.42) },
+                // Floating on the pond, right of the multiplier (centred at the bottom) and, on a
+                // wide screen, left of the docked All bets panel.
+                home: { x: W * 0.76, y: water + dh * 0.12 },
                 cruise: { x: W * (portrait ? 0.6 : 0.62), y: Math.max(H * (portrait ? 0.3 : 0.27), Math.min(H * 0.42, H - hudRoom - dh * 0.75)) },
                 climb: H * 0.1,
                 // Where he holds the gun (half-way up the fox), to aim from.

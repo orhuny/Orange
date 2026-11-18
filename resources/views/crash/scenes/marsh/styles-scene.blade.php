@@ -4,7 +4,11 @@
            near reeds, the fox. The strips and clouds scroll left as Lucky flies (the script
            translates them); the shared tier filters on .scene don't apply here, the sky does
            the lighting. */
-        :root .stage .scene.marsh { background: #8fd3ff; filter: none; overflow: hidden; }
+        :root .stage .scene.marsh {
+            /* Under the bet bar (when embedded) the marsh's reeds carry on, so no sky shows. */
+            background: linear-gradient(to top, #3f7d2c 0, #3f7d2c var(--op-bar-h, 0px), #8fd3ff var(--op-bar-h, 0px));
+            filter: none; overflow: hidden;
+        }
         .marsh {
             --duck-w: clamp(118px, 14vw, 210px);
             --art-dim: none;
@@ -46,23 +50,24 @@
         @media (orientation: portrait) { .marsh .cloud { width: calc(var(--w) * 1.7vw); } }
 
         /* Strips: a band of art repeated sideways; <b> is wider than the screen by more than one
-           repeat, and the script slides it left by the distance flown, modulo one repeat. */
+           repeat, and the script slides it left by the distance flown, modulo one repeat. The
+           ground stands on the bet bar (--op-bar-h, when embedded), so the pond is never under it. */
         .marsh .strip { position: absolute; left: 0; right: 0; bottom: 0; overflow: hidden; pointer-events: none; }
         .marsh .strip b {
             position: absolute; left: 0; top: 0; bottom: 0; width: 400%;
             background-repeat: repeat-x; background-size: auto 100%; background-position: 0 0;
             will-change: transform;
         }
-        .marsh .strip-hills { height: 24%; bottom: 24%; z-index: 3; }
+        .marsh .strip-hills { height: 24%; bottom: calc(var(--op-bar-h, 0px) + 24%); z-index: 3; }
         .marsh .strip-hills b { background-image: url("{{ $sceneDef['art']('strip-hills.webp') }}"); }
-        .marsh .strip-marsh { height: 34%; z-index: 4; }
+        .marsh .strip-marsh { height: 34%; bottom: var(--op-bar-h, 0px); z-index: 4; }
         .marsh .strip-marsh b { background-image: url("{{ $sceneDef['art']('strip-marsh.webp') }}"); }
-        .marsh .strip-reeds { height: 17%; bottom: -1%; z-index: 7; }
+        .marsh .strip-reeds { height: 17%; bottom: calc(var(--op-bar-h, 0px) - 1%); z-index: 7; }
         .marsh .strip-reeds b { background-image: url("{{ $sceneDef['art']('strip-reeds-front.webp') }}"); }
         @media (orientation: portrait) {
             .marsh { --duck-w: clamp(118px, 36vw, 210px); }
             /* The hills reach down behind the marsh's bank, so no sky shows between them. */
-            .marsh .strip-hills { height: 13%; bottom: 14%; }
+            .marsh .strip-hills { height: 13%; bottom: calc(var(--op-bar-h, 0px) + 14%); }
             .marsh .strip-marsh { height: 23%; }
             .marsh .strip-reeds { height: 10%; }
         }
@@ -128,16 +133,15 @@
 
         /* ---------- The fox ----------
            Four poses in one strip (520 × 536 a cell): aiming low, mid, high (data-aim, set by the
-           script) and firing (at the crash). He sits on the bet bar when the game is embedded
-           (--op-bar-h); on a phone the bar and the multiplier fill the bottom, so he sits above
-           the multiplier row (--hud-room), where Lucky floats too. --mx / --my: the pose's bell. */
+           script) and firing (at the crash). He sits bottom left, in the reeds, on the bet bar
+           when the game is embedded (--op-bar-h). --mx / --my: the pose's bell. */
         .marsh .fox {
             position: absolute; left: 0; bottom: var(--op-bar-h, 0px); z-index: 8;
             width: clamp(170px, 19vw, 300px); aspect-ratio: 520 / 536;
             --mx: 96.2%; --my: 37.6%;
         }
         @media (orientation: portrait) {
-            .marsh .fox { width: clamp(130px, 35vw, 210px); bottom: calc(var(--hud-room, 0px) - 10px); }
+            .marsh .fox { width: clamp(118px, 32vw, 200px); }
         }
         .marsh .fox[data-aim="1"] { --mx: 85.1%; --my: 25.6%; }
         .marsh .fox[data-aim="2"] { --mx: 84%; --my: 16.1%; }
