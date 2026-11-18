@@ -3805,6 +3805,15 @@
                 return null;
             }
             // The nearest stake the limits allow (a stake must stay below the max win).
+            // The stake − / + go to the previous / next multiple of 5; − never goes under 5, and
+            // leaves a stake already under 5 where it is. In cents, so no 0.1 + 0.2 creeps in.
+            function stakeStep(value, direction) {
+                const cents = Math.round(value * 100);
+                if (direction > 0) return (Math.floor(cents / 500) + 1) * 5;
+                const down = (Math.ceil(cents / 500) - 1) * 500;
+                return (down >= 500 ? down : Math.min(cents, 500)) / 100;
+            }
+
             function clampStake(v) {
                 let top = limits.max ?? Infinity;
                 if (limits.maxWin !== null) top = Math.min(top, limits.maxWin - 0.01);
@@ -4352,14 +4361,13 @@
             for (const slot of slots) {
                 const { $stake, $auto } = slot;
 
-                // Stake stepper — quick − / + around the stake input.
-                // Step size scales with current value so big bets aren't tedious.
+                // Stake stepper — − / + move to the previous / next multiple of 5 (12 → 15 →
+                // 20, 12 → 10 → 5); − stops at 5 (and leaves a typed stake under 5 as it is).
+                // The player's limits still apply.
                 function stepStake(direction) {
                     const cur = parseFloat($stake.value);
-                    const base = Number.isFinite(cur) && cur > 0 ? cur : 0;
-                    const step = base >= 100 ? 10 : base >= 20 ? 5 : 1;
-                    const next = clampStake(+(base + direction * step).toFixed(2));
-                    $stake.value = next.toFixed(2);
+                    const next = stakeStep(Number.isFinite(cur) && cur > 0 ? cur : 0, direction);
+                    $stake.value = clampStake(next).toFixed(2);
                     $stake.dispatchEvent(new Event('input', { bubbles: true }));
                 }
                 // Stakes have two decimals, like the money they come out of: typing
