@@ -18,6 +18,9 @@ Pick the family and implement its contract:
 | Round-based (crash-like) | `Contracts\RoundBasedEngine` | in shared rounds, driven by `crash:loop --game=…` / `crash:tick` |
 | Session (mines) | `SessionEngine` (to be added with the first one, see the plan §2) | over several player actions |
 
+A **slot** is already an engine type (`slot`, instant). A new slot is a maths model and/or a theme, not a new
+engine: see [slots/README.md](slots/README.md).
+
 The engine owns the maths, and nothing else:
 - `validateConfig(Game, array)`: normalise `games.config` or throw `InvalidGameConfig`.
   `Game::saving` calls it, and so does the admin form.
