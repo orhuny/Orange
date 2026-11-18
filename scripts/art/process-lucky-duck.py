@@ -471,6 +471,32 @@ for i in (3, 4, 5):
     grey = f[..., :3].mean(axis=2, keepdims=True)
     f[..., :3] = grey * 0.85 + f[..., :3] * 0.15 + np.array([4.0, 4.0, 12.0])  # a touch of the lavender shade
 gk = 200 / max(max(f.shape[0], f.shape[1]) for f in smoke)
+# Lucky coming back up out of the pond, the next round: 12 small steps (bubbles, the crest breaks
+# the surface, his head, the shake, his chest, the bandana, smug). Like duck-water: lined up on the
+# ripple and drawn as wide as the floating take-off frame by the last (floating) frame, whose ripple
+# goes on the take-off frame's.
+emerge = [trim(despeck(key(c)), pad=2) for c in cells(load('duck-emerge.png'), 4, 3)]
+ek = body_width(t0) / body_width(emerge[11])
+erip = [ripple(f) for f in emerge]
+el = max(x * ek for x, _ in erip) + 6
+er = max(f.shape[1] * ek - x * ek for f, (x, _) in zip(emerge, erip)) + 6
+ea = max(y * ek for _, y in erip) + 6
+eb = max(f.shape[0] * ek - y * ek for f, (_, y) in zip(emerge, erip)) + 6
+ecw, ech = int(np.ceil(el + er)), int(np.ceil(ea + eb))
+esheet = Image.new('RGBA', (ecw * 12, ech), (0, 0, 0, 0))
+for i, (f, (x, y)) in enumerate(zip(emerge, erip)):
+    img = scale(to_image(f), ek)
+    esheet.alpha_composite(img, (int(round(i * ecw + el - x * ek)), int(round(ea - y * ek))))
+report['duck-emerge.webp'] = {
+    'frames': 12, 'cell': (ecw, ech), 'anchor': (round(el / ecw, 4), round(ea / ech, 4)),
+    'bytes': save_webp(esheet, 'duck-emerge.webp'),
+    # Where to put a cell in the duck's 282 × 312 frame, in %: its ripple on the take-off frame's.
+    'css': {
+        'left': round((tx - el) / t0.shape[1] * 100, 2), 'top': round((ty - ea) / t0.shape[0] * 100, 2),
+        'width': round(ecw / t0.shape[1] * 100, 2),
+    },
+}
+
 report['gunsmoke.webp'] = {'frames': 6, 'cell': (210, 210), 'bytes': even_sheet(smoke, 'gunsmoke.webp', 210, 210, gk)}
 
 # --- Dizzy: a spiral eye (spun over Lucky's eyes as he falls) and a star (circling his head) ------

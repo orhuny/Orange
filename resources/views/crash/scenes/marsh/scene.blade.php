@@ -25,6 +25,7 @@
             <div class="duck-wrap" data-pose="idle" aria-hidden="true">
                 <div class="duck-fall">
                     <div class="duck-bob">
+                        <div class="duck-sprite duck-float"></div>
                         <div class="duck-sprite duck-takeoff"></div>
                         <div class="duck-sprite duck-fly"></div>
                         <div class="duck-sprite duck-dodge"></div>

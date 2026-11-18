@@ -251,7 +251,7 @@
         // round he pops back up there (emerge, 1.8 s) and floats as before; if the round resets
         // while he is still falling, he finishes first.
         const SUNK_MS = 3300;
-        const EMERGE_MS = 1800;
+        const EMERGE_MS = 2300;
         let crashedAt = 0;
         let emergeTimer = 0;
         function emerge() {

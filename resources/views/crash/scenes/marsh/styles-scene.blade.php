@@ -91,11 +91,22 @@
             opacity: 0;
         }
 
-        .marsh [data-pose="idle"] .duck-takeoff { animation: marsh-duck-idle 3.4s step-end infinite; }
+        /* Floating, and coming back up out of the pond: duck-emerge.webp, 12 frames (147 × 115 a cell,
+           drawn as wide as the take-off frames and put so its ripple sits on theirs). Its last frame
+           is his floating pose, the one before (straightening his bandana) a preen now and then; so
+           coming up flows straight into floating. The take-off starts from the take-off sheet. */
+        .marsh .duck-float {
+            inset: auto; left: 36.33%; top: 33.23%; width: 52.13%; aspect-ratio: 147 / 115;
+            background-image: url("{{ $sceneDef['art']('duck-emerge.webp') }}"); background-size: 1200% 100%;
+            background-position: 100% 0; display: none;
+        }
+        .marsh :is([data-pose="idle"], [data-pose="emerge"]) .duck-float { display: block; }
+        .marsh :is([data-pose="idle"], [data-pose="emerge"]) .duck-takeoff { display: none; }
+        .marsh [data-pose="idle"] .duck-float { animation: marsh-duck-idle 3.4s step-end infinite; }
         @keyframes marsh-duck-idle {
-            0%   { background-position: 0 0; }
-            64%  { background-position: 33.333% 0; } /* a preen now and then */
-            84%  { background-position: 0 0; }
+            0%   { background-position: 100% 0; }
+            64%  { background-position: 90.909% 0; } /* a preen now and then */
+            84%  { background-position: 100% 0; }
         }
         .marsh [data-pose="idle"] .duck-bob { animation: marsh-float 1.9s ease-in-out infinite alternate; }
         @keyframes marsh-float { from { translate: 0 -2px; rotate: -1.5deg; } to { translate: 0 3px; rotate: 1.5deg; } }
@@ -204,7 +215,7 @@
         /* In the pond (duck-water.webp: 6 frames, 149 × 95 a cell at the flight's scale, put so its
            ripple sits where the floating take-off frame's does). He lands at --land-at with a splash,
            feet up and twitching, then sinks; the next round he pops up, shakes off, straightens his
-           bandana and floats smug (emerge), which is where the floating idle frame takes over. */
+           bandana and floats smug (emerge: .duck-float, above). */
         .marsh { --land-at: calc(var(--boom-at) + 1.7s); }
         .marsh .duck-water {
             inset: auto; left: 35.34%; top: 39.74%; width: 52.84%; aspect-ratio: 149 / 95;
@@ -216,14 +227,27 @@
         }
         @keyframes marsh-sink { 0% { background-position: 0 0; } 100% { background-position: 20% 0; } }
         @keyframes marsh-twitch { 50% { rotate: 3deg; translate: 0 -1px; } }
-        .marsh [data-pose="emerge"] .duck-water { opacity: 1; animation: marsh-emerge 1.8s step-end forwards; }
+        /* Coming back up: the 12 emerge frames over 2.3 s (bubbles, the crest breaks the surface, his
+           dizzy head, the shake, his chest, the bandana, smug), quick for the bubbles and the shake,
+           slower as he settles, with a little bob so it never stands still. */
+        .marsh [data-pose="emerge"] .duck-float { animation: marsh-emerge 2.3s step-end forwards; }
         @keyframes marsh-emerge {
-            0%   { background-position: 40% 0; }
-            25%  { background-position: 60% 0; }
-            50%  { background-position: 80% 0; }
-            75%, 100% { background-position: 100% 0; }
+            0%        { background-position: 0 0; }
+            6.957%    { background-position: 9.091% 0; }
+            13.913%   { background-position: 18.182% 0; }
+            20.87%    { background-position: 27.273% 0; }
+            29.565%   { background-position: 36.364% 0; }
+            38.261%   { background-position: 45.455% 0; }
+            46.957%   { background-position: 54.545% 0; }
+            53.043%   { background-position: 63.636% 0; }
+            59.13%    { background-position: 72.727% 0; }
+            66.957%   { background-position: 81.818% 0; }
+            76.522%   { background-position: 90.909% 0; }
+            89.565%, 100% { background-position: 100% 0; }
         }
-        .marsh [data-pose="emerge"] :is(.duck-takeoff, .duck-fly, .duck-dodge) { display: none; }
+        .marsh [data-pose="emerge"] .duck-bob { animation: marsh-bob-up 0.46s ease-in-out infinite alternate; }
+        @keyframes marsh-bob-up { from { translate: 0 1px; } to { translate: 0 -2px; } }
+        .marsh [data-pose="emerge"] :is(.duck-fly, .duck-dodge) { display: none; }
         /* The splash (water-splash.webp: 4 frames, 292 × 188 a cell), as wide as Lucky, on the water line. */
         .marsh .water-splash {
             inset: auto; left: 12.6%; top: 14.3%; width: 100%; aspect-ratio: 292 / 188;
