@@ -178,7 +178,7 @@
                 </button>
             </div>
             <div id="ante-box" class="card ante" hidden>
-                <div><strong>ANTE BET</strong><span>Free spins about twice as often, for 25% more per spin</span></div>
+                <div><strong>ANTE BET</strong><span>Free spins about 1.75× as often, for 25% more per spin</span></div>
                 <button id="ante-btn" class="switch" aria-pressed="false" aria-label="Ante bet"><i></i></button>
             </div>
         </aside>

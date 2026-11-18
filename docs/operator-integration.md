@@ -690,7 +690,7 @@ The spin, all its tumbles and every free spin it triggers resolve **in the same 
 | `mode` | `amount` | Plays |
 |---|---|---|
 | `base` (default) | the bet | one spin |
-| `ante` | 1.25 × the bet | one spin, free spins about twice as often |
+| `ante` | 1.25 × the bet | one spin, free spins about 1.75× as often |
 | `buy` | 100 × the bet | a spin that always triggers the free spins |
 
 Wins are multiples of the **bet**, so `payout_multiplier = total_win_x ÷ cost` and `payout_amount = amount × multiplier = bet × total_win_x`. A game may switch the ante or the buy off (some jurisdictions forbid buying the feature). Asking for one then answers `422 invalid_params`, and no stake is taken. Your limits apply to the `amount`, so a buy needs a `max_bet` of at least 100 × the bet.

@@ -640,7 +640,7 @@ export function startSlot(cfg) {
             <ul><li>8 or more of a symbol anywhere on the ${r.grid?.columns}×${r.grid?.rows} grid win.</li>
             <li>Winning symbols burst, the rest fall, and new ones drop in; this repeats while there are wins.</li>
             <li>In free spins, sugar stars (2× to 100×) land on the grid. When a free spin's tumbles end with a win, the stars' values add up and multiply it.</li>
-            ${features.ante ? '<li>Ante bet: your stake is 1.25× the bet and free spins come about twice as often.</li>' : ''}
+            ${features.ante ? '<li>Ante bet: your stake is 1.25× the bet and free spins come about 1.75× as often.</li>' : ''}
             ${features.buy ? '<li>Buy free spins: 100× the bet starts the feature at once.</li>' : ''}
             <li>Maximum win: ${Number(r.max_win).toLocaleString()}× the bet; the round ends when it is reached.</li>
             <li>Return to player: ${(Number(r.rtp) * 100).toFixed(2)}%.</li>
