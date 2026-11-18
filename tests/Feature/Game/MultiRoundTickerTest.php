@@ -42,14 +42,15 @@ it('ticks every running round of every game, each on its own game channel', func
     Event::assertNotDispatched(MultiplierTick::class, fn (MultiplierTick $e): bool => $e->round->is($stale));
 });
 
-it('keeps every crash-type game on the legacy crash channel unless narrowed in config', function (): void {
+it('keeps only the original game on the legacy crash channel, unless config widens it', function (): void {
     $deepDive = GameRound::factory()->create(['game_id' => Game::factory()->create(['code' => 'crash', 'slug' => 'crash'])]);
-    $skin = GameRound::factory()->create(['game_id' => Game::factory()->create(['code' => 'rocket', 'slug' => 'rocket'])]);
+    $luckyDuck = GameRound::factory()->create(['game_id' => Game::factory()->create(['code' => 'lucky-duck', 'slug' => 'lucky-duck'])]);
 
+    // afq's /crash page listens on `crash` and shows one game; Orange's page listens on game.{code}.
     expect(channelNames($deepDive))->toBe(["round.{$deepDive->round_uuid}", 'crash', 'game.crash'])
-        ->and(channelNames($skin))->toBe(["round.{$skin->round_uuid}", 'crash', 'game.rocket']);
+        ->and(channelNames($luckyDuck))->toBe(["round.{$luckyDuck->round_uuid}", 'game.lucky-duck']);
 
-    config()->set('games.legacy_channel_games', ['crash']);
+    config()->set('games.legacy_channel_games', null);
     expect(channelNames($deepDive->fresh()))->toContain('crash')
-        ->and(channelNames($skin->fresh()))->not->toContain('crash');
+        ->and(channelNames($luckyDuck->fresh()))->toContain('crash');
 });

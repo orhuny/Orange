@@ -336,6 +336,7 @@ it('sends round.crashed and round.settled webhooks with unchanged keys to operat
 
 it('serves /crash embeddable by allow-listed origins with the full postMessage bridge', function (): void {
     config()->set('embed.allowed_origins', ['https://afq.example']);
+    Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'type' => 'crash']);
 
     $response = get('/crash');
 
@@ -354,7 +355,9 @@ it('serves /crash embeddable by allow-listed origins with the full postMessage b
     foreach ($bridgeMessages as $message) {
         expect($html)->toContain("'{$message}'");
     }
-    expect($html)->toContain("channel('crash')")
+    // The page follows its own game's rounds (game.{code}); for the original game that is the
+    // same stream the legacy `crash` channel carries, which other listeners still use.
+    expect($html)->toContain('channel("game.crash")')
         ->and($html)->toContain('https:\/\/afq.example');
     foreach (['.round.betting_opened', '.round.started', '.round.tick', '.round.crashed', '.round.settled'] as $event) {
         expect($html)->toContain("'{$event}'");

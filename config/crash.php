@@ -29,6 +29,18 @@ return [
         'jellyfish' => (bool) env('GAME_CRASH_SEA_LIFE_JELLYFISH', false),
     ],
 
+    // How a crash game looks: games.config.scene picks one (default 'dive'), in the admin
+    // panel's engine settings. Each scene has its own art, sounds and words on the /crash
+    // page (resources/views/crash/scenes/{scene}); the rounds and the maths are the same.
+    // A scene's `intro` overrides the keys of `intro` below for games played in it.
+    'scenes' => [
+        'dive' => ['label' => 'Deep Dive (submarine)'],
+        'marsh' => [
+            'label' => 'Lucky Duck (marsh hunt)',
+            'intro' => ['title' => 'Lucky Duck', 'tagline' => 'Fly high · Cash out'],
+        ],
+    ],
+
     // Studio intro shown over /crash on launch.
     // - No images in public/images/intro/: a built-in scene animates the game's
     //   own art (submarine, background, creatures) with the title below.

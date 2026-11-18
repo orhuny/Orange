@@ -68,6 +68,25 @@ class DatabaseSeeder extends Seeder
         );
 
         if (app()->environment(['local', 'testing'])) {
+            // Lucky Duck: a second crash game (its own rounds) in the marsh scene. Local only:
+            // in production it is created in the admin panel (docs/adding-a-game.md §5).
+            // Enable it for an operator there, with play mode "direct", to see it in the lobby.
+            Game::updateOrCreate(
+                ['code' => 'lucky-duck'],
+                [
+                    'type' => 'crash',
+                    'slug' => 'lucky-duck',
+                    'access' => 'listed',
+                    'category_id' => GameCategory::query()->where('slug', 'crash')->value('id'),
+                    'name' => 'Lucky Duck',
+                    'version' => 1,
+                    'rtp_target' => 0.97,
+                    'house_edge' => 0.03,
+                    'config' => ['scene' => 'marsh'],
+                    'status' => 'active',
+                ],
+            );
+
             $this->call(ConsumerOperatorSeeder::class);
         }
     }

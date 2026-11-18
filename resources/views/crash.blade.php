@@ -62,6 +62,13 @@
     $themes = array_replace(array_flip($enabledThemes), array_intersect_key($themes, array_flip($enabledThemes)));
     $rgb = static fn (string $hex): string => implode(',', sscanf($hex, '#%02x%02x%02x'));
 
+    // The game being played (CrashPageController). Its rounds go out on game.{code}, and
+    // the page's saved state (skin, an armed auto bet, two bets) is its own, so nothing
+    // carries from one crash game into another; the original game keeps the bare keys.
+    $game ??= null;
+    $roundChannel ??= 'crash';
+    $storeSuffix = ($game instanceof \App\Domain\Game\Models\Game && $game->code !== 'crash') ? '.'.$game->code : '';
+
     // Which sea life swims behind the sub (config('crash.sea_life')); a kind not set there shows.
     $seaLife = array_merge(
         ['fish' => true, 'creatures' => true, 'octopi' => true, 'jellyfish' => true],
@@ -105,7 +112,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deep Dive — Orange Crash</title>
+    <title>Deep Dive — {{ $game?->name ?? 'Orange Crash' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{-- Apply the theme before first paint so the page never flashes the
          default palette. Priority: player's saved choice → ?theme= (operator
@@ -114,7 +121,7 @@
         (function () {
             var valid = @json(array_keys($themes));
             var t = null;
-            try { t = localStorage.getItem('orange.ui.theme'); } catch (_) {}
+            try { t = localStorage.getItem(@json('orange.ui.theme'.$storeSuffix)); } catch (_) {}
             if (valid.indexOf(t) === -1) t = new URLSearchParams(location.search).get('theme');
             if (valid.indexOf(t) === -1) t = valid[0];
             document.documentElement.setAttribute('data-theme', t);
@@ -5030,8 +5037,8 @@
         }
 
         function attachEcho() {
-            log('Echo ready, joining channel: crash');
-            window.Echo.channel('crash')
+            log('Echo ready, joining channel: ' + @json($roundChannel));
+            window.Echo.channel(@json($roundChannel))
                 .listen('.round.betting_opened', (e) => {
                     cancelCountdown();
                     setStage(['betting']);
@@ -5208,7 +5215,7 @@
             document.addEventListener('click', () => { if (!$menu.hidden) close(); });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$menu.hidden) close(); });
 
-            const THEME_KEY = 'orange.ui.theme';
+            const THEME_KEY = @json('orange.ui.theme'.$storeSuffix);
             const $opts = [...$menu.querySelectorAll('.theme-opt')];
 
             function current() {
@@ -5602,7 +5609,7 @@
         })();
 
         // ---- Wire SFX to the round + operator-panel events ----
-        window.Echo?.channel('crash')
+        window.Echo?.channel(@json($roundChannel))
             .listen('.round.betting_opened', () => audio.sfx('tick'))
             .listen('.round.started',        () => audio.sfx('start'))
             .listen('.round.crashed',        () => audio.sfx('crash'));
@@ -5779,11 +5786,11 @@
                     lastAutoBetRound: null,    // round_uuid we last fired auto-bet for (de-dupe guard)
                     // Restore AUTO BET across reloads. Keyed by host so a user sharing the
                     // machine doesn't inherit someone else's armed state.
-                    autoBetKey: index === 0 ? 'orange.embed.autobet' : 'orange.embed.autobet.2',
+                    autoBetKey: (index === 0 ? 'orange.embed.autobet' : 'orange.embed.autobet.2') + @json($storeSuffix),
                 };
             }
             const slots = [makeSlot(0), makeSlot(1)];
-            const SLOTS_KEY = 'orange.embed.slots';
+            const SLOTS_KEY = @json('orange.embed.slots'.$storeSuffix);
             const twoOpen = () => !slots[1].$root.hidden;
             // Messages name the bet when there are two.
             const tag = (slot) => (twoOpen() ? `bet ${slot.index + 1} · ` : '');
@@ -6177,7 +6184,7 @@
             // Locally drive button state off the same Echo events the page is
             // already subscribed to — so the panel feels instant even before
             // a parent broadcasts round_state. (Parent re-confirms below.)
-            window.Echo?.channel('crash')
+            window.Echo?.channel(@json($roundChannel))
                 .listen('.round.betting_opened', (e) => {
                     opState.phase = 'betting';
                     opState.roundUuid = e.round_uuid;

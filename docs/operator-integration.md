@@ -213,9 +213,9 @@ const channel = pusher.subscribe('crash');   // public, no auth signing required
 
 | Channel | Auth | Notes |
 |---|---|---|
-| `crash` | public | All round-lifecycle events for the live crash game |
+| `crash` | public | All round-lifecycle events for the original crash game (code `crash`) only; other crash games (e.g. `lucky-duck`) are on their `game.{code}` channel alone (`games.legacy_channel_games`) |
 | `round.{round_uuid}` | public | Same events, scoped to one round (subscribe if you only care about one) |
-| `game.{code}` | public | Same events for one game, e.g. `game.crash` (new; every round-based game has one) |
+| `game.{code}` | public | Same events for one game, e.g. `game.crash`, `game.lucky-duck` (every round-based game has one; Orange's `/crash` page listens here) |
 
 ### Events
 

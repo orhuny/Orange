@@ -9,6 +9,7 @@ use App\Domain\Game\Engines\Contracts\RoundBasedEngine;
 use App\Domain\Game\Engines\EngineFamily;
 use App\Domain\Game\Engines\RoundSchedule;
 use App\Domain\Game\Exceptions\InvalidBetParams;
+use App\Domain\Game\Exceptions\InvalidGameConfig;
 use App\Domain\Game\Exceptions\OutcomeNotPublic;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
@@ -24,6 +25,8 @@ use Illuminate\Support\Facades\Validator;
  */
 final class CrashEngine implements RoundBasedEngine
 {
+    public const DEFAULT_SCENE = 'dive';
+
     public function __construct(
         private readonly ProvablyFairService $math,
         private readonly MultiplierCalculator $calculator,
@@ -41,12 +44,43 @@ final class CrashEngine implements RoundBasedEngine
     }
 
     /**
-     * Crash has no engine settings of its own yet (growth rate and timings come from
-     * config/crash.php), so existing free-form keys are kept as they are.
+     * Crash's one engine setting is its scene (how the game looks: config('crash.scenes')); a
+     * game without one plays in the dive. Growth rate and timings come from config/crash.php;
+     * other free-form keys are kept as they are.
      */
     public function validateConfig(Game $game, array $config): array
     {
+        $scene = $config['scene'] ?? null;
+        if ($scene === null || $scene === '') {
+            unset($config['scene']);
+        } elseif (! is_string($scene) || ! array_key_exists($scene, self::scenes())) {
+            throw new InvalidGameConfig('Unknown crash scene: choose one of '.implode(', ', array_keys(self::scenes())).'.');
+        }
+
         return $config;
+    }
+
+    /**
+     * The scenes a crash game can be played in, key => label (config('crash.scenes')).
+     *
+     * @return array<string, string>
+     */
+    public static function scenes(): array
+    {
+        $scenes = [];
+        foreach ((array) config('crash.scenes', []) as $key => $scene) {
+            $scenes[(string) $key] = (string) (is_array($scene) ? ($scene['label'] ?? $key) : $key);
+        }
+
+        return $scenes === [] ? [self::DEFAULT_SCENE => 'Deep Dive'] : $scenes;
+    }
+
+    /** The scene a game plays in; a missing or unknown one falls back to the dive. */
+    public static function sceneOf(Game $game): string
+    {
+        $scene = ((array) $game->getAttribute('config'))['scene'] ?? null;
+
+        return is_string($scene) && array_key_exists($scene, self::scenes()) ? $scene : self::DEFAULT_SCENE;
     }
 
     /** Crash points are uncapped; max win caps the payout instead. */

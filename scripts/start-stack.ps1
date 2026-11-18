@@ -8,7 +8,7 @@
 #   1. orange-http       php artisan serve   (HTTP API + iframe page, :8000)
 #   2. orange-reverb     php artisan reverb:start  (WebSocket :8090)
 #   3. orange-queue      php artisan queue:work    (wallet callbacks + webhooks)
-#   4. crash:loop        round lifecycle driver
+#   4. crash:loop        round lifecycle driver, one per crash game (-CrashGames)
 #   5. crash:tick        multiplier tick broadcaster
 #   6. consumer          OrangeConsumer panel (:8001)
 #
@@ -29,6 +29,8 @@ param(
     [int]$ReverbPort      = 8090,
     [int]$ConsumerPort    = 8001,
     [string]$Memory       = '512M',
+    # Every crash-type game needs its own crash:loop (exactly one per code).
+    [string[]]$CrashGames = @('crash', 'lucky-duck'),
     [switch]$SkipConsumer,
     [switch]$Migrate
 )
@@ -107,13 +109,15 @@ Launch -Title "orange-queue" `
 
 Start-Sleep -Milliseconds 400
 
-# 4. Crash round lifecycle (auto-restarting wrapper)
-Launch -Title "crash:loop" `
-       -WorkDir $OrangePath `
-       -Color 'Green' `
-       -Command ".\scripts\run-crash-loop.ps1 -Memory $Memory"
+# 4. Crash round lifecycle (auto-restarting wrapper), one per crash game
+foreach ($crashGame in $CrashGames) {
+    Launch -Title "crash:loop $crashGame" `
+           -WorkDir $OrangePath `
+           -Color 'Green' `
+           -Command ".\scripts\run-crash-loop.ps1 -Memory $Memory -Game $crashGame"
 
-Start-Sleep -Milliseconds 400
+    Start-Sleep -Milliseconds 400
+}
 
 # 5. Tick broadcaster (auto-restarting wrapper)
 Launch -Title "crash:tick" `
@@ -137,7 +141,9 @@ if (-not $SkipConsumer) {
 Write-Host ""
 Write-Host "All windows launched." -ForegroundColor Green
 Write-Host ("  Admin panel:   http://" + $PublicHost + ":" + $OrangePort + "/admin")
-Write-Host ("  Game iframe:   http://" + $PublicHost + ":" + $OrangePort + "/crash")
+foreach ($crashGame in $CrashGames) {
+    Write-Host ("  Game iframe:   http://" + $PublicHost + ":" + $OrangePort + "/crash?game=" + $crashGame)
+}
 if (-not $SkipConsumer) {
     Write-Host ("  Operator UI:   http://" + $PublicHost + ":" + $ConsumerPort + "/consumer/players/1")
 }

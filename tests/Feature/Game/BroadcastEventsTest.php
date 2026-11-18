@@ -31,7 +31,7 @@ it('dispatches BettingOpened with correct channels and payload', function (): vo
         $payload = $event->broadcastWith();
 
         return in_array("round.{$round->round_uuid}", $channels, true)
-            && in_array('crash', $channels, true)
+            && in_array("game.{$round->game->code}", $channels, true)
             && $payload['round_uuid'] === $round->round_uuid
             && $event->broadcastAs() === 'round.betting_opened';
     });

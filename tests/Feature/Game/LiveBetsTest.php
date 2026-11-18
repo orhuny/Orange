@@ -70,7 +70,7 @@ it('broadcasts a bet that counts, with its player masked', function (): void {
     BetPlaced::dispatch($bet);
 
     Event::assertDispatched(RoundBetsUpdated::class, fn (RoundBetsUpdated $e): bool => $e->broadcastAs() === 'round.bets'
-        && in_array('crash', collect($e->broadcastOn())->pluck('name')->all(), true)
+        && in_array("game.{$round->game->code}", collect($e->broadcastOn())->pluck('name')->all(), true)
         && $e->broadcastWith() === ['round_uuid' => $round->round_uuid, 'bets' => [[
             'id' => $bet->id, 'player' => '9***3', 'amount' => '10.00000000', 'currency' => 'EUR', 'multiplier' => null, 'payout' => null,
         ]]]);

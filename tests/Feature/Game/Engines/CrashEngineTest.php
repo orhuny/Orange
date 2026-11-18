@@ -7,6 +7,7 @@ use App\Domain\Game\Engines\EngineFamily;
 use App\Domain\Game\Enums\RoundState;
 use App\Domain\Game\Events\MultiplierTick;
 use App\Domain\Game\Exceptions\InvalidBetParams;
+use App\Domain\Game\Exceptions\InvalidGameConfig;
 use App\Domain\Game\Exceptions\OutcomeNotPublic;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameRound;
@@ -127,6 +128,25 @@ it('ticks with the same payload as MultiplierTick and never the crash point', fu
     expect($tick)->toBe((new MultiplierTick($round, $multiplier, 5.0))->broadcastWith())
         ->and($tick)->not->toHaveKey('crash_point')
         ->and(json_encode($tick))->not->toContain('87.65');
+});
+
+it('plays in the scene its settings name, the dive when they name none', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+
+    expect(crashEngine()->validateConfig($game, ['scene' => 'marsh', 'max_win' => 100000]))->toBe(['scene' => 'marsh', 'max_win' => 100000])
+        ->and(crashEngine()->validateConfig($game, ['scene' => null, 'max_win' => 100000]))->toBe(['max_win' => 100000])
+        ->and(crashEngine()->validateConfig($game, ['scene' => '']))->toBe([])
+        ->and(fn () => crashEngine()->validateConfig($game, ['scene' => 'moon']))->toThrow(InvalidGameConfig::class)
+        ->and(fn () => crashEngine()->validateConfig($game, ['scene' => ['marsh']]))->toThrow(InvalidGameConfig::class);
+
+    expect(CrashEngine::sceneOf($game))->toBe('dive')
+        ->and(CrashEngine::sceneOf(Game::factory()->create(['config' => ['scene' => 'marsh']])))->toBe('marsh')
+        ->and(CrashEngine::scenes())->toHaveKeys(['dive', 'marsh']);
+
+    // A scene taken out of config/crash.php falls back to the dive instead of breaking the page.
+    $marsh = Game::factory()->create(['config' => ['scene' => 'marsh']]);
+    config()->set('crash.scenes', ['dive' => ['label' => 'Deep Dive']]);
+    expect(CrashEngine::sceneOf($marsh))->toBe('dive');
 });
 
 it('takes its schedule from config/crash.php', function (): void {

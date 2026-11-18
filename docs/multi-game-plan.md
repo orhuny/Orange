@@ -672,8 +672,8 @@ Viewer. `orange:sync-access` creates the missing permissions; edited roles are l
    - The shared bridge is `public/js/orange/bridge.js` (no build step), tested with Vitest
      (`npm run test:js`).
    - Operators' `config.embed_origins` join `frame-ancestors`.
-   - Rounds broadcast on `game.{code}`; `crash` keeps every crash-type game unless
-     `games.legacy_channel_games` narrows it.
+   - Rounds broadcast on `game.{code}`; `crash` carries only the games in
+     `games.legacy_channel_games` (`['crash']` since Lucky Duck, the second crash game).
    - `crash:tick` ticks every running round through its engine.
    - Moving `crash.blade.php` onto the shared module is left for a later pass (it doesn't need
      it to work).

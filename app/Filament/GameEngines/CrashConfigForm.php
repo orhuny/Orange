@@ -4,19 +4,26 @@ declare(strict_types=1);
 
 namespace App\Filament\GameEngines;
 
+use App\Domain\Game\Engines\Crash\CrashEngine;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Text;
 
 /**
- * Crash has no engine settings of its own yet (timings come from config/crash.php), so
- * there are no fields: a field bound to the whole `config` would also, while hidden for
- * another type, drop that type's settings when the form is saved.
+ * Crash's one engine setting is the scene the game is played in (config('crash.scenes')).
+ * Growth rate and round timings come from config/crash.php. The field is bound to
+ * `config.scene`, not to `config`, so a hidden form never drops another type's settings.
  */
 final class CrashConfigForm implements EngineConfigForm
 {
     public static function components(): array
     {
         return [
-            Text::make('Crash has no engine settings: growth rate and round timings come from config/crash.php.'),
+            Select::make('config.scene')
+                ->label('Scene')
+                ->options(CrashEngine::scenes())
+                ->placeholder('Deep Dive (default)')
+                ->helperText('How the game looks: its art, sounds and words. The rounds and odds are the same in every scene.'),
+            Text::make('Growth rate and round timings come from config/crash.php.'),
         ];
     }
 }

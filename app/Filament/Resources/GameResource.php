@@ -137,8 +137,9 @@ class GameResource extends Resource
         }
 
         $game = ($record ?? new Game)->replicate()->forceFill(array_intersect_key($data, array_flip(['rtp_target', 'house_edge'])));
-        // An engine form without fields (crash) sends no config: keep what the game has.
-        $config = array_key_exists('config', $data) ? (array) $data['config'] : (array) $record?->getAttribute('config');
+        // A form sends only the keys it has fields for: they replace those keys, and every other
+        // setting the game has (e.g. a crash game's free-form keys) is kept.
+        $config = array_replace((array) $record?->getAttribute('config'), (array) ($data['config'] ?? []));
         try {
             $data['config'] = $engines->for($type)->validateConfig($game, $config);
         } catch (InvalidGameConfig $e) {

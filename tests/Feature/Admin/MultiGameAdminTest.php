@@ -227,6 +227,31 @@ it('keeps a crash game\'s existing settings when it is edited', function (): voi
         ->and($crash->fresh()->config)->toBe(['growth_rate' => 0.06, 'max_win' => 100000]);
 });
 
+it('sets a crash game\'s scene, keeping its other settings', function (): void {
+    actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create());
+
+    Livewire::test(CreateGame::class)
+        ->fillForm(['type' => 'crash', 'code' => 'lucky-duck', 'slug' => 'lucky-duck', 'name' => 'Lucky Duck', 'status' => 'draft', 'access' => 'listed',
+            'rtp_target' => 0.97, 'house_edge' => 0.03, 'config' => ['scene' => 'marsh']])
+        ->call('create')
+        ->assertHasNoFormErrors();
+    $duck = Game::query()->where('code', 'lucky-duck')->sole();
+    expect($duck->config)->toBe(['scene' => 'marsh']);
+
+    $crash = Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'config' => ['growth_rate' => 0.06]]);
+    Livewire::test(EditGame::class, ['record' => $crash->getRouteKey()])
+        ->fillForm(['config' => ['scene' => 'marsh']])
+        ->call('save')
+        ->assertHasNoFormErrors();
+    expect($crash->fresh()->config)->toBe(['growth_rate' => 0.06, 'scene' => 'marsh']);
+
+    Livewire::test(EditGame::class, ['record' => $duck->getRouteKey()])
+        ->fillForm(['config' => ['scene' => 'moon']])
+        ->call('save')
+        ->assertHasErrors(['data.config.scene']);
+    expect($duck->fresh()->config)->toBe(['scene' => 'marsh']);
+});
+
 it('keeps an operator\'s max win above its max bet', function (): void {
     $operator = Operator::factory()->create();
     $dice = adminDice();

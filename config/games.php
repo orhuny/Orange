@@ -49,7 +49,8 @@ return [
     ],
 
     // Which games' rounds also go out on the legacy `crash` channel (afq's /crash page):
-    // null = every crash-type game, as before there were several games; or a list of codes.
-    // Every round is also broadcast on game.{code}.
-    'legacy_channel_games' => null,
+    // a list of codes, or null = every crash-type game (as before there were several).
+    // Only the original game: afq's page shows one game, and Orange's /crash page listens
+    // on game.{code}, where every round is broadcast.
+    'legacy_channel_games' => ['crash'],
 ];

@@ -1,8 +1,6 @@
 <?php
 
-use App\Domain\Game\Enums\RoundState;
-use App\Domain\Game\Models\Game;
-use App\Domain\Game\Models\GameRound;
+use App\Http\Controllers\CrashPageController;
 use App\Http\Controllers\GamePageController;
 use App\Http\Controllers\LobbyPageController;
 use App\Http\Controllers\PlayPageController;
@@ -13,36 +11,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/crash', function () {
-    // Only finished rounds: crash_point is stored at round start, so the live
-    // round must never show up here.
-    $recentCrashes = GameRound::query()
-        ->whereIn('state', GameRound::CRASH_POINT_PUBLIC_STATES)
-        ->whereNotNull('crash_point')
-        ->latest('id')
-        ->limit(8)
-        ->get(['round_uuid', 'crash_point'])
-        // Each chip opens its round's details (GET /v1/rounds/{uuid}).
-        ->map(fn (GameRound $round) => ['round_uuid' => $round->round_uuid, 'crash_point' => (float) $round->crash_point])
-        ->values()
-        ->all();
-
-    // The live bet list starts from these: the round in play (if any) and the last one over.
-    $liveRounds = config('crash.live_bets', true) ? [
-        'current' => GameRound::query()->where('state', '!=', RoundState::Settled)->latest('id')->value('round_uuid'),
-        'previous' => GameRound::query()->where('state', RoundState::Settled)->latest('id')->value('round_uuid'),
-    ] : null;
-
-    // The game being played (?game={code}, set by Orange's host pages), for the RTP its rules
-    // show; an operator embedding the page without one gets the first crash game's.
-    $games = Game::query()->where('type', 'crash')->where('status', '!=', 'draft');
-    $code = request()->query('game');
-    $game = (is_string($code) && $code !== '' ? (clone $games)->where('code', $code)->first() : null)
-        ?? $games->orderBy('id')->first();
-    $rtp = $game instanceof Game ? number_format((float) $game->rtp_target, 4, '.', '') : null;
-
-    return view('crash', ['recentCrashes' => $recentCrashes, 'liveRounds' => $liveRounds, 'rtp' => $rtp]);
-})->middleware(AllowGameEmbed::class);
+// The page every crash-type game plays in (?game={code}); see CrashPageController.
+Route::get('/crash', CrashPageController::class)->middleware(AllowGameEmbed::class);
 
 // Game pages (resources/views/games/{type}.blade.php), embedded by Orange's host pages
 // (direct play) or by an operator page (relay play).
