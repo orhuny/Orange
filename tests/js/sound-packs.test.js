@@ -129,6 +129,14 @@ describe('jackpot music', () => {
     });
 });
 
+describe('marsh effects', () => {
+    it('plays a missed shot while Lucky flies', () => {
+        window.OrangeSound.marsh(ctx, ctx.createGain()).sfx('shot');
+
+        expect(ctx.started.length).toBeGreaterThan(0);
+    });
+});
+
 describe('marsh music', () => {
     it('builds as Lucky flies higher and calms down again', () => {
         const background = window.OrangeSound.marsh(ctx, ctx.createGain()).ambience();

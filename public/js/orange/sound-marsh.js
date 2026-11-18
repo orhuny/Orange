@@ -5,7 +5,7 @@
  * kazoo and the fox's blunderbuss. All synthesised.
  *
  *   const pack = window.OrangeSound.marsh(ctx, master);
- *   pack.sfx('win');                   // tick | bet | start | win | loss | crash
+ *   pack.sfx('win');                   // tick | bet | start | win | loss | crash | shot
  *   const bg = pack.ambience();        // continuous background, until bg.stop()
  *   bg.intensity(2);                   // 0 betting · 1 flying · 2 golden · 3 sunset and dusk
  *
@@ -330,6 +330,11 @@
                     kazoo(midi(62), midi(60), { at: t, bus, gain: 0.06, dur: 0.25 });
                     kazoo(midi(60), midi(59), { at: t + 0.28, bus, gain: 0.06, dur: 0.25 });
                     kazoo(midi(59), midi(43), { at: t + 0.56, bus, gain: 0.06, dur: 0.9 });
+                    break;
+                case 'shot': // a miss: the blunderbuss (lighter than the hit), the spray whizzing past, a cheeky quack
+                    shot({ at: t, bus, gain: 0.16 });
+                    hiss({ at: t + 0.12, bus, gain: 0.05, dur: 0.35, type: 'bandpass', freq: 3200, to: 900, q: 3, wet: 0.2 });
+                    quack({ at: t + 0.5, bus, gain: 0.045, pitch: 1.2, dur: 0.1 });
                     break;
                 case 'crash': { // the shot, then (at the page's --boom-at) the hit: a poof, a sad quack, feathers and a slide down
                     shot({ at: t, bus, gain: 0.3 });

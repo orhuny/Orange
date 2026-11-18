@@ -281,22 +281,25 @@ hw = int(max(f.shape[1] for f in hit) * k) + 20
 hh = int(max(f.shape[0] for f in hit) * k) + 20
 report['duck-hit.webp'] = {'frames': len(hit), 'cell': (hw, hh), 'bytes': even_sheet(hit, 'duck-hit.webp', hw, hh, k)}
 
-# --- The fox: four poses in his blind (aiming low, mid, high; firing) -----------------------------
-# The fox has no pink: a stricter key takes out any magenta smudged into the reeds. The blind is
-# the same in every pose, so the frames are lined up on it: its planks' bottom edge and centre.
-poses = [trim(key(c, lo=10.0, hi=110.0), pad=2) for c in cells(load('fox-aim.png'), 4, 1)]
+# --- The fox: seven poses in his blind --------------------------------------------------------------
+# From two sheets drawn alike (the same straw-and-plank blind): fox-aim.png aims low, mid and
+# high; fox-fire.png fires low, mid and high, and reloads. Frames: 0-2 aim, 3-5 fire, 6 reload.
+# The fox has no pink: a stricter key takes out any magenta smudged into the reeds. The frames
+# are lined up on the blind (its bottom edge and centre) and scaled so it is the same width.
+poses = [trim(key(c, lo=10.0, hi=110.0), pad=2) for c in cells(load('fox-aim.png'), 4, 1)][:3] + [trim(key(c, lo=10.0, hi=110.0), pad=2) for c in cells(load('fox-fire.png'), 4, 1)]
 FOX_W = 520  # px: the output cell's width
 
 
-def blind_centre(f):
+def blind_band(f):
+    """The blind's planks along the bottom: their left and right edge."""
     a = f[..., 3] > 128
-    band = a[int(a.shape[0] * 0.92):]  # the planks along the bottom
+    band = a[int(a.shape[0] * 0.93):]
     xs = np.nonzero(band.any(axis=0))[0]
-    return (xs.min() + xs.max()) / 2
+    return float(xs.min()), float(xs.max())
 
 
 def bell_mouth(f):
-    """The blunderbuss's mouth: the top-right end of the brass (the hat's buckle is further left)."""
+    """The blunderbuss's mouth: the top-right end of the brass (the feather is further left)."""
     r, g, b, a = (f[..., i] for i in range(4))
     brass = (a > 200) & (r > 170) & (g > 120) & (b < 110) & (r - b > 90)
     ys, xs = np.nonzero(brass)
@@ -305,26 +308,56 @@ def bell_mouth(f):
     return float(xs[best].mean()), float(ys[best].mean())
 
 
-centres = [blind_centre(f) for f in poses]
-left = max(c for c in centres) + 4
-right = max(f.shape[1] - c for f, c in zip(poses, centres)) + 4
-height = max(f.shape[0] for f in poses) + 4
-k = FOX_W / (left + right)
-cw, ch = FOX_W, int(np.ceil(height * k))
+bands = [blind_band(f) for f in poses]
+width = float(np.median([r - l for l, r in bands]))
+scales = [width / (r - l) for l, r in bands]                 # every blind as wide as the median
+centres = [(l + r) / 2 * k for (l, r), k in zip(bands, scales)]
+left = max(centres) + 4
+right = max(f.shape[1] * k - c for f, k, c in zip(poses, scales, centres)) + 4
+height = max(f.shape[0] * k for f, k in zip(poses, scales)) + 4
+z = FOX_W / (left + right)
+cw, ch = FOX_W, int(np.ceil(height * z))
 sheet = Image.new('RGBA', (cw * len(poses), ch), (0, 0, 0, 0))
 mouths = []
-for i, (f, c) in enumerate(zip(poses, centres)):
-    img = scale(to_image(f), k)
-    x0 = int(round(left * k - c * k))
+for i, (f, k, c) in enumerate(zip(poses, scales, centres)):
+    img = scale(to_image(f), k * z)
+    x0 = int(round((left - c) * z))
     y0 = ch - img.size[1]  # sitting on the cell's bottom edge
     sheet.alpha_composite(img, (i * cw + x0, y0))
-    mx, my = bell_mouth(f)
-    mouths.append((round((x0 + mx * k) / cw, 3), round((y0 + my * k) / ch, 3)))
-report['fox-aim.webp'] = {
-    'frames': len(poses), 'cell': (cw, ch), 'bytes': save_webp(sheet, 'fox-aim.webp'),
-    # Fractions of a cell, per pose: where the bell's mouth is (the scene's FOX_MUZZLE).
+    if i < 6:  # the reload holds the gun upright: no shot from it
+        mx, my = bell_mouth(f)
+        mouths.append((round((x0 + mx * k * z) / cw, 3), round((y0 + my * k * z) / ch, 3)))
+report['fox.webp'] = {
+    'frames': len(poses), 'cell': (cw, ch), 'bytes': save_webp(sheet, 'fox.webp'),
+    # Fractions of a cell, per aim and fire pose: where the bell's mouth is (the scene's FOX_MUZZLE).
     'muzzle': mouths,
 }
+
+# --- Near misses: the shot's spray, the muzzle blast, Lucky dodging ----------------------------------
+spray = trim(key(load('shot-spray.png')))
+img = scale(to_image(spray), 520 / spray.shape[1])
+report['shot-spray.webp'] = {'size': img.size, 'bytes': save_webp(img, 'shot-spray.webp')}
+blast = trim(key(load('muzzle-burst.png')))
+img = scale(to_image(blast), 260 / blast.shape[1])
+report['muzzle-burst.webp'] = {'size': img.size, 'bytes': save_webp(img, 'muzzle-burst.webp')}
+# Flinch, barrel roll, duck under, smug wink: on the flight's head anchor, so Lucky doesn't jump
+# between flying and dodging (the roll turns about his head). Drawn with bigger heads than the
+# flight, so scaled on the body: the flinch and the wink (wings out) as wide as the flying duck.
+dodge = [trim(key(c), pad=2) for c in cells(load('duck-dodge.png'), 2, 2)]
+dodge_anchor = [head(f) for f in dodge]
+assert all(dodge_anchor), 'a dodge frame without a head'
+dk = float(np.median(fly_widths)) / float(np.mean([dodge[0].shape[1], dodge[3].shape[1]]))
+placed = [(scale(to_image(f), dk), hx * dk, hy * dk) for f, (hx, hy, _) in zip(dodge, dodge_anchor)]
+lft = max(hx for _, hx, _ in placed) + 10
+rgt = max(img.size[0] - hx for img, hx, _ in placed) + 10
+top = max(hy for _, _, hy in placed) + 10
+bot = max(img.size[1] - hy for img, _, hy in placed) + 10
+dw = int(np.ceil(max(lft / ANCHOR[0], rgt / (1 - ANCHOR[0]))))
+dh = int(np.ceil(max(top / ANCHOR[1], bot / (1 - ANCHOR[1]))))
+dsheet = Image.new('RGBA', (dw * len(placed), dh), (0, 0, 0, 0))
+for i, (img, hx, hy) in enumerate(placed):
+    dsheet.alpha_composite(img, (int(round(i * dw + ANCHOR[0] * dw - hx)), int(round(ANCHOR[1] * dh - hy))))
+report['duck-dodge.webp'] = {'frames': len(dodge), 'cell': (dw, dh), 'head': ANCHOR, 'bytes': save_webp(dsheet, 'duck-dodge.webp')}
 
 # The delivered muzzle strip (muzzle.png) is clipped flat on every frame, so it is not used:
 # the scene draws the blunderbuss's flash itself (SVG) and puffs grey clouds for the smoke.
@@ -336,6 +369,15 @@ report['bang-word.webp'] = {'size': img.size, 'bytes': save_webp(img, 'bang-word
 burst = trim(key(load('bang-burst.png')))
 img = scale(to_image(burst), 760 / burst.shape[1])
 report['bang-burst.webp'] = {'size': img.size, 'bytes': save_webp(img, 'bang-burst.webp', quality=86)}
+
+# --- Dizzy: a spiral eye (spun over Lucky's eyes as he falls) and a star (circling his head) ------
+rgba = key(load('dizzy.png'))
+boxes = sorted(merge_boxes(components(rgba, min_area=2000), gap=6), key=lambda b: b[0])
+assert len(boxes) == 2, f'{len(boxes)} dizzy sprites, expected 2'
+for name, (x0, y0, x1, y1) in zip(['dizzy-eye', 'dizzy-star'], boxes):
+    img = to_image(trim(rgba[y0:y1, x0:x1]))
+    img = scale(img, 120 / img.size[0])
+    report[f'{name}.webp'] = {'size': img.size, 'bytes': save_webp(img, f'{name}.webp')}
 
 logo = trim(key(load('lucky_duck_winged_mascot_logo.png')))
 img = scale(to_image(logo), 960 / logo.shape[1])

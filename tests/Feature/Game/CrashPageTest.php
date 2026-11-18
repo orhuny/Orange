@@ -57,7 +57,7 @@ it('draws each crash game in its own scene', function (): void {
     get('/crash?game=lucky-duck')->assertOk()
         ->assertSee('class="scene marsh"', false)
         ->assertSee('images/lucky-duck/duck-fly.webp', false)
-        ->assertSee('images/lucky-duck/fox-aim.webp', false)
+        ->assertSee('images/lucky-duck/fox.webp', false)
         ->assertSee('const TEXT = {"round":"flight"', false)
         ->assertSee('<span>Bang!</span>', false)
         ->assertSee('data-theme', false)

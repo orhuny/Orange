@@ -18,37 +18,41 @@
             <div class="strip strip-marsh" style="--k: 0.55"><b></b></div>
 
             {{-- Lucky. The script places .duck-wrap (on the water, the take-off, the flight) and
-                 sets its pose: idle | lift | fly | hit. .duck-bob bobs him, .duck-fall carries
-                 the drop once he is hit. --}}
+                 sets its pose: idle | lift | fly | dodge-dip | dodge-roll | hit. .duck-bob bobs him,
+                 .duck-fall carries the drop once he is hit; as he falls his eyes spin (.dizzy) and
+                 stars circle his head (.orbit). --}}
             <div class="duck-wrap" data-pose="idle" aria-hidden="true">
                 <div class="duck-fall">
                     <div class="duck-bob">
                         <div class="duck-sprite duck-takeoff"></div>
                         <div class="duck-sprite duck-fly"></div>
+                        <div class="duck-sprite duck-dodge"></div>
                     </div>
-                    <div class="duck-sprite duck-hit"></div>
+                    <div class="duck-sprite duck-hit">
+                        <i class="dizzy dizzy-1"></i>
+                        <i class="dizzy dizzy-2"></i>
+                        <i class="orbit"><b></b><b></b><b></b></i>
+                    </div>
                 </div>
             </div>
 
             <div class="strip strip-reeds" style="--k: 1.2"><b></b></div>
 
-            {{-- The fox in his blind, bottom left (on the bet bar; on a phone, above the multiplier).
-                 Four poses (fox-aim.webp): aiming low, mid and high, picked by the script from where
-                 Lucky is (data-aim), and firing at the crash; the flash and smoke come out of the
-                 pose's bell (--mx / --my). --}}
-            <div class="fox" data-aim="0" aria-hidden="true">
+            {{-- The fox in his blind, bottom left (on the bet bar when embedded). Seven poses
+                 (fox.webp): aiming low, mid and high, firing at those, and reloading, picked by the
+                 script, which also puts the blast and the smoke at the pose's bell (--mx / --my). --}}
+            <div class="fox" aria-hidden="true">
                 <div class="fox-sprite"></div>
                 <div class="muzzle">
                     <img class="smoke" src="{{ $art('cloud-3.webp') }}" alt="" draggable="false" style="--d: 0s; --dx: 30px; --dy: -26px;">
                     <img class="smoke" src="{{ $art('cloud-4.webp') }}" alt="" draggable="false" style="--d: 0.05s; --dx: 58px; --dy: 8px;">
                     <img class="smoke" src="{{ $art('cloud-6.webp') }}" alt="" draggable="false" style="--d: 0.1s; --dx: 10px; --dy: -54px;">
-                    <svg class="flash" viewBox="-50 -50 100 100" aria-hidden="true">
-                        <polygon points="0,-46 9,-15 40,-26 18,-3 46,8 14,10 22,40 0,16 -20,38 -12,9 -40,6 -16,-6 -34,-30 -6,-16"
-                                 fill="#fde047" stroke="#f97316" stroke-width="4" stroke-linejoin="round"/>
-                        <circle r="12" fill="#fffbeb"/>
-                    </svg>
+                    <img class="blast" src="{{ $art('muzzle-burst.webp') }}" alt="" draggable="false">
                 </div>
             </div>
+
+            {{-- The shots he misses with, flying past Lucky (the script adds them). --}}
+            <div class="shots" aria-hidden="true"></div>
 
             {{-- Gold coins and feathers that burst from Lucky when a bet cashes out. --}}
             <div class="loot" aria-hidden="true"></div>
