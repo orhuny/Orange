@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Domain\Game\Engines\Crash\CrashEngine;
 use App\Domain\Game\Engines\Dice\DiceEngine;
+use App\Domain\Game\Engines\Slot\SlotEngine;
 use App\Filament\GameEngines\CrashConfigForm;
 use App\Filament\GameEngines\DiceConfigForm;
+use App\Filament\GameEngines\SlotConfigForm;
 
 return [
     /*
@@ -21,6 +23,7 @@ return [
     'engines' => [
         'crash' => CrashEngine::class,
         'dice' => DiceEngine::class,
+        'slot' => SlotEngine::class,
     ],
 
     /*
@@ -33,12 +36,14 @@ return [
     'frontends' => [
         'crash' => '/crash',
         'dice' => '/games/dice',
+        'slot' => '/games/slot',
     ],
 
     // The admin form for each engine's settings (games.config), shown for games of that type.
     'admin_forms' => [
         'crash' => CrashConfigForm::class,
         'dice' => DiceConfigForm::class,
+        'slot' => SlotConfigForm::class,
     ],
 
     'launch' => [

@@ -14,7 +14,7 @@ it('resolves every existing game to the crash engine', function (): void {
     expect($game->engineType())->toBe('crash')
         ->and($registry->forGame($game))->toBeInstanceOf(CrashEngine::class)
         ->and($registry->roundBased($game))->toBeInstanceOf(CrashEngine::class)
-        ->and($registry->types())->toBe(['crash', 'dice']);
+        ->and($registry->types())->toBe(['crash', 'dice', 'slot']);
 });
 
 it('returns one engine instance per type', function (): void {

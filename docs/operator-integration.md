@@ -677,6 +677,60 @@ The algorithm is spelled out at `GET /v1/fairness/dice`.
 response's `status`, `outcome`, `multiplier`, `payout_amount`, `fairness` and the player's new
 balance (`player_balance`). With direct play (`/play/dice`), Orange does all of this for you.
 
+### Slots (`type: slot`, instant; e.g. `code: sugar-orchard`)
+
+Each bet is one paid spin on a 6×5 grid.
+- **Pays:** 8 or more of a symbol anywhere pay. Winning symbols burst, the rest fall, new ones drop in, and this repeats while there are wins (tumbles).
+- **Free spins:** 4 or more scatters award free spins. In free spins, multiplier stars multiply each winning spin.
+
+The spin, all its tumbles and every free spin it triggers resolve **in the same call**, exactly like a dice roll. Money moves the same way as for dice (below).
+
+`params.mode` picks what the stake buys. The stake is what you send as `amount`:
+
+| `mode` | `amount` | Plays |
+|---|---|---|
+| `base` (default) | the bet | one spin |
+| `ante` | 1.25 × the bet | one spin, free spins about 1.75× as often |
+| `buy` | 100 × the bet | a spin that always triggers the free spins |
+
+Wins are multiples of the **bet**, so `payout_multiplier = total_win_x ÷ cost` and `payout_amount = amount × multiplier = bet × total_win_x`. A game may switch the ante or the buy off (some jurisdictions forbid buying the feature). Asking for one then answers `422 invalid_params`, and no stake is taken. Your limits apply to the `amount`, so a buy needs a `max_bet` of at least 100 × the bet.
+
+```json
+// POST /v1/games/sugar-orchard/bets
+{ "player_external_id": "12*3456", "amount": "2.00", "currency": "EUR", "params": { "mode": "base" } }
+// 201
+{ "bet_id": 9130, "game": "sugar-orchard", "status": "won", "amount": "2.00000000", "currency": "EUR",
+  "multiplier": "7.8500", "payout_amount": "15.70000000",
+  "outcome": {
+    "model": "sugar-orchard", "variant": "v1-9650", "mode": "base", "cost": "1.00",
+    "spins": [{ "grid": "EEEIFESGGHGGEDBFIIHGGGIDHGHIEF", "mults": [],
+                "tumbles": [{ "wins": [{ "symbol": "G", "count": 8, "win_x": "1.60" }], "fill": ["", "HF", "EI", "I", "EI", "H"], "fill_mults": [] }, "…"],
+                "scatter_win_x": "0.00", "win_x": "7.85", "free_spins_awarded": 0 }],
+    "base_win_x": "7.85", "free_spins": 0, "free_spins_win_x": "0.00", "total_win_x": "7.85",
+    "max_win_reached": false, "win": true, "payout_multiplier": "7.8500", "rtp": "0.9650" },
+  "fairness": { "server_seed_hash": "…", "client_seed": "…", "nonce": 1 },
+  "wallet_tx_id": "88140" }
+```
+
+**Reading `outcome`:**
+- **`spins`:** The paid spin comes first, then each free spin.
+- **`grid`:** One letter per cell, column by column, top to bottom. `S` is the scatter and `M` a multiplier star; the stars' values are in `mults`, in cell order.
+- **`tumbles`:** Each tumble lists what paid. `fill` holds each column's new symbols, top to bottom, and `fill_mults` the new stars' values.
+- **Free spins:** A free spin also carries `multiplier`, the stars' sum it was multiplied by (0 when it didn't pay), and `retrigger`.
+- **`max_win_reached`:** The total stops at the game's max win (5,000× the bet for Sugar Orchard), and the feature ends there.
+- **`win_x` amounts:** All `…_win_x` values are multiples of the bet.
+
+**Fairness.** Slots use the same seed pair and nonces as dice.
+- `GET /v1/fairness/{code}` publishes the draw order, the paytable and every weight table.
+- `GET /v1/fairness/{code}/verify?server_seed=…&client_seed=…&nonce=…&mode=…&variant=…` replays a bet and returns its full `outcome`. Take `variant` from the bet's outcome: a game's RTP variant can change later, but a bet always verifies with the one it was played with.
+
+**Embedding the page yourself (relay play).**
+1. Embed `/games/slot?game={code}`.
+2. The page posts `place_bet` with `{ amount, params: { mode } }`.
+3. Call `POST /v1/games/{code}/bets` and answer `bet_placed_result` exactly as for dice.
+
+The page plays the whole outcome back before it shows the new balance. Send the game's limits in `player_info` (`limits: { min_bet, max_bet, max_win }`): the page then offers only the bet steps inside them and disables a buy that would exceed `max_bet`.
+
 ### Max win
 
 When a game has limits for the bet's currency, a payout never exceeds the effective `max_win`.
