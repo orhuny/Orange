@@ -327,6 +327,19 @@ export function startSlot(cfg) {
             img: sprite(art.twinkle), x: x + rand(-0.25, 0.25) * size, y: y + rand(-0.25, 0.25) * size, w: size, h: size,
             s0: 0.2, s1: 1, fade: 0.4, life: 0.5, light: true, vr: 1.5, delay: 0.05,
         });
+        // A fruit is juicy: water drops spray out with its pieces and fall.
+        if (FRUITS.has(symbol)) {
+            for (let i = 0; i < 18; i++) {
+                const dir = rand(-Math.PI, 0) + rand(-0.4, 0.4); // mostly upward and outward
+                const v = size * rand(1.6, 3.8);
+                const d = size * rand(0.07, 0.15);
+                emit({
+                    img: sprite(droplet(true)), x: x + rand(-0.2, 0.2) * size, y: y + rand(-0.15, 0.2) * size, w: d, h: d * 1.12,
+                    vx: Math.cos(dir) * v, vy: Math.sin(dir) * v, g: size * 9, s0: 0.6, s1: 0.9, fade: 0.55, life: rand(0.55, 0.9),
+                    ease: linear, delay: rand(0, 0.08),
+                });
+            }
+        }
     }
 
     async function playStep(step, index) {
@@ -1071,6 +1084,100 @@ export function startSlot(cfg) {
         drop();
     }
 
+    // ---- Water drops on the fruit ----------------------------------------------------------
+    // A clear water drop, drawn once in code: a light body with a darker refracting rim, a
+    // bright highlight at the top left and a glow at the bottom. While the game rests, dew
+    // beads up on a fruit now and then, glints, then slides down and drips away; when a fruit
+    // bursts, drops spray out (shatter).
+
+    const FRUITS = new Set(['E', 'F', 'G', 'H', 'I']); // orange, cherries, strawberry, lemon, kiwi
+    const dropletUrls = {};
+
+    /** The drop's image; `spray`: a fuller, brighter one that still reads over a burst. */
+    function droplet(spray = false) {
+        const key = spray ? 'spray' : 'dew';
+        if (dropletUrls[key]) return dropletUrls[key];
+        const k = spray ? 2.2 : 1; // the body's opacity, times this
+        const c = document.createElement('canvas');
+        c.width = 64;
+        c.height = 72;
+        const g = c.getContext('2d');
+        const body = g.createRadialGradient(32, 40, 2, 32, 38, 30);
+        body.addColorStop(0, `rgba(255, 255, 255, ${0.08 * k})`);
+        body.addColorStop(0.62, `rgba(235, 248, 255, ${0.16 * k})`);
+        body.addColorStop(0.88, `rgba(40, 70, 90, ${Math.min(1, 0.4 * k)})`);
+        body.addColorStop(1, `rgba(20, 40, 60, ${Math.min(1, 0.72 * k)})`);
+        g.fillStyle = body;
+        g.beginPath();
+        g.ellipse(32, 38, 28, 30, 0, 0, Math.PI * 2);
+        g.fill();
+        const glow = g.createRadialGradient(37, 54, 0, 37, 54, 18);
+        glow.addColorStop(0, 'rgba(255, 255, 255, .6)');
+        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        g.fillStyle = glow;
+        g.fill();
+        g.fillStyle = 'rgba(255, 255, 255, .95)';
+        g.beginPath();
+        g.ellipse(22, 24, 7.5, 5, -0.6, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = 'rgba(255, 255, 255, .75)';
+        g.beginPath();
+        g.arc(44, 52, 2.6, 0, Math.PI * 2);
+        g.fill();
+        dropletUrls[key] = c.toDataURL('image/png');
+        if (!spray) board.style.setProperty('--droplet', `url("${dropletUrls[key]}")`);
+        return dropletUrls[key];
+    }
+
+    /** Now and then while the game rests: dew on a random fruit (five drops at most at once). */
+    function dewLoop() {
+        setTimeout(dewLoop, rand(900, 1900));
+        if (reducedMotion || document.hidden || state.busy || !$('overlay').hidden || !board.animate) return;
+        if (board.querySelectorAll('.dew').length >= 5) return;
+        const fruit = [...board.querySelectorAll('.sym')].filter((el) => FRUITS.has(el.dataset.s) && !el.querySelector('.dew'));
+        if (!fruit.length) return;
+        const el = fruit[Math.floor(Math.random() * fruit.length)];
+        const x = rand(34, 60);
+        const y = rand(24, 42);
+        dew(el, x, y, rand(12, 17), true);
+        // Now and then a smaller drop beside it, which runs a little later.
+        if (Math.random() < 0.4) setTimeout(() => el.isConnected && dew(el, x + rand(-14, 14), y + rand(4, 12), rand(7, 10), false), rand(250, 700));
+    }
+
+    /** A drop beads up on the fruit (with a glint), rests, then slides down and drips away. */
+    function dew(el, x, y, size, glints) {
+        droplet();
+        const drop = document.createElement('i');
+        drop.className = 'dew';
+        drop.style.width = `${size}%`;
+        drop.style.left = `${x}%`;
+        drop.style.top = `${y}%`;
+        el.append(drop);
+        const slide = el.clientHeight * rand(0.24, 0.4);
+        drop.animate([
+            { opacity: 0, transform: 'translateY(0) scale(.2)' },
+            { opacity: 1, transform: 'translateY(0) scale(1.08)', offset: 0.1, easing: 'ease-out' },
+            { opacity: 1, transform: 'translateY(0) scale(1)', offset: 0.16 },
+            { opacity: 1, transform: 'translateY(0) scale(1)', offset: 0.5, easing: 'cubic-bezier(.5, 0, .9, .6)' },
+            { opacity: 1, transform: `translateY(${slide * 0.75}px) scale(.92, 1.18)`, offset: 0.85 },
+            { opacity: 0, transform: `translateY(${slide}px) scale(.6, 1.35)` },
+        ], { duration: rand(2400, 3200), fill: 'both' }).finished.catch(() => {}).then(() => drop.remove());
+        if (glints && theme.fx?.twinkle) {
+            const glint = document.createElement('img');
+            glint.className = 'dew-glint';
+            glint.src = theme.fx.twinkle;
+            glint.alt = '';
+            glint.style.left = drop.style.left;
+            glint.style.top = drop.style.top;
+            el.append(glint);
+            glint.animate([
+                { opacity: 0, transform: 'scale(.2) rotate(0deg)' },
+                { opacity: 1, transform: 'scale(1) rotate(45deg)', offset: 0.4 },
+                { opacity: 0, transform: 'scale(.3) rotate(90deg)' },
+            ], { duration: 650, delay: 180, fill: 'both', easing: 'ease-out' }).finished.catch(() => {}).then(() => glint.remove());
+        }
+    }
+
     // ---- The host: the Queen Bee beside the grid --------------------------------------------
     // Every pose is in the page (slot.blade.php, "The host"); `on` marks the one she shows and
     // the CSS crossfades them, so a switch is smooth and she never blinks out. A win makes her
@@ -1187,6 +1294,7 @@ export function startSlot(cfg) {
     balance();
     controls();
     hostRest();
+    setTimeout(dewLoop, 2500);
 
     if (!cfg.embedded) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;

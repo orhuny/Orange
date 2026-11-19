@@ -238,6 +238,10 @@
         .sym .star b { position: relative; margin-top: 6%; font: 900 26cqmin/1 var(--round); color: #fff; -webkit-text-stroke: .14em #3d1600; paint-order: stroke fill;
                        text-shadow: 0 .06em 0 #3d1600; letter-spacing: -.02em; }
         .sym .frost { position: absolute; inset: 3%; width: 94%; height: 94%; opacity: 0; pointer-events: none; }
+        /* Dew on a resting fruit (slot-game.js, "Water drops"): --droplet is drawn in code. */
+        .sym .dew { position: absolute; z-index: 2; aspect-ratio: 64 / 72; translate: -50% -50%; pointer-events: none; transform-origin: 50% 30%;
+                    background: var(--droplet) center / contain no-repeat; filter: drop-shadow(0 1.5px 1px rgba(40, 10, 0, .35)); }
+        .sym .dew-glint { position: absolute; z-index: 3; width: 22%; translate: -60% -70%; pointer-events: none; }
         .sym.win > img, .sym.win .star { animation: pulse .42s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #fff7b0) drop-shadow(0 0 4px #ffae00); }
         .sym.scatter > img { animation-duration: .3s; }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
