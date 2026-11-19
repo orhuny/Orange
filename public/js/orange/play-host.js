@@ -12,7 +12,7 @@ import { createGameBridge, createHostBridge, FROM_GAME } from './bridge.js';
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
  *           onExpired: () => void, onBackToLobby?: () => void,
  *           onFullscreen?: (active: boolean) => void,
- *           onGameReady?: (payload: { home?: boolean, homeOnMobile?: boolean }) => void }} config
+ *           onGameReady?: (payload: { home?: boolean }) => void }} config
  *        onGameReady: the game announced itself and the host sent player_info.
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */

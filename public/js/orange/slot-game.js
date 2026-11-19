@@ -1095,7 +1095,7 @@ export function startSlot(cfg) {
     if (!cfg.embedded) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;
     } else {
-        bridge.ready({ homeOnMobile: true });
+        bridge.ready({ home: true });
     }
 
     function readPref(key, fallback) {

@@ -280,7 +280,7 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 
 | `type` | `payload` | When |
 |---|---|---|
-| `embed_ready` | `{ home?, homeOnMobile? }` | Iframe finished loading and is ready to receive `player_info`. `home: true` advertises an in-game Home control. `homeOnMobile: true` advertises it for viewports up to 760 CSS pixels wide or with a coarse primary pointer. The host enables the control by sending `player_info.home: true`. |
+| `embed_ready` | `{ home? }` | Iframe finished loading and is ready to receive `player_info`. `home: true` advertises an in-game Home control. The host enables the control by sending `player_info.home: true`. |
 | `place_bet` | `{ amount, auto_cashout_at, round_uuid, slot? }` | User clicked Place Bet in the iframe. `slot` (0 or 1) only when your `player_info` said `bet_slots: 2` |
 | `cashout` | `{ bet_id }` | User clicked Cash Out in the iframe |
 | `enter_fullscreen` | `{}` | User clicked the fullscreen toggle |

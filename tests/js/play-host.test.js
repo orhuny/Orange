@@ -262,17 +262,17 @@ describe('startPlayHost', () => {
             outerOrigins: [], playApi: 'https://orange.example/play-api', frame, onExpired: expired,
             onBackToLobby: vi.fn(), onGameReady: ready,
         });
-        const mobileHome = { homeOnMobile: true };
+        const home = { home: true };
         const session = { player: { id: 'p-1', currency: 'TRY' }, balance: '50.00' };
         let sessionResponse = json(503, {});
         fetchMock.mockImplementation((url) => url.endsWith('/session') ? sessionResponse : json(200, {}));
         host.open('sugar-orchard', 'https://orange.example/games/slot');
-        await intent('embed_ready', mobileHome);
+        await intent('embed_ready', home);
         expect(ready).not.toHaveBeenCalled();
 
         let finishSession;
         sessionResponse = new Promise((resolve) => { finishSession = resolve; });
-        await intent('embed_ready', mobileHome);
+        await intent('embed_ready', home);
         host.close();
         host.open('sugar-orchard', 'https://orange.example/games/slot');
         finishSession(json(200, session));
@@ -281,8 +281,8 @@ describe('startPlayHost', () => {
         expect(frame.contentWindow.posted).toEqual([]);
 
         sessionResponse = json(200, session);
-        await intent('embed_ready', mobileHome);
-        expect(ready).toHaveBeenCalledExactlyOnceWith(mobileHome);
+        await intent('embed_ready', home);
+        expect(ready).toHaveBeenCalledExactlyOnceWith(home);
     });
 
     it('lets a lobby open games, bet on the open one, and come back', async () => {

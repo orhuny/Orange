@@ -346,14 +346,10 @@
         .toast { position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%); z-index: 25; background: rgba(120, 20, 10, .92); border-radius: 12px; padding: 10px 16px; max-width: 92vw; text-align: center; }
         .status { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 15; background: var(--panel); border-radius: 14px; padding: 12px 18px; text-align: center; }
         [hidden] { display: none !important; }
-        #home-btn { display: none; }
-        @media (max-width: 760px), (pointer: coarse) {
-            #home-btn { display: grid; }
-            @media (orientation: landscape) {
-                .tools { display: grid; grid-template-columns: repeat(3, max-content); }
-                .bar { grid-template-columns: auto auto 1fr auto auto auto auto;
-                       grid-template-areas: "bal betm win minus spin plus tools"; }
-            }
+        @media (orientation: landscape) and (max-width: 760px), (orientation: landscape) and (pointer: coarse) {
+            .tools { display: grid; grid-template-columns: repeat(3, max-content); }
+            .bar { grid-template-columns: auto auto 1fr auto auto auto auto;
+                   grid-template-areas: "bal betm win minus spin plus tools"; }
         }
 
         @media (orientation: portrait) {

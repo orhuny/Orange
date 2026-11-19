@@ -50,12 +50,12 @@ describe('createGameBridge', () => {
         expect(bridge.send('place_bet', { amount: '1' })).toBe(false);
     });
 
-    it('advertises mobile Home and sends the lobby intent through the established bridge', () => {
+    it('advertises Home and sends the lobby intent through the established bridge', () => {
         const { self, parent, bridge } = setup();
 
-        bridge.ready({ homeOnMobile: true });
+        bridge.ready({ home: true });
         expect(parent.posted).toEqual([
-            { data: { type: 'embed_ready', payload: { homeOnMobile: true } }, targetOrigin: '*' },
+            { data: { type: 'embed_ready', payload: { home: true } }, targetOrigin: '*' },
         ]);
 
         self.receive({ source: parent, origin: 'https://op.example', data: { type: 'player_info', payload: { home: true } } });
