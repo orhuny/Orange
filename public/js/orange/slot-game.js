@@ -11,12 +11,9 @@ import {
 } from './slot-timeline.js';
 
 const TIERS = { big: 'BIG WIN', mega: 'MEGA WIN', epic: 'EPIC WIN', max: 'MAX WIN' };
-const STAR_COLOURS = {
-    sky: ['#bfe9ff', '#38a8f0', '#0c5d9c'],
-    emerald: ['#c8ffd5', '#2fbf63', '#0d6b33'],
-    gold: ['#fff2b0', '#f5b81c', '#9a5f00'],
-    ruby: ['#ffc2c2', '#e3203b', '#7a0716'],
-};
+const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const linear = (t) => t;
 
 /**
  * @param {object} cfg  from the blade view: allowedOrigins, theme, rules (SlotVerifier::describe), config, embedded
@@ -105,7 +102,7 @@ export function startSlot(cfg) {
         el.className = 'sym';
         el.dataset.s = cell.s;
         if (cell.s === MULTIPLIER) {
-            el.innerHTML = starSvg(cell.v);
+            el.innerHTML = `<div class="star" aria-label="${cell.v}× multiplier"><img src="${theme.stars?.[starTier(cell.v)] ?? ''}" alt="" draggable="false"><b>${cell.v}×</b></div>`;
         } else {
             const img = document.createElement('img');
             img.src = theme.symbols[cell.s]?.img ?? '';
@@ -114,22 +111,6 @@ export function startSlot(cfg) {
             el.append(img);
         }
         return el;
-    }
-
-    function starSvg(value) {
-        const [hi, mid, lo] = STAR_COLOURS[starTier(value)];
-        const id = `g${Math.random().toString(36).slice(2, 8)}`;
-        const pts = [];
-        for (let i = 0; i < 10; i++) {
-            const r = i % 2 ? 21 : 46;
-            const a = Math.PI / 2 + (i * Math.PI) / 5;
-            pts.push(`${(50 + r * Math.cos(a)).toFixed(1)},${(52 - r * Math.sin(a)).toFixed(1)}`);
-        }
-        return `<svg viewBox="0 0 100 100" class="star" aria-label="${value}× multiplier">
-            <defs><radialGradient id="${id}" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="${hi}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/></radialGradient></defs>
-            <polygon points="${pts.join(' ')}" fill="url(#${id})" stroke="#ffe39a" stroke-width="4" stroke-linejoin="round"/>
-            <ellipse cx="40" cy="30" rx="13" ry="6" fill="#fff" opacity=".45"/>
-            <text x="50" y="62" text-anchor="middle" class="star-n">${value}×</text></svg>`;
     }
 
     function render(cells) {
@@ -214,22 +195,144 @@ export function startSlot(cfg) {
         ], 1300).then(() => el.remove());
     }
 
-    function burst(cell, colour) {
-        const { x, y } = centre([cell]);
-        for (let i = 0; i < 9; i++) {
-            const p = document.createElement('i');
-            p.className = 'spark';
-            p.style.left = `${x}%`;
-            p.style.top = `${y}%`;
-            p.style.background = i % 3 ? colour : '#fff6d8';
-            fx.append(p);
-            const a = (i / 9) * Math.PI * 2 + Math.random() * 0.5;
-            const d = 40 + Math.random() * 45;
-            animate(p, [
-                { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
-                { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), calc(-50% + ${Math.sin(a) * d}px)) scale(.2)`, opacity: 0 },
-            ], 520, { easing: 'cubic-bezier(.2,.7,.3,1)' }).then(() => p.remove());
+    // ---- Effects: the particle canvas around the grid ----------------------------------------
+    // One canvas reaches past the frame, so a shattered symbol's pieces fly over it. The art is
+    // built by scripts/art/process-sugar-orchard.py:
+    // - pieces are cut-outs, drawn normally;
+    // - frost, crystals, twinkles and comets are light on transparent, drawn 'lighter' so they
+    //   add up where they overlap.
+    // Particle time runs at the game's speed (turbo), like every other animation.
+
+    const canvas = $('fxc');
+    const ctx = canvas.getContext('2d');
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const images = new Map();
+    const particles = [];
+    let frameId = 0;
+    let lastTick = 0;
+
+    function sprite(url) {
+        if (!url) return null;
+        let im = images.get(url);
+        if (!im) {
+            im = new Image();
+            im.decoding = 'async';
+            im.src = url;
+            images.set(url, im);
         }
+        return im;
+    }
+
+    function fitCanvas() {
+        const r = canvas.getBoundingClientRect();
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.max(1, Math.round(r.width * dpr));
+        canvas.height = Math.max(1, Math.round(r.height * dpr));
+    }
+
+    /** A point of the grid (0..1 across, 0..1 down) in canvas pixels, with a cell's width. */
+    function gridPoint(fx, fy) {
+        const b = board.getBoundingClientRect();
+        const c = canvas.getBoundingClientRect();
+        const k = canvas.width / (c.width || 1);
+        return { x: (b.left - c.left + fx * b.width) * k, y: (b.top - c.top + fy * b.height) * k, size: (b.width / COLS) * k };
+    }
+
+    const cellBox = (cell) => gridPoint((Math.floor(cell / ROWS) + 0.5) / COLS, ((cell % ROWS) + 0.5) / ROWS);
+
+    /**
+     * Adds a particle: img at (x, y), w × h px, moving (vx, vy) px/s under gravity g, turning
+     * vr rad/s, scaling s0 → s1 (eased) and fading a0 → a1 from `fade` of its life, for `life` s.
+     */
+    function emit(p) {
+        if (!p.img) return;
+        particles.push({ vx: 0, vy: 0, g: 0, rot: 0, vr: 0, s0: 1, s1: 1, a0: 1, a1: 0, fade: 0, delay: 0, age: 0, light: false, ease: easeOut, ...p });
+        if (!frameId) {
+            lastTick = performance.now();
+            frameId = requestAnimationFrame(tick);
+        }
+    }
+
+    function tick(now) {
+        const dt = Math.min(0.05, (now - lastTick) / 1000) / speed();
+        lastTick = now;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            if (p.delay > 0) {
+                p.delay -= dt;
+                continue;
+            }
+            p.age += dt;
+            const t = p.age / p.life;
+            if (t >= 1) {
+                particles.splice(i, 1);
+                continue;
+            }
+            p.vy += p.g * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.rot += p.vr * dt;
+            if (!p.img.complete || !p.img.naturalWidth) continue;
+            const s = p.s0 + (p.s1 - p.s0) * p.ease(t);
+            const f = t <= p.fade ? 0 : (t - p.fade) / (1 - p.fade);
+            ctx.globalAlpha = Math.max(0, Math.min(1, p.a0 + (p.a1 - p.a0) * f));
+            ctx.globalCompositeOperation = p.light ? 'lighter' : 'source-over';
+            const cos = Math.cos(p.rot) * s;
+            const sin = Math.sin(p.rot) * s;
+            ctx.setTransform(cos, sin, -sin, cos, p.x, p.y);
+            ctx.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h);
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        frameId = particles.length ? requestAnimationFrame(tick) : 0;
+    }
+
+    /** Sugar frost creeps over a winning symbol before it bursts. */
+    function frostOver(el) {
+        if (!theme.fx?.frostCrust || state.quick) return;
+        const img = document.createElement('img');
+        img.className = 'frost';
+        img.src = theme.fx.frostCrust;
+        img.alt = '';
+        el.append(img);
+        animate(img, [{ opacity: 0, transform: 'scale(1.2)' }, { opacity: 1, transform: 'scale(1)' }], 170);
+    }
+
+    /** A winning symbol bursts: a frost flash and shockwave, its own pieces flying, crystals, a twinkle. */
+    function shatter(cell, symbol) {
+        if (state.quick || reducedMotion) return;
+        const art = theme.fx ?? {};
+        const { x, y, size } = cellBox(cell);
+        emit({ img: sprite(art.frostBurst), x, y, w: size * 1.75, h: size * 1.75, s0: 0.3, s1: 1.15, fade: 0.3, life: 0.55, light: true, vr: rand(-1, 1) });
+        emit({ img: sprite(art.frostRing), x, y, w: size * 1.5, h: size * 1.5, s0: 0.2, s1: 1.4, a0: 0.95, fade: 0.2, life: 0.6, light: true });
+        for (const piece of theme.fragments?.[symbol] ?? []) {
+            // Each piece flies outward from where it sits in the burst, up first, then falls.
+            const dist = Math.hypot(piece.x, piece.y);
+            const dir = (dist > 0.02 ? Math.atan2(piece.y, piece.x) : rand(0, Math.PI * 2)) + rand(-0.35, 0.35);
+            const small = piece.w * piece.h < 0.006;
+            const v = size * rand(2.2, 3.4) * (small ? 1.35 : 1) * (0.75 + dist);
+            emit({
+                img: sprite(piece.src), x: x + piece.x * size * 0.6, y: y + piece.y * size * 0.6, w: piece.w * size, h: piece.h * size,
+                vx: Math.cos(dir) * v, vy: Math.sin(dir) * v - size * rand(1.4, 2.6), g: size * 10,
+                rot: rand(-0.3, 0.3), vr: rand(-7, 7), s1: 0.8, fade: 0.55, life: rand(0.8, 1.1), ease: linear,
+            });
+        }
+        const crystals = art.crystals ?? [];
+        for (let i = 0; i < 7 && crystals.length; i++) {
+            const dir = rand(0, Math.PI * 2);
+            const v = size * rand(2.5, 4.5);
+            emit({
+                img: sprite(crystals[i % crystals.length]), x, y, w: size * 0.22, h: size * 0.22, vx: Math.cos(dir) * v, vy: Math.sin(dir) * v,
+                g: size * 4, vr: rand(-6, 6), s1: 0.4, fade: 0.4, life: rand(0.45, 0.7), light: true, delay: rand(0, 0.06),
+            });
+        }
+        emit({
+            img: sprite(art.twinkle), x: x + rand(-0.25, 0.25) * size, y: y + rand(-0.25, 0.25) * size, w: size, h: size,
+            s0: 0.2, s1: 1, fade: 0.4, life: 0.5, light: true, vr: 1.5, delay: 0.05,
+        });
     }
 
     async function playStep(step, index) {
@@ -238,18 +341,19 @@ export function startSlot(cfg) {
         const amount = winAmount(state.bet, step.pays);
         floatText(`${money(amount)}`, winners);
         sfx('win', index);
-        await wait(700);
+        await wait(650);
 
+        // Frost creeps over the winners, then they burst into pieces.
+        winners.forEach((c) => frostOver(state.els[c]));
+        await wait(180);
         sfx('pop');
-        await Promise.all(winners.map((c) => {
-            burst(c, theme.symbols[state.cells[c].s]?.colour ?? '#fff');
-            return animate(state.els[c], [
-                { transform: at(c), opacity: 1 },
-                { transform: `${at(c)} scale(1.25)`, opacity: 1, offset: 0.35 },
-                { transform: `${at(c)} scale(0)`, opacity: 0 },
-            ], 300);
-        }));
+        winners.forEach((c) => shatter(c, state.cells[c].s));
+        await Promise.all(winners.map((c) => animate(state.els[c], [
+            { transform: at(c), opacity: 1 },
+            { transform: `${at(c)} scale(1.15)`, opacity: 0 },
+        ], 130)));
         winners.forEach((c) => state.els[c].remove());
+        await wait(170);
 
         const next = new Array(COLS * ROWS);
         const falls = [];
@@ -285,15 +389,55 @@ export function startSlot(cfg) {
         const cells = spin.multiplierCells;
         cells.forEach((c) => state.els[c]?.classList.add('win'));
         sfx('stars');
-        floatText(`×${spin.multiplier}`, cells, 'mult');
+        await wait(350);
+        // Each star sends a comet to the middle of the grid, where their sum appears.
+        if (!state.quick && !reducedMotion) {
+            const target = gridPoint(0.5, 0.5);
+            cells.forEach((c, i) => {
+                const from = cellBox(c);
+                const dx = target.x - from.x;
+                const dy = target.y - from.y;
+                emit({
+                    img: sprite(theme.fx?.comet), x: from.x, y: from.y, w: from.size * 1.9, h: from.size * 0.95, vx: dx / 0.45, vy: dy / 0.45,
+                    rot: Math.atan2(dy, dx), s0: 0.7, a1: 0.2, fade: 0.7, life: 0.45, light: true, ease: linear, delay: i * 0.08,
+                });
+            });
+            await wait(450 + cells.length * 80);
+            emit({ img: sprite(theme.fx?.frostRing), x: target.x, y: target.y, w: target.size * 2.6, h: target.size * 2.6, s0: 0.2, s1: 1.3, fade: 0.2, life: 0.6, light: true });
+            for (let i = 0; i < 3; i++) {
+                emit({
+                    img: sprite(theme.fx?.twinkle), x: target.x + rand(-0.8, 0.8) * target.size, y: target.y + rand(-0.5, 0.5) * target.size,
+                    w: target.size * 1.3, h: target.size * 1.3, s0: 0.2, s1: 1.1, fade: 0.4, life: 0.6, light: true, delay: i * 0.07,
+                });
+            }
+        }
+        floatText(`×${spin.multiplier}`, [0, COLS * ROWS - 1], 'mult');
         await wait(900);
         cells.forEach((c) => state.els[c]?.classList.remove('win'));
     }
 
+    /** Scatters that trigger or add free spins pulse in golden rays. */
     async function highlightScatters(cells) {
+        const rays = cells.map((c) => {
+            const { x, y } = centre([c]);
+            const img = document.createElement('img');
+            img.className = 'rays-cell';
+            img.src = theme.fx?.rays ?? '';
+            img.alt = '';
+            img.style.left = `${x}%`;
+            img.style.top = `${y}%`;
+            board.append(img);
+            animate(img, [
+                { opacity: 0, rotate: '0deg', scale: 0.5 },
+                { opacity: 1, rotate: '50deg', scale: 1, offset: 0.3 },
+                { opacity: 0, rotate: '150deg', scale: 1.1 },
+            ], 1400, { easing: 'linear' });
+            return img;
+        });
         cells.forEach((c) => state.els[c]?.classList.add('win', 'scatter'));
-        await wait(1100);
+        await wait(1200);
         cells.forEach((c) => state.els[c]?.classList.remove('win', 'scatter'));
+        setTimeout(() => rays.forEach((r) => r.remove()), dur(300));
     }
 
     // ---- A bet, played back ----------------------------------------------------------------------
@@ -332,8 +476,10 @@ export function startSlot(cfg) {
         if (base.awarded > 0) {
             if (state.auto > 0 && state.autoStopOnFeature) stopAuto();
             sfx('fsStart');
-            await dialog(`<p class="kicker">You won</p><div class="huge">${base.awarded}</div><p class="kicker">FREE SPINS</p>
-                <p class="note">Sugar stars land in free spins and multiply every winning spin.</p>`, { button: 'Start', autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
+            await dialog(plaque('free-spins', `<div class="huge">${base.awarded}</div>
+                <p class="note">Sugar stars land in free spins and multiply every winning spin.</p>`), {
+                button: 'Start', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0,
+            });
             document.body.classList.add('free');
             music(1);
             let awarded = base.awarded;
@@ -348,12 +494,12 @@ export function startSlot(cfg) {
                 if (spin.retrigger > 0) {
                     awarded += spin.retrigger;
                     hud(n + 1, awarded, fsWin);
-                    await dialog(`<div class="huge">+${spin.retrigger}</div><p class="kicker">FREE SPINS</p>`, { autoMs: 1800 });
+                    await dialog(plaque('free-spins', `<div class="huge">+${spin.retrigger}</div>`), { cls: 'plaque', rays: true, autoMs: 1800 });
                 }
             }
             sfx('fsEnd');
-            await dialog(`<p class="kicker">Free spins win</p><div class="huge">${money(fsWin)}</div><p class="note">${free.length} free spins</p>`,
-                { button: 'Collect', autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
+            await dialog(plaque('total-win', `<div class="huge">${money(fsWin)}</div><p class="note">${free.length} free spins</p>`),
+                { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
             document.body.classList.remove('free');
             $('fs-hud').hidden = true;
             music(0);
@@ -370,11 +516,21 @@ export function startSlot(cfg) {
         $('fs-win').textContent = money(win);
     }
 
+    /** A dialog on the chocolate plaque, under a banner (theme.banners). */
+    function plaque(banner, inner) {
+        const src = theme.banners?.[banner];
+        return `${src ? `<img class="banner" src="${src}" alt="">` : ''}<div class="body">${inner}</div>`;
+    }
+
     async function bigWin(tier, units) {
         sfx('big');
-        await dialog(`<div class="tier tier-${tier}">${TIERS[tier]}</div><div class="huge count">0.00</div>`, {
-            autoMs: 3800,
-            onOpen(el) {
+        const banner = theme.banners?.[`${tier}-win`];
+        await dialog(`${banner ? `<img class="banner" src="${banner}" alt="${TIERS[tier]}">` : `<p class="kicker">${TIERS[tier]}</p>`}<div class="huge count">0.00</div>`, {
+            autoMs: 4200,
+            cls: 'celebrate',
+            rays: true,
+            dim: true,
+            onOpen(el, layer) {
                 const counter = el.querySelector('.count');
                 const total = Number(units) / 1e8;
                 const started = performance.now();
@@ -386,17 +542,46 @@ export function startSlot(cfg) {
                 };
                 requestAnimationFrame(tick);
                 confetti();
+                fireworks(layer, { big: 4, mega: 6, epic: 8, max: 10 }[tier] ?? 4);
             },
         });
     }
 
+    /** Candy fireworks bursting behind the celebration. */
+    function fireworks(layer, count) {
+        if (reducedMotion || !theme.fx?.fireworks) return;
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                if (layer.hidden) return;
+                const img = document.createElement('img');
+                img.className = 'firework';
+                img.src = theme.fx.fireworks;
+                img.alt = '';
+                img.style.left = `${rand(12, 88)}%`;
+                img.style.top = `${rand(12, 68)}%`;
+                img.style.width = `${rand(26, 46)}vmin`;
+                layer.prepend(img); // behind the dialog
+                animate(img, [
+                    { opacity: 0, scale: 0.25, rotate: `${rand(-30, 30)}deg` },
+                    { opacity: 1, scale: 1, offset: 0.35 },
+                    { opacity: 0, scale: 1.15 },
+                ], 1500).then(() => img.remove());
+            }, dur(i * 420 + rand(0, 200)));
+        }
+    }
+
+    /** Sprinkles, candy and the odd symbol raining down. */
     function confetti() {
-        const pool = Object.values(theme.symbols).map((s) => s.img).filter(Boolean);
-        for (let i = 0; i < 26; i++) {
+        if (reducedMotion) return;
+        const sprinkles = theme.fx?.sprinkles ?? [];
+        const candies = Object.values(theme.symbols).map((s) => s.img).filter(Boolean);
+        for (let i = 0; i < 46; i++) {
+            const candy = i % 6 === 0 || !sprinkles.length;
             const img = document.createElement('img');
             img.className = 'confetti';
-            img.src = pool[i % pool.length];
+            img.src = candy ? candies[i % candies.length] : sprinkles[i % sprinkles.length];
             img.style.left = `${Math.random() * 100}%`;
+            img.style.width = candy ? 'clamp(34px, 5vw, 58px)' : `clamp(12px, ${rand(1.2, 2.4).toFixed(2)}vw, 30px)`;
             document.body.append(img);
             animate(img, [
                 { transform: `translateY(-15vh) rotate(0deg)`, opacity: 1 },
@@ -412,11 +597,16 @@ export function startSlot(cfg) {
      * for cancel, or a choice's own value), or "1" when it closes itself (autoMs, a tap on a
      * dialog without buttons).
      */
-    function dialog(html, { button = null, cancel = null, autoMs = 0, onOpen = null, cls = '' } = {}) {
+    function dialog(html, { button = null, cancel = null, autoMs = 0, onOpen = null, cls = '', rays = false, dim = false } = {}) {
         return new Promise((resolve) => {
             const layer = $('overlay');
-            layer.innerHTML = `<div class="dialog ${cls}" role="dialog" aria-modal="true">${html}
-                ${button || cancel ? `<div class="actions">${cancel ? `<button class="ghost" data-v="0">${cancel}</button>` : ''}${button ? `<button class="primary" data-v="1">${button}</button>` : ''}</div>` : ''}</div>`;
+            const actions = button || cancel
+                ? `<div class="actions">${cancel ? `<button class="ghost" data-v="0">${cancel}</button>` : ''}${button ? `<button class="primary" data-v="1">${button}</button>` : ''}</div>`
+                : '';
+            // Golden rays turn behind a feature or celebration dialog.
+            layer.innerHTML = `${rays && theme.fx?.rays ? `<img class="rays" src="${theme.fx.rays}" alt="">` : ''}
+                <div class="dialog ${cls}" role="dialog" aria-modal="true">${cls === 'plaque' ? html.replace(/<\/div>$/, `${actions}</div>`) : `${html}${actions}`}</div>`;
+            layer.classList.toggle('dim', dim);
             layer.hidden = false;
             let done = false;
             const close = (value) => {
@@ -432,7 +622,7 @@ export function startSlot(cfg) {
                 if (b) close(b.dataset.v);
                 else if (!button && !cancel) close('1');
             };
-            onOpen?.(layer.firstElementChild);
+            onOpen?.(layer.querySelector('.dialog'), layer);
             if (autoMs) setTimeout(() => close('1'), dur(autoMs));
             layer.querySelector('button.primary')?.focus({ preventScroll: true });
         });
@@ -597,8 +787,8 @@ export function startSlot(cfg) {
     async function buy() {
         if (state.busy) return;
         const cost = stake(state.bet, 'buy');
-        const ok = await dialog(`<p class="kicker">Buy free spins</p><div class="huge">10</div><p class="kicker">FREE SPINS</p>
-            <p class="note">for <strong>${money(cost)} ${state.currency}</strong> (100× your bet of ${money(state.bet)})</p>`, { button: 'Buy', cancel: 'Cancel' });
+        const ok = await dialog(plaque('free-spins', `<div class="huge">10</div>
+            <p class="note">for <strong>${money(cost)} ${state.currency}</strong> (100× your bet of ${money(state.bet)})</p>`), { button: 'Buy', cancel: 'Cancel', cls: 'plaque' });
         if (ok === '1') spin('buy');
     }
 
@@ -699,8 +889,64 @@ export function startSlot(cfg) {
         }
     });
 
+    // ---- The orchard around the grid: fireflies at night, petals drifting by day -----------------
+
+    function scenery() {
+        const flies = $('fireflies');
+        for (let i = 0; i < 16; i++) {
+            const f = document.createElement('i');
+            f.style.left = `${rand(2, 98)}%`;
+            f.style.top = `${rand(15, 95)}%`;
+            f.style.setProperty('--o', rand(0.45, 0.95).toFixed(2));
+            f.style.animationDelay = `${-rand(0, 9).toFixed(1)}s`;
+            f.style.animationDuration = `${rand(6, 12).toFixed(1)}s`;
+            flies.append(f);
+        }
+        const blossoms = theme.fx?.blossoms ?? [];
+        const layer = $('petals');
+        if (reducedMotion || !blossoms.length || !layer.animate) return;
+        const drop = () => {
+            if (!document.hidden && !document.body.classList.contains('free') && layer.childElementCount < 7) {
+                const p = document.createElement('img');
+                p.className = 'petal';
+                p.alt = '';
+                p.src = blossoms[Math.floor(Math.random() * blossoms.length)];
+                p.style.left = `${rand(-5, 100)}%`;
+                layer.append(p);
+                const drift = rand(-14, 14);
+                p.animate([
+                    { transform: 'translate(0, 0) rotate(0deg)' },
+                    { transform: `translate(${drift / 2}vw, 55vh) rotate(${rand(120, 260)}deg)`, offset: 0.5 },
+                    { transform: `translate(${drift}vw, 118vh) rotate(${rand(300, 540)}deg)` },
+                ], { duration: rand(11000, 17000), easing: 'linear' }).finished.catch(() => {}).then(() => p.remove());
+            }
+            setTimeout(drop, rand(1400, 2600));
+        };
+        drop();
+    }
+
+    // The effects' art loads after the first paint, so the board shows at once.
+    function preload() {
+        const art = theme.fx ?? {};
+        [art.frostBurst, art.frostRing, art.frostCrust, art.twinkle, art.comet, ...(art.crystals ?? [])].forEach(sprite);
+        Object.values(theme.fragments ?? {}).flat().forEach((piece) => sprite(piece.src));
+    }
+
+    let fitPending = false;
+    window.addEventListener('resize', () => {
+        if (fitPending) return;
+        fitPending = true;
+        requestAnimationFrame(() => {
+            fitPending = false;
+            fitCanvas();
+        });
+    });
+
     state.turbo = readPref('turbo', false);
     $('sound-btn').setAttribute('aria-pressed', String(sound.on));
+    fitCanvas();
+    scenery();
+    setTimeout(preload, 400);
     render(state.cells);
     balance();
     controls();

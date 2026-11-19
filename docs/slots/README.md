@@ -59,12 +59,21 @@ Slot RTP has no closed form (tumbles and multipliers), so it is measured. With a
 ## A new theme for an existing model
 
 1. Add it to `config/slots.php` with the model it draws.
-2. Write `resources/views/games/slot/themes/{theme}/theme.php`:
+2. Write `resources/views/games/slot/themes/{theme}/theme.php` (Sugar Orchard's is the example):
    - `sound`: the pack name, from `public/js/orange/sound-{pack}.js`
    - `logo`
    - `backgrounds`: day and night (free spins), each landscape and portrait
+   - `scenery`: what sways in front of the background (a branch; lanterns at night)
+   - `frame`: the image around the grid and its window, which the grid fills exactly
+   - `spin`, `plaque` and `banners`: the spin button, the feature dialogs' panel, and the win and free-spins titles
    - `symbols`: the model's letters mapped to `name`, `img` and `colour`
-3. Put the art in `public/images/{theme}/`, built by `scripts/art/process-{theme}.py` from the raw deliveries; see [art/README.md](../art/README.md). Symbols are square transparent WebP, 256 px.
+   - `stars`: the multiplier star per colour (`sky`, `emerald`, `gold`, `ruby`); the page prints the value
+   - `fragments`: each symbol's explosion pieces, with where each sits in the burst
+   - `fx`: the win effect's light (frost burst, ring, crust, crystals, twinkle), the comet, the rays, the fireworks, the sprinkles and the petals
+3. Put the art in `public/images/{theme}/`, built by `scripts/art/process-{theme}.py` from the raw deliveries; see [art/README.md](../art/README.md).
+   - Symbols are square transparent WebP, 320 px.
+   - Light effects are light on transparent: the script turns their black into transparency.
+   - The script writes `art.json` (pieces, sprite lists, the frame's window), which `theme.php` reads.
 4. Create the game in the admin panel with that theme.
 
 ## The page
@@ -72,3 +81,11 @@ Slot RTP has no closed form (tumbles and multipliers), so it is measured. With a
 `resources/views/games/slot.blade.php` is the shell; `public/js/orange/slot-game.js` drives it. `slot-timeline.js` turns an outcome into animation steps and does the money maths with BigInt; it has no DOM, so Vitest covers it.
 
 The page never decides anything. It plays back the outcome it is handed, then shows the balance the casino reported.
+
+**How a win looks:**
+1. Winning symbols frost over.
+2. Each one bursts: a frost flash and a shockwave, then the symbol's own pieces fly out with spin and gravity, with crystals and a twinkle.
+3. In free spins, each star sends a comet to the middle of the grid, where the stars' sum appears.
+4. Big wins get their banner, golden rays, fireworks and falling sprinkles.
+
+The effects run on one canvas that reaches past the frame, at the game's speed (turbo). Quick-stop skips them, and the effects and scenery motion respect `prefers-reduced-motion`.

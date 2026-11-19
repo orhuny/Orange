@@ -5,10 +5,31 @@ declare(strict_types=1);
 /*
  * Sugar Orchard's look and sound (config('slots.themes'), games.config.theme = sugar-orchard).
  * Symbols are keyed by the model's letters (SugarOrchard::SYMBOLS); M, the multiplier star,
- * is drawn by the page. Art: public/images/sugar-orchard/, prompts in docs/art/.
+ * comes in four colours by value (slot-timeline.js starTier) and the page prints its value.
+ *
+ * The art is built by scripts/art/process-sugar-orchard.py into public/images/sugar-orchard/,
+ * with art.json: each symbol's explosion pieces, the sprite lists and the frame's window.
+ * Every URL carries the file's mtime, so a rebuilt file reaches players at once.
  */
 
-$img = fn (string $path): string => asset("images/sugar-orchard/{$path}");
+$dir = public_path('images/sugar-orchard');
+$img = static fn (string $path): string => asset("images/sugar-orchard/{$path}").'?v='.(is_file("{$dir}/{$path}") ? filemtime("{$dir}/{$path}") : 0);
+/** @var array<string, mixed> $art */
+$art = is_file("{$dir}/art.json") ? (array) json_decode((string) file_get_contents("{$dir}/art.json"), true) : [];
+$fx = (array) ($art['fx'] ?? []);
+$sprites = static fn (string $key): array => array_map(static fn (string $file): string => $img("fx/{$file}"), (array) ($fx[$key] ?? []));
+$plaqueSize = is_file("{$dir}/plaque.webp") ? getimagesize("{$dir}/plaque.webp") : false;
+
+$names = [
+    'A' => ['Toffee', '#f6c445'], 'B' => ['Peppermint', '#ff3b3b'], 'C' => ['Gummy bear', '#52d14a'],
+    'D' => ['Truffle', '#a8642c'], 'E' => ['Orange', '#ff8a1c'], 'F' => ['Cherries', '#c0172e'],
+    'G' => ['Strawberry', '#ff3d4f'], 'H' => ['Lemon', '#ffe14d'], 'I' => ['Kiwi', '#8ccf3a'],
+    'S' => ['Scatter', '#ffd84a'],
+];
+$symbols = [];
+foreach ($names as $letter => [$name, $colour]) {
+    $symbols[$letter] = ['name' => $name, 'img' => $img((string) ($art['symbols'][$letter] ?? '')), 'colour' => $colour];
+}
 
 return [
     'sound' => 'orchard',
@@ -17,17 +38,32 @@ return [
         'day' => ['landscape' => $img('bg-day-landscape.webp'), 'portrait' => $img('bg-day-portrait.webp')],
         'night' => ['landscape' => $img('bg-night-landscape.webp'), 'portrait' => $img('bg-night-portrait.webp')],
     ],
-    // colour: the burst when the symbol pays.
-    'symbols' => [
-        'A' => ['name' => 'Toffee', 'img' => $img('symbols/toffee.webp'), 'colour' => '#f6c445'],
-        'B' => ['name' => 'Peppermint', 'img' => $img('symbols/peppermint.webp'), 'colour' => '#ff3b3b'],
-        'C' => ['name' => 'Gummy bear', 'img' => $img('symbols/gummy-bear.webp'), 'colour' => '#3d8bff'],
-        'D' => ['name' => 'Truffle', 'img' => $img('symbols/truffle.webp'), 'colour' => '#a8642c'],
-        'E' => ['name' => 'Orange', 'img' => $img('symbols/orange.webp'), 'colour' => '#ff8a1c'],
-        'F' => ['name' => 'Cherries', 'img' => $img('symbols/cherries.webp'), 'colour' => '#c0172e'],
-        'G' => ['name' => 'Strawberry', 'img' => $img('symbols/strawberry.webp'), 'colour' => '#ff3d4f'],
-        'H' => ['name' => 'Lemon', 'img' => $img('symbols/lemon.webp'), 'colour' => '#ffe14d'],
-        'I' => ['name' => 'Kiwi', 'img' => $img('symbols/kiwi.webp'), 'colour' => '#8ccf3a'],
-        'S' => ['name' => 'Scatter', 'img' => $img('symbols/gumball-machine.webp'), 'colour' => '#ffd84a'],
+    // In front of the background: a branch in each lower corner; lanterns at night.
+    'scenery' => ['branch' => $img('fg-branch.webp'), 'lantern' => $img('fg-lantern.webp')],
+    // The grid sits exactly in the frame's window (fractions of the frame image).
+    'frame' => ['src' => $img('frame.webp'), 'window' => $art['frame']['window'] ?? ['x0' => 0, 'y0' => 0, 'x1' => 1, 'y1' => 1]],
+    'spin' => $img('spin.webp'),
+    'plaque' => ['src' => $img('plaque.webp'), 'ratio' => $plaqueSize ? round($plaqueSize[0] / $plaqueSize[1], 4) : 1.78],
+    'banners' => array_map($img, (array) ($art['banners'] ?? [])),
+    // colour: the float text and sparks when the symbol pays.
+    'symbols' => $symbols,
+    'stars' => array_map($img, (array) ($art['stars'] ?? [])),
+    // Each symbol's explosion: its pieces, where each sits in the burst (x, y from the centre)
+    // and its size (w, h), in widths of the symbol's square.
+    'fragments' => array_map(
+        static fn (array $pieces): array => array_map(static fn (array $p): array => ['src' => $img("frag/{$p['src']}")] + $p, $pieces),
+        (array) ($art['fragments'] ?? []),
+    ),
+    'fx' => [
+        'frostBurst' => $img((string) ($fx['frost-burst'] ?? '')),
+        'frostRing' => $img((string) ($fx['frost-ring'] ?? '')),
+        'frostCrust' => $img((string) ($fx['frost-crust'] ?? '')),
+        'twinkle' => $img((string) ($fx['twinkle'] ?? '')),
+        'fireworks' => $img((string) ($fx['fireworks'] ?? '')),
+        'rays' => $img((string) ($fx['golden-rays'] ?? '')),
+        'comet' => $img((string) ($fx['comet'] ?? '')),
+        'crystals' => $sprites('crystals'),
+        'sprinkles' => $sprites('sprinkles'),
+        'blossoms' => $sprites('blossoms'),
     ],
 ];

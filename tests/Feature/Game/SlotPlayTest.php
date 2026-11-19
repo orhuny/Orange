@@ -257,3 +257,19 @@ it('serves the slot page with its theme, paytable and the shared bridge', functi
         ->assertDontSee('"tables":', false);
     get('/games/slot?game=nope')->assertNotFound();
 });
+
+it('dresses the slot page in its built art: frame, stars, explosion pieces and effects', function (): void {
+    slotSetup();
+
+    // From public/images/sugar-orchard/art.json (scripts/art/process-sugar-orchard.py).
+    get('/games/slot?game=sugar-orchard')->assertOk()
+        ->assertSee('images/sugar-orchard/frame.webp?v=', false)
+        ->assertSee('images/sugar-orchard/spin.webp?v=', false)
+        ->assertSee('--kx:', false)
+        ->assertSee('symbols\/basket.webp', false)
+        ->assertSee('symbols\/star-ruby.webp', false)
+        ->assertSee('frag\/a-1.webp', false)
+        ->assertSee('fx\/frost-burst.webp', false)
+        ->assertSee('banners\/big-win.webp', false)
+        ->assertDontSee('gumball-machine', false);
+});

@@ -4,6 +4,11 @@ Audience: whoever generates Sugar Orchard's art. Every prompt below is complete;
 
 Round 3 replaces all earlier art: symbols, scatter, backgrounds and logo. Rounds 1 and 2 are in git history.
 
+**Status (2026-11-19): delivered and in the game.**
+- All 50 assets are in `storage/app/art/sugar-orchard/round3/`, with the generator's QC notes.
+- `scripts/art/process-sugar-orchard.py` builds them into `public/images/sugar-orchard/`.
+- To redo an asset, regenerate it with its prompt below, replace the file there, and rerun the script.
+
 ## How the art becomes the game
 
 **What happens on a win:**
