@@ -346,24 +346,80 @@
         .toast { position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%); z-index: 25; background: rgba(120, 20, 10, .92); border-radius: 12px; padding: 10px 16px; max-width: 92vw; text-align: center; }
         .status { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 15; background: var(--panel); border-radius: 14px; padding: 12px 18px; text-align: center; }
 
+        /* The intro, about 4 s (slot-game.js playIntro adds the sprinkles, glints, petals and the exit):
+           0 s the orchard zooms in from dusk · .1 s the logo drops · .5 s it lands: shake, frost flash,
+           shockwave, rays · .66 s the fruit pops up, centre first · 1 s two stars spin in ·
+           1.25 s a shine sweeps the logo · 1.6 s the fruit hops in a wave. */
         .intro { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
-                 margin: 0; padding: 16px; border: 0; color: var(--cream); overflow: hidden;
-                 background: radial-gradient(ellipse at center, rgba(26, 27, 8, .28), rgba(23, 12, 4, .85)),
-                             var(--day-l) center / cover no-repeat #39220d; }
+                 margin: 0; padding: 0; border: 0; color: var(--cream); overflow: hidden; background: #24140a; }
         .intro::backdrop { background: transparent; }
-        .intro[open] { display: grid; place-items: center; animation: intro-screen 2.4s both; }
-        .intro-art { width: min(84vw, 110vh, 620px); display: grid; justify-items: center; gap: 2vmin; }
-        .intro-logo { width: 100%; display: block; animation: intro-arrive .55s cubic-bezier(.2, .7, .3, 1) both; }
-        .intro-fruit { display: flex; align-items: end; margin-top: -2vmin; }
-        .intro-fruit img { width: clamp(42px, 16vmin, 120px); aspect-ratio: 1; object-fit: contain;
-                           filter: drop-shadow(0 8px 7px rgba(35, 14, 0, .6)); animation: intro-arrive .5s .18s ease-out both; }
-        .intro-fruit img:nth-child(2) { width: clamp(52px, 20vmin, 150px); animation-delay: .24s; }
-        .intro-fruit img:nth-child(3) { animation-delay: .3s; }
-        .intro-skip { position: absolute; right: max(12px, env(safe-area-inset-right));
+        .intro[open] { display: block; }
+        .intro-scene { position: absolute; inset: -16px; padding: 32px; display: grid; place-items: center; overflow: hidden;
+                       animation: intro-shake .34s .5s linear both; }
+        .intro-bg { position: absolute; inset: 0; z-index: 0;
+                    background: radial-gradient(ellipse at center, rgba(26, 27, 8, .18), rgba(23, 12, 4, .8)), var(--day-l) center / cover no-repeat;
+                    animation: intro-zoom 4.4s cubic-bezier(.2, .6, .3, 1) both; }
+        .intro-art { position: relative; z-index: 1; width: min(84vw, 110vh, 620px); display: grid; justify-items: center; gap: 1vmin; }
+        .intro-head { position: relative; width: 100%; }
+        .intro-rays { position: absolute; left: 50%; top: 50%; z-index: -1; width: min(170vmin, 1500px); max-width: none; aspect-ratio: 1;
+                      translate: -50% -50%; pointer-events: none; animation: intro-rays 1s .45s ease-out both, turn 18s linear infinite; }
+        .intro-flash, .intro-ring { position: absolute; left: 50%; top: 52%; translate: -50% -50%; pointer-events: none; opacity: 0; }
+        .intro-flash { width: 110%; animation: intro-flash .8s .48s ease-out both; }
+        .intro-ring { width: 46%; animation: intro-ring .75s .5s cubic-bezier(.1, .6, .3, 1) both; }
+        .intro-logo { position: relative; z-index: 1; animation: intro-breathe 2.4s 1.5s ease-in-out infinite; }
+        .intro-logo img { width: 100%; display: block; transform-origin: 50% 85%; animation: intro-drop .8s .1s both; }
+        /* A band of light crossing the letters only (masked by the logo itself). */
+        .intro-logo::after { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: plus-lighter;
+                             background: linear-gradient(110deg, transparent 40%, rgba(255, 250, 225, .75) 50%, transparent 60%) 100% 0 / 300% 100% no-repeat;
+                             -webkit-mask: var(--logo) center / 100% 100% no-repeat; mask: var(--logo) center / 100% 100% no-repeat;
+                             animation: intro-shine 1.5s 1.25s ease-in-out 2; }
+        .intro-star { position: absolute; z-index: 2; top: 3%; width: 13%; pointer-events: none; --dir: -1;
+                      filter: drop-shadow(0 6px 8px rgba(40, 15, 0, .55));
+                      animation: intro-star-in .7s 1s cubic-bezier(.2, 1.6, .4, 1) both, intro-star-bob 2.6s 1.7s ease-in-out infinite; }
+        .intro-star.l { left: 4%; }
+        .intro-star.r { right: 4%; top: 13%; --dir: 1; animation-delay: 1.08s, 1.78s; }
+        .intro-fruit { display: flex; align-items: end; justify-content: center; margin-top: -1vmin; }
+        .intro-fruit span { width: calc(clamp(36px, 14vmin, 112px) * var(--s)); margin: 0 -.3vmin; transform-origin: 50% 100%;
+                            animation: intro-pop .6s calc(.66s + var(--i) * .08s) cubic-bezier(.25, 1.7, .45, 1) both; }
+        .intro-fruit img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; transform-origin: 50% 100%;
+                           filter: drop-shadow(0 8px 7px rgba(35, 14, 0, .6));
+                           animation: intro-hop 1.8s calc(1.6s + var(--n) * .1s) ease-in-out infinite; }
+        /* Added by playIntro: the sprinkle burst, glints and petals (.behind: under the logo). */
+        .intro-bit { position: absolute; z-index: 3; translate: -50% -50%; pointer-events: none; }
+        .intro-bit.behind { z-index: 0; }
+        .intro-skip { position: absolute; z-index: 4; right: max(12px, env(safe-area-inset-right));
                       bottom: max(12px, env(safe-area-inset-bottom)); min-height: 44px; padding: 0 14px;
                       border: 1px solid rgba(255, 223, 167, .5); border-radius: 999px; background: #2e1409; }
-        @keyframes intro-arrive { from { opacity: 0; transform: translateY(14px) scale(.94); } }
-        @keyframes intro-screen { 0%, 86% { opacity: 1; } 100% { opacity: 0; } }
+        .intro.leaving { pointer-events: none; animation: intro-leave var(--leave, .45s) ease-in both; }
+        .intro.leaving .intro-art { animation: intro-through var(--leave, .45s) ease-in both; }
+        @keyframes intro-zoom { from { transform: scale(1.22); opacity: .2; } 30% { opacity: 1; } to { transform: scale(1.02); } }
+        @keyframes intro-shake { 0%, 100% { translate: 0 0; } 15% { translate: -8px 6px; } 35% { translate: 7px -5px; }
+                                 55% { translate: -5px 3px; } 75% { translate: 3px -2px; } }
+        @keyframes intro-drop {
+            0% { transform: translateY(-75vh) scale(.9, 1.12); animation-timing-function: cubic-bezier(.55, 0, .9, .45); }
+            50% { transform: translateY(0) scale(1.14, .84); animation-timing-function: cubic-bezier(.2, .7, .4, 1); }
+            68% { transform: translateY(-5%) scale(.95, 1.06); animation-timing-function: ease-in-out; }
+            84% { transform: translateY(0) scale(1.03, .97); }
+            100% { transform: none; }
+        }
+        @keyframes intro-flash { from { opacity: 0; scale: .3; } 18% { opacity: 1; } to { opacity: 0; scale: 1.5; } }
+        @keyframes intro-ring { from { opacity: 0; scale: .2; } 6% { opacity: 1; } to { opacity: 0; scale: 3; } }
+        @keyframes intro-rays { from { opacity: 0; scale: .3; } to { opacity: .85; scale: 1; } }
+        @keyframes intro-breathe { 50% { scale: 1.03; } }
+        @keyframes intro-shine { from { background-position: 100% 0; } 55%, to { background-position: 0 0; } }
+        @keyframes intro-star-in { from { opacity: 0; scale: 0; rotate: calc(220deg * var(--dir)); } }
+        @keyframes intro-star-bob { 0%, 100% { rotate: 0deg; translate: 0 0; } 25% { rotate: 9deg; translate: 0 -7%; }
+                                    50% { translate: 0 0; } 75% { rotate: -9deg; translate: 0 -7%; } }
+        @keyframes intro-pop { from { opacity: 0; transform: translateY(70%) scale(.3) rotate(calc(-24deg + var(--n) * 8deg)); } }
+        @keyframes intro-hop {
+            0%, 46%, 100% { transform: none; }
+            10% { transform: translateY(2%) scale(1.08, .9); }
+            22% { transform: translateY(-24%) scale(.94, 1.07) rotate(-6deg); }
+            34% { transform: translateY(0) scale(1.1, .9); }
+            40% { transform: translateY(-3%) scale(.98, 1.02); }
+        }
+        @keyframes intro-leave { to { opacity: 0; } }
+        @keyframes intro-through { to { transform: scale(1.14); } }
 
         [hidden] { display: none !important; }
         @media (orientation: landscape) and (max-width: 760px), (orientation: landscape) and (pointer: coarse) {
@@ -376,7 +432,7 @@
             :root { --top: clamp(36px, 7vh, 68px); }
             .stage { --spin: clamp(64px, 19vw, 88px); }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
-            .intro { background-image: radial-gradient(ellipse at center, rgba(26, 27, 8, .28), rgba(23, 12, 4, .85)), var(--day-p); }
+            .intro-bg { background-image: radial-gradient(ellipse at center, rgba(26, 27, 8, .18), rgba(23, 12, 4, .8)), var(--day-p); }
             .branch { top: 10vh; bottom: auto; width: clamp(160px, 42vw, 360px); }
             .top { position: static; flex-direction: column; align-items: center; height: var(--top); flex: none; }
             .top .logo { display: block; height: 100%; }
@@ -558,13 +614,25 @@
 <div id="status" class="status">{{ $game ? 'Waiting for the casino…' : 'No slot game is published yet.' }}</div>
 
 @if ($game)
+{{-- The intro: the logo drops in and bursts into sprinkles, fruit pops up and hops (slot-game.js playIntro). --}}
 <dialog id="intro" class="intro" aria-label="{{ $game->name }}">
-    <div class="intro-art" aria-hidden="true">
-        <img class="logo intro-logo" src="{{ $theme['logo'] }}" alt="">
-        <div class="intro-fruit">
-            <img src="{{ $theme['symbols']['G']['img'] }}" alt="">
-            <img src="{{ $theme['symbols']['E']['img'] }}" alt="">
-            <img src="{{ $theme['symbols']['B']['img'] }}" alt="">
+    <div class="intro-scene" aria-hidden="true">
+        <div class="intro-bg"></div>
+        <div class="intro-art">
+            <div class="intro-head">
+                <img class="intro-rays" src="{{ $theme['fx']['rays'] }}" alt="">
+                <img class="intro-flash" src="{{ $theme['fx']['frostBurst'] }}" alt="">
+                <img class="intro-ring" src="{{ $theme['fx']['frostRing'] }}" alt="">
+                <div class="intro-logo" style="--logo: url('{{ $theme['logo'] }}')"><img class="logo" src="{{ $theme['logo'] }}" alt=""></div>
+                <img class="intro-star l" src="{{ $theme['stars']['gold'] ?? '' }}" alt="">
+                <img class="intro-star r" src="{{ $theme['stars']['ruby'] ?? '' }}" alt="">
+            </div>
+            <div class="intro-fruit">
+                {{-- --i: the order they pop up in (centre first); --s: size. --}}
+                @foreach ([['F', 3, .78], ['H', 2, .88], ['G', 1, .96], ['E', 0, 1.18], ['B', 1, .96], ['C', 2, .88], ['I', 3, .78]] as $n => [$letter, $order, $size])
+                    <span style="--i: {{ $order }}; --n: {{ $n }}; --s: {{ $size }}"><img src="{{ $theme['symbols'][$letter]['img'] }}" alt=""></span>
+                @endforeach
+            </div>
         </div>
     </div>
     <button class="intro-skip" type="button" autofocus>Skip intro</button>

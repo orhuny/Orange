@@ -6,7 +6,7 @@
  *
  *   const pack = window.OrangeSound.orchard(ctx, master);
  *   pack.sfx('pop');                    // spin | land | win | pop | scatter | star | stars |
- *                                       // retrigger | fsStart | fsEnd | big | tick | click
+ *                                       // retrigger | fsStart | fsEnd | big | tick | click | intro
  *   pack.sfx('scatter', 3);             // the third scatter: each one rings higher
  *   const bg = pack.ambience();         // continuous background, until bg.stop()
  *   bg.intensity(1);                    // 0 base game · 1 free spins
@@ -301,6 +301,17 @@
                 }
                 case 'tick': // the win counting up
                     coin({ at: t, bus, gain: 0.025 });
+                    break;
+                case 'intro': // in time with the intro: the logo falls and lands, fruit pops up, stars chime
+                    whoosh({ at: t + 0.1, bus, gain: 0.07, dur: 0.4, from: 3200, to: 450 });
+                    kick({ at: t + 0.5, bus, gain: 0.35 });
+                    cymbal({ at: t + 0.5, bus, gain: 0.08 });
+                    fanfare([65, 69, 72, 77, 81, 84], { at: t + 0.5, bus, gap: 0.07, gain: 0.09 });
+                    [0.7, 0.78, 0.86, 0.94].forEach((at) => pop({ at: t + at, bus, gain: 0.08 }));
+                    glock(midi(96), { at: t + 1.0, bus, gain: 0.06, dur: 0.8 });
+                    glock(midi(101), { at: t + 1.08, bus, gain: 0.05, dur: 0.8 });
+                    [77, 81, 84, 89].forEach((n) => marimba(midi(n), { at: t + 1.3, bus, gain: 0.07, dur: 0.6 }));
+                    glock(midi(101), { at: t + 1.3, bus, gain: 0.04, dur: 1.2 });
                     break;
                 case 'click':
                     thunk(420, { at: t, bus, gain: 0.05 });

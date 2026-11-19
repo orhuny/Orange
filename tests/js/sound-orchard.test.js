@@ -65,7 +65,7 @@ afterEach(() => {
 });
 
 describe('orchard sound pack', () => {
-    it.each(['spin', 'land', 'win', 'pop', 'scatter', 'star', 'stars', 'retrigger', 'fsStart', 'fsEnd', 'big', 'tick', 'click'])('plays the %s effect', (name) => {
+    it.each(['spin', 'land', 'win', 'pop', 'scatter', 'star', 'stars', 'retrigger', 'fsStart', 'fsEnd', 'big', 'tick', 'click', 'intro'])('plays the %s effect', (name) => {
         pack.sfx(name, 2);
 
         expect(ctx.started.length).toBeGreaterThan(0);

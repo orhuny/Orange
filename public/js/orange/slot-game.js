@@ -1103,17 +1103,145 @@ export function startSlot(cfg) {
         bridge.ready({ home: true });
     }
 
+    // ---- The intro ---------------------------------------------------------------------------
+    // The choreography is CSS (slot.blade.php, .intro-*); this adds the random parts (the
+    // sprinkles bursting off the logo as it lands, glints on the letters, petals drifting down),
+    // the jingle and the exit. A tap anywhere or Escape skips it.
+
+    const INTRO = { land: 500, length: 3800, leave: 450, skip: 220 };
+
     function playIntro() {
         const intro = $('intro');
         if (state.busy || typeof intro.showModal !== 'function') return;
         intro.showModal();
-        const finish = () => intro.close();
-        const timer = setTimeout(finish, 2400);
-        intro.addEventListener('click', finish);
+        const scene = intro.querySelector('.intro-scene');
+        const logo = intro.querySelector('.intro-logo');
+        const timers = [];
+        const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+        let leaving = false;
+        const finish = (ms) => {
+            if (leaving || !intro.open) return;
+            leaving = true;
+            intro.style.setProperty('--leave', `${ms}ms`);
+            intro.classList.add('leaving');
+            later(ms, () => intro.close());
+        };
+        const skip = () => finish(INTRO.skip);
+
+        introSound(intro);
+        petals(scene, 18);
+        later(INTRO.land, () => sprinkleBurst(scene, logo));
+        for (let i = 0; i < 8; i++) later(950 + i * 330 + rand(0, 180), () => glint(scene, logo));
+        later(INTRO.length, () => finish(INTRO.leave));
+        intro.addEventListener('click', skip);
         intro.addEventListener('close', () => {
-            clearTimeout(timer);
-            intro.removeEventListener('click', finish);
+            timers.forEach(clearTimeout);
+            intro.removeEventListener('click', skip);
+            scene.querySelectorAll('.intro-bit').forEach((el) => el.remove());
         }, { once: true });
+    }
+
+    /**
+     * The jingle, only when it can sound in time with the picture: when the casino delegated
+     * autoplay or the player already tapped. Otherwise the audio waits for the first spin, and
+     * nothing from the intro is left queued for it.
+     */
+    function introSound(intro) {
+        const pack = audio();
+        if (!pack) return;
+        const opened = performance.now();
+        const play = () => {
+            if (intro.open && !intro.classList.contains('leaving') && performance.now() - opened < 250) pack.sfx('intro');
+        };
+        if (sound.ctx.state === 'running') play();
+        else sound.ctx.resume().then(play, () => {});
+    }
+
+    /** An image in the intro at (x, y) px of the scene, w px wide. */
+    function introBit(scene, src, x, y, w, cls = '') {
+        const img = document.createElement('img');
+        img.className = `intro-bit ${cls}`;
+        img.src = src;
+        img.alt = '';
+        img.style.cssText = `left:${x}px;top:${y}px;width:${w}px`;
+        scene.append(img);
+        return img;
+    }
+
+    /** The logo lands: sprinkles and sugar crystals fly off its letters and fall under gravity. */
+    function sprinkleBurst(scene, logo) {
+        const sprinkles = theme.fx?.sprinkles ?? [];
+        const crystals = theme.fx?.crystals ?? [];
+        if (!sprinkles.length) return;
+        const s = scene.getBoundingClientRect();
+        const l = logo.getBoundingClientRect();
+        const reach = Math.max(s.width, s.height);
+        const cx = l.left - s.left + l.width / 2;
+        const cy = l.top - s.top + l.height / 2;
+        for (let i = 0; i < 60; i++) {
+            const crystal = i % 6 === 0 && crystals.length > 0;
+            // Each starts on the logo and flies away from its centre, mostly sideways and up.
+            const x0 = cx + rand(-0.45, 0.45) * l.width;
+            const y0 = cy + rand(-0.35, 0.35) * l.height;
+            const angle = Math.atan2(y0 - cy, (x0 - cx) * 0.6) + rand(-0.5, 0.5);
+            const speed = reach * rand(0.3, 0.85);
+            const vx = Math.cos(angle) * speed * 1.3;
+            const vy = Math.sin(angle) * speed - reach * 0.35;
+            const g = reach * 1.5;
+            const spin = rand(-720, 720);
+            const life = rand(1.3, 2.2);
+            const size = reach * (crystal ? rand(0.022, 0.034) : rand(0.014, 0.026));
+            const src = crystal ? crystals[i % crystals.length] : sprinkles[Math.floor(Math.random() * sprinkles.length)];
+            const img = introBit(scene, src, x0, y0, size);
+            const frames = [];
+            for (let k = 0; k <= 10; k++) {
+                const t = (life * k) / 10;
+                frames.push({
+                    transform: `translate(${vx * t}px, ${vy * t + (g * t * t) / 2}px) rotate(${spin * t}deg) scale(${k === 0 ? 0.3 : 1})`,
+                    opacity: k < 7 ? 1 : 1 - (k - 6) / 4,
+                });
+            }
+            img.animate(frames, { duration: life * 1000, easing: 'linear', fill: 'forwards' }).finished.then(() => img.remove(), () => {});
+        }
+    }
+
+    /** A star-shaped glint on the letters. */
+    function glint(scene, logo) {
+        if (!theme.fx?.twinkle) return;
+        const s = scene.getBoundingClientRect();
+        const l = logo.getBoundingClientRect();
+        const img = introBit(scene, theme.fx.twinkle, l.left - s.left + rand(0.12, 0.88) * l.width, l.top - s.top + rand(0.15, 0.8) * l.height,
+            l.width * rand(0.16, 0.26));
+        img.animate([
+            { opacity: 0, scale: 0, rotate: '0deg' },
+            { opacity: 1, scale: 1.1, rotate: '45deg', offset: 0.4 },
+            { opacity: 0, scale: 0, rotate: '90deg' },
+        ], { duration: 700, easing: 'ease-out', fill: 'forwards' }).finished.then(() => img.remove(), () => {});
+    }
+
+    /** Orchard blossom drifting down, some under the logo and some in front; a few already falling. */
+    function petals(scene, count) {
+        const blossoms = theme.fx?.blossoms ?? [];
+        if (!blossoms.length) return;
+        const s = scene.getBoundingClientRect();
+        const reach = Math.max(s.width, s.height);
+        for (let i = 0; i < count; i++) {
+            const behind = i % 3 !== 0;
+            const size = reach * rand(0.018, 0.03) * (behind ? 0.85 : 1.3);
+            const img = introBit(scene, blossoms[i % blossoms.length], rand(0.03, 0.97) * s.width, -size, size, behind ? 'behind' : '');
+            const fall = s.height + size * 2;
+            const sway = s.width * rand(0.03, 0.07) * (Math.random() < 0.5 ? -1 : 1);
+            const phase = rand(0, Math.PI * 2);
+            const spin = rand(-300, 300);
+            const life = rand(4.5, 7) * 1000;
+            const frames = [];
+            for (let k = 0; k <= 12; k++) {
+                const f = k / 12;
+                frames.push({ transform: `translate(${Math.sin(phase + f * Math.PI * 3) * sway}px, ${fall * f}px) rotate(${spin * f}deg)` });
+            }
+            img.animate(frames, { duration: life, delay: i < count * 0.6 ? -rand(0.1, 0.6) * life : rand(0, 1800), easing: 'linear', fill: 'both' })
+                .finished.then(() => img.remove(), () => {});
+        }
     }
 
     function readPref(key, fallback) {
