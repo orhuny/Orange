@@ -315,6 +315,58 @@ Hero key art for the game's lobby tile: the golden scatter basket from the first
 
 ---
 
+## Round 4: the bee (square 1:1, cutout)
+
+**Status (2026-11-19): prompts ready, art not generated yet.** Deliver to `C:\Git\Orange\storage\app\art\sugar-orchard\round4\`.
+
+The game's host: a smiling bee that keeps the player company.
+- **Where it sits:** landscape, it hovers left of the grid, above the buy and ante panels. Portrait, it sits on the frame's top corner, mirrored.
+- **How the code brings it to life:**
+  - It bobs as it hovers, and its wings flutter. The wings are a separate image (`char-bee-wing`), so draw every pose without them.
+  - It waves when the game opens and flies into the intro.
+  - It stays calm while the reels spin.
+  - **Poses:**
+    - `cheer` on a win;
+    - `wow` with the big-win banners;
+    - `honey` for free spins and the buy;
+    - `sleepy` after a minute without a spin, until the next one.
+- **Tool:** ChatGPT recommended for all six. It keeps the character the same from the attached image, and it exports transparency (the wing needs it).
+- **Order:** `char-bee-idle` until you love it (it is the character anchor), then the wing, then the other poses. Each pose attaches `char-bee-idle` for the character and `sym-a-toffee` for the finish.
+- **Keep it ours:** an original bee. Honey-gold with chocolate stripes, never black and yellow. No hair, no clothes, no stinger.
+
+### char-bee-idle.png · the character anchor · attach sym-a
+```text
+An original cute bee mascot: a chubby round body shaped like a plump gumdrop, covered in soft fuzzy velvet fur in warm honey-gold with three wide glossy chocolate-brown stripes; a big round head with large glossy dark-brown eyes full of bright sparkle highlights, a small warm smile and soft peach-orange blush on the cheeks; two curly antennae, each tipped with a tiny glossy orange gumdrop; one small white orange blossom tucked behind the left antenna; two short chubby arms with little round hands and two tiny legs. Its back is smooth: no wings. No stinger, no hair, no clothes. Pose: hovering in mid-air, relaxed and happy, seen in three-quarter view with the body turned toward the right of the image, waving hello with its right hand raised high, the other hand resting on its tummy, tiny legs dangling. Friendly, warm and inviting: the player's sweet little companion. Match the finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D character render with feature-animation appeal, soft fuzzy velvet texture, glossy eyes, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw the bee WITHOUT wings: they are a separate image that the game animates. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the character is pink, purple or see-through. The whole character is in frame with a clear margin.
+```
+
+### char-bee-wing.png · the wings, animated by the game · attach char-bee-idle
+One wing; the game mirrors it for the other side and flutters both from the root.
+```text
+A single wing for the bee character in the attached image, seen flat from the side: a rounded teardrop shape like a flower petal, pearly and softly translucent with an iridescent gold-and-mint sheen, fine golden veins, and a few sparkling sugar crystals along its outer edge. Its narrow root sits at the lower-left corner of the image and the wing sweeps up toward the upper right, so it can turn around its root. Delicate, magical, premium. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D render, crisp specular highlights, soft glow, tack-sharp focus, high detail. Only the one wing: no bee, no second wing, no text, no outline, no cast shadow. On a transparent background, exported as a PNG with transparency.
+```
+
+### char-bee-cheer.png · on a win · attach char-bee-idle and sym-a
+```text
+The same bee character as in the first attached image, identical design, colours and proportions: a chubby honey-gold body with three wide glossy chocolate-brown stripes and soft fuzzy velvet fur, large glossy dark-brown eyes, soft peach-orange blush, curly antennae tipped with tiny orange gumdrops, a white orange blossom behind the left antenna. Its back is smooth: no wings. No stinger, no hair, no clothes. Pose: celebrating a win, both arms thrown up high in joy, eyes squeezed shut in happy arcs, a big open smile, tiny legs kicked up, the body bouncing upward with a slight backward lean. Three-quarter view, the body turned toward the right of the image. Match the finish of the second attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D character render with feature-animation appeal, soft fuzzy velvet texture, glossy eyes, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw the bee WITHOUT wings: they are a separate image that the game animates. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the character is pink, purple or see-through. The whole character is in frame with a clear margin.
+```
+
+### char-bee-wow.png · with the big-win banners · attach char-bee-idle and sym-a
+```text
+The same bee character as in the first attached image, identical design, colours and proportions: a chubby honey-gold body with three wide glossy chocolate-brown stripes and soft fuzzy velvet fur, large glossy dark-brown eyes, soft peach-orange blush, curly antennae tipped with tiny orange gumdrops, a white orange blossom behind the left antenna. Its back is smooth: no wings. No stinger, no hair, no clothes. Pose: amazed by a huge win, eyes wide open with bright star-shaped sparkle highlights, mouth open in a delighted round "oh", both hands pressed to its blushing cheeks, antennae springing straight up, leaning forward eagerly. Three-quarter view, the body turned toward the right of the image. Match the finish of the second attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D character render with feature-animation appeal, soft fuzzy velvet texture, glossy eyes, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw the bee WITHOUT wings: they are a separate image that the game animates. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the character is pink, purple or see-through. The whole character is in frame with a clear margin.
+```
+
+### char-bee-honey.png · free spins and the buy · attach char-bee-idle and sym-a
+```text
+The same bee character as in the first attached image, identical design, colours and proportions: a chubby honey-gold body with three wide glossy chocolate-brown stripes and soft fuzzy velvet fur, large glossy dark-brown eyes, soft peach-orange blush, curly antennae tipped with tiny orange gumdrops, a white orange blossom behind the left antenna. Its back is smooth: no wings. No stinger, no hair, no clothes. Pose: proudly hugging a small round glossy amber honey pot, a wooden honey dipper standing in it, thick golden honey dripping over the rim, a big happy smile, eyes sparkling at the viewer, as if offering a sweet treat. Three-quarter view, the body turned toward the right of the image. Match the finish of the second attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D character render with feature-animation appeal, soft fuzzy velvet texture, glossy eyes, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw the bee WITHOUT wings: they are a separate image that the game animates. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the character or the pot is pink, purple or see-through. The whole character is in frame with a clear margin.
+```
+
+### char-bee-sleepy.png · after a minute without a spin · attach char-bee-idle and sym-a
+```text
+The same bee character as in the first attached image, identical design, colours and proportions: a chubby honey-gold body with three wide glossy chocolate-brown stripes and soft fuzzy velvet fur, soft peach-orange blush, curly antennae tipped with tiny orange gumdrops, a white orange blossom behind the left antenna. Its back is smooth: no wings. No stinger, no hair, no clothes. Pose: dozing peacefully in mid-air, eyes closed in soft curves, a gentle content smile, head tilted to one side, both arms hugging its tummy, tiny legs tucked up, antennae drooping softly. Cosy and sweet. Three-quarter view, the body turned toward the right of the image. Match the finish of the second attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D character render with feature-animation appeal, soft fuzzy velvet texture, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw the bee WITHOUT wings: they are a separate image that the game animates. No text (no "Z"s), no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the character is pink, purple or see-through. The whole character is in frame with a clear margin.
+```
+
+---
+
 ## What I do when the art arrives
 
 - **Key and cut:**
