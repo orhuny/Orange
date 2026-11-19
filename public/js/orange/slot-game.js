@@ -14,6 +14,8 @@ const TIERS = { big: 'BIG WIN', mega: 'MEGA WIN', epic: 'EPIC WIN', max: 'MAX WI
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const linear = (t) => t;
+/** An amount for the screen: money() with thousands separators. Never sent to the casino. */
+const shown = (value) => money(value).replace(/^-?\d+/, (whole) => whole.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
 
 /**
  * @param {object} cfg  from the blade view: allowedOrigins, theme, rules (SlotVerifier::describe), config, embedded
@@ -339,7 +341,7 @@ export function startSlot(cfg) {
         const winners = step.removed;
         winners.forEach((c) => state.els[c].classList.add('win'));
         const amount = winAmount(state.bet, step.pays);
-        floatText(`${money(amount)}`, winners);
+        floatText(shown(amount), winners);
         sfx('win', index);
         await wait(650);
 
@@ -446,7 +448,7 @@ export function startSlot(cfg) {
 
     function showWin(units) {
         betWin = units;
-        $('win').textContent = units > 0n ? money(units) : '0.00';
+        $("win").textContent = units > 0n ? shown(units) : "0.00";
     }
 
     async function playSpin(spin, alreadyCleared) {
@@ -460,7 +462,7 @@ export function startSlot(cfg) {
             if (!spin.free) showWin(winAmount(state.bet, line));
         }
         if (spin.free && spin.multiplier > 0 && spin.lineWin > 0) await applyMultipliers(spin);
-        if (spin.scatterWin > 0) floatText(money(winAmount(state.bet, spin.scatterWin)), spin.scatters, 'scatter-win');
+        if (spin.scatterWin > 0) floatText(shown(winAmount(state.bet, spin.scatterWin)), spin.scatters, 'scatter-win');
         const triggers = spin.free ? spin.retrigger > 0 : spin.awarded > 0;
         if (triggers) {
             sfx(spin.free ? 'retrigger' : 'scatter', spin.scatters.length);
@@ -498,7 +500,7 @@ export function startSlot(cfg) {
                 }
             }
             sfx('fsEnd');
-            await dialog(plaque('total-win', `<div class="huge">${money(fsWin)}</div><p class="note">${free.length} free spins</p>`),
+            await dialog(plaque('total-win', `<div class="huge">${shown(fsWin)}</div><p class="note">${free.length} free spins</p>`),
                 { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
             document.body.classList.remove('free');
             $('fs-hud').hidden = true;
@@ -513,7 +515,7 @@ export function startSlot(cfg) {
     function hud(n, of, win) {
         $('fs-hud').hidden = false;
         $('fs-count').textContent = `${Math.min(n, of)} / ${of}`;
-        $('fs-win').textContent = money(win);
+        $("fs-win").textContent = shown(win);
     }
 
     /** A dialog on the chocolate plaque, under a banner (theme.banners). */
@@ -537,7 +539,7 @@ export function startSlot(cfg) {
                 const length = dur(2600);
                 const tick = (now) => {
                     const f = Math.min(1, (now - started) / length);
-                    counter.textContent = f >= 1 ? money(units) : (total * (1 - Math.pow(1 - f, 3))).toFixed(2);
+                    counter.textContent = shown(f >= 1 ? units : (total * (1 - Math.pow(1 - f, 3))).toFixed(2));
                     if (f < 1 && el.isConnected) requestAnimationFrame(tick);
                 };
                 requestAnimationFrame(tick);
@@ -681,7 +683,7 @@ export function startSlot(cfg) {
         audio();
         controls();
         showWin(0n);
-        if (state.balance !== null) $('balance').textContent = money(toUnits(state.balance) - toUnits(amount));
+        if (state.balance !== null) $("balance").textContent = shown(toUnits(state.balance) - toUnits(amount));
 
         try {
             const clearing = dropOut();
@@ -748,7 +750,7 @@ export function startSlot(cfg) {
     // ---- The bar ----------------------------------------------------------------------------------
 
     function balance() {
-        $('balance').textContent = state.balance === null ? '—' : money(state.balance);
+        $("balance").textContent = state.balance === null ? "—" : shown(state.balance);
         document.querySelectorAll('[data-currency]').forEach((e) => { e.textContent = state.currency; });
     }
 
@@ -756,7 +758,7 @@ export function startSlot(cfg) {
         const connected = bridge.parentOrigin !== null;
         const i = state.steps.indexOf(state.bet);
         const mode = state.ante ? 'ante' : 'base';
-        $('bet').textContent = money(stake(state.bet, mode));
+        $("bet").textContent = shown(stake(state.bet, mode));
         $('bet-minus').disabled = state.busy || i <= 0;
         $('bet-plus').disabled = state.busy || i >= state.steps.length - 1;
         $('spin-btn').disabled = !connected || (state.busy && state.quick);
@@ -770,10 +772,15 @@ export function startSlot(cfg) {
         $('ante-btn').disabled = state.busy;
         $('ante-box').hidden = !features.ante;
         const buyCost = stake(state.bet, 'buy');
-        $('buy-cost').textContent = money(buyCost);
+        $('buy-cost').textContent = shown(buyCost);
         $('buy-box').hidden = !features.buy;
         $('buy-btn').disabled = !connected || state.busy || state.ante || !affordable(state.bet, 'buy', state.limits);
-        $('buy-btn').title = state.ante ? 'Switch the ante bet off to buy the feature.' : (!affordable(state.bet, 'buy', state.limits) ? 'Over the maximum stake at this bet.' : '');
+        // Say why the feature can't be bought (not while a spin is playing: that passes).
+        const reason = state.ante ? 'Switch the ante bet off to buy.'
+            : (!affordable(state.bet, 'buy', state.limits) ? 'Above your maximum stake: lower the bet to buy.' : '');
+        $('buy-btn').title = reason;
+        $('buy-note').textContent = reason;
+        $('buy-note').hidden = !reason;
     }
 
     function stepBet(dir) {
@@ -788,7 +795,7 @@ export function startSlot(cfg) {
         if (state.busy) return;
         const cost = stake(state.bet, 'buy');
         const ok = await dialog(plaque('free-spins', `<div class="huge">10</div>
-            <p class="note">for <strong>${money(cost)} ${state.currency}</strong> (100× your bet of ${money(state.bet)})</p>`), { button: 'Buy', cancel: 'Cancel', cls: 'plaque' });
+            <p class="note">for <strong>${shown(cost)} ${state.currency}</strong> (100× your bet of ${shown(state.bet)})</p>`), { button: 'Buy', cancel: 'Cancel', cls: 'plaque' });
         if (ok === '1') spin('buy');
     }
 
@@ -817,13 +824,13 @@ export function startSlot(cfg) {
     function rules() {
         const r = cfg.rules;
         const bet = toUnits(state.bet);
-        const amount = (x) => money((bet * BigInt(Math.round(Number(x) * 100))) / 100n);
+        const amount = (x) => shown((bet * BigInt(Math.round(Number(x) * 100))) / 100n);
         const rows = (r.paytable ?? []).map((p) => `<tr><td><img src="${theme.symbols[p.symbol]?.img}" alt="${p.name}"></td>
             ${Object.values(p.pays).map((x) => `<td>${amount(x)}</td>`).join('')}</tr>`).join('');
         const tiers = Object.keys(r.paytable?.[0]?.pays ?? {});
         const scatter = Object.entries(r.scatter_pays ?? {}).map(([n, x]) => `${n}× → ${amount(x)}`).join(' · ');
         const f = state.fairness;
-        dialog(`<h2>Paytable</h2><p class="note">Pays at your bet of ${money(state.bet)} ${state.currency}. Symbols pay anywhere.</p>
+        dialog(`<h2>Paytable</h2><p class="note">Pays at your bet of ${shown(state.bet)} ${state.currency}. Symbols pay anywhere.</p>
             <table class="pays"><thead><tr><th></th>${tiers.map((t) => `<th>${t}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
             <p><img class="inline" src="${theme.symbols.S?.img}" alt=""> <strong>Scatter</strong>: ${scatter}. 4 or more anywhere award ${r.free_spins?.awarded} free spins; ${r.free_spins?.retrigger_scatters} or more in free spins add ${r.free_spins?.retrigger_awarded}.</p>
             <h3>How it plays</h3>
@@ -834,7 +841,7 @@ export function startSlot(cfg) {
             ${features.buy ? '<li>Buy free spins: 100× the bet starts the feature at once.</li>' : ''}
             <li>Maximum win: ${Number(r.max_win).toLocaleString()}× the bet; the round ends when it is reached.</li>
             <li>Return to player: ${(Number(r.rtp) * 100).toFixed(2)}%.</li>
-            ${state.limits?.max_win ? `<li>Your casino pays at most ${money(state.limits.max_win)} ${state.currency} per bet.</li>` : ''}</ul>
+            ${state.limits?.max_win ? `<li>Your casino pays at most ${shown(state.limits.max_win)} ${state.currency} per bet.</li>` : ''}</ul>
             <h3>Provably fair</h3>
             <p class="note">Every spin, tumble and free spin is drawn from your seed pair before anything moves. Rotate your seeds to reveal the server seed and verify any bet at ${cfg.verifyUrl}.</p>
             ${f ? `<p class="mono">Last bet: server seed hash ${f.server_seed_hash} · client seed ${f.client_seed} · nonce ${f.nonce}</p>` : ''}`,

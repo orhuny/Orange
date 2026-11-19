@@ -77,32 +77,59 @@
         @keyframes firefly { 0% { transform: translate(0, 0); } 50% { transform: translate(3vw, -4vh); } 100% { transform: translate(-2vw, -8vh); } }
         .petal { position: absolute; top: -8vh; width: clamp(18px, 2vw, 34px); opacity: .95; }
 
-        /* ---- Layout ---- */
-        .stage { position: relative; height: 100%; display: flex; flex-direction: column; padding: max(8px, env(safe-area-inset-top)) 12px 0; }
-        .top { display: flex; justify-content: center; align-items: center; height: var(--top); flex: none; }
-        body.free .logo { display: none; }
-        .logo { height: 100%; filter: drop-shadow(0 6px 8px rgba(40, 15, 0, .5)); }
+        /* ---- Layout ----
+           Landscape: the logo heads the left column and the free-spins counter floats over
+           the top, so the grid gets the full height. Portrait: the logo heads the page. */
+        .stage { position: relative; height: 100%; display: flex; flex-direction: column; padding: max(8px, env(safe-area-inset-top)) 12px 0;
+                 --side: clamp(140px, 14vw, 200px); --spin: clamp(76px, min(8.6vw, 13vh), 108px); }
+        .top { position: absolute; left: 0; right: 0; top: max(8px, env(safe-area-inset-top)); z-index: 8; display: flex; justify-content: center; pointer-events: none; }
+        .top .logo { display: none; }
+        .logo { filter: drop-shadow(0 6px 8px rgba(40, 15, 0, .5)); }
         .play { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 2vw, 28px); }
 
-        .side { display: flex; flex-direction: column; gap: 12px; width: clamp(130px, 14vw, 190px); }
-        .play::after { content: ''; flex: none; width: clamp(130px, 14vw, 190px); } /* keeps the board centred */
-        .card { background: var(--panel); border: 2px solid var(--wood-hi); border-radius: 16px; box-shadow: 0 6px 14px rgba(0, 0, 0, .35); }
-        .buy-btn { width: 100%; border: 0; background: linear-gradient(180deg, #ffb340, #f0700a); border-radius: 14px; padding: 12px 8px;
-                   display: grid; gap: 6px; text-align: center; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .45), inset 0 -4px 0 rgba(120, 40, 0, .35); }
-        .buy-btn .label { font-size: clamp(13px, 1.4vw, 17px); color: #fff; text-shadow: 0 2px 0 #9a3c00; letter-spacing: .5px; }
-        .buy-btn .price { font-size: clamp(14px, 1.6vw, 20px); color: #4a1d00; background: var(--cream); border-radius: 10px; padding: 4px 6px; }
-        .ante { padding: 10px; display: grid; gap: 8px; justify-items: center; text-align: center; }
-        .ante strong { display: block; color: var(--gold); font-size: 15px; }
-        .ante span { font-size: 12px; opacity: .9; }
-        .switch { width: 56px; height: 30px; border-radius: 15px; border: 2px solid var(--wood-hi); background: #3b1a06; position: relative; padding: 0; }
-        .switch i { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #d9c3a0; transition: transform .2s, background .2s; }
-        .switch[aria-pressed=true] { background: var(--leaf); }
-        .switch[aria-pressed=true] i { transform: translateX(26px); background: #fff; }
+        .side { position: relative; z-index: 4; display: flex; flex-direction: column; gap: 12px; width: var(--side); }
+        .logo-side { width: 100%; height: auto; margin-bottom: 2px; }
+        .play::after { content: ''; flex: none; width: var(--side); } /* keeps the board centred */
 
-        /* ---- The grid in its frame ---- */
-        .frame { --bw: min(calc((100vw - 2 * clamp(130px, 14vw, 190px) - 2 * clamp(10px, 2vw, 28px) - 24px) / (1 + 2 * var(--kx))),
-                           calc((100dvh - var(--top) - 146px) / (1 + 2 * var(--ky)) * 1.2), 860px);
-                 padding: calc(var(--bw) / 1.2 * var(--ky)) calc(var(--bw) * var(--kx)); flex: none; }
+        /* ---- Buy free spins and the ante bet: chocolate glass in a gold rim ---- */
+        .feature { position: relative; border-radius: 16px; padding: 10px; border: 2px solid transparent;
+                   background: linear-gradient(180deg, rgba(78, 37, 12, .95), rgba(34, 13, 3, .95)) padding-box,
+                               linear-gradient(180deg, #ffe9a8, #d18b2c 42%, #7a4210) border-box;
+                   box-shadow: 0 12px 26px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 226, 170, .22); }
+        .buy { position: relative; width: 100%; display: grid; grid-template-columns: auto 1fr; grid-template-areas: "icon title" "price price";
+               align-items: center; column-gap: 8px; row-gap: 8px; padding: 9px 10px 10px 8px;
+               border-radius: 12px; border: 1.5px solid transparent; text-align: left; overflow: hidden; transition: transform .12s ease, filter .2s ease;
+               background: linear-gradient(180deg, #ffae3c 0%, #f4710d 52%, #c94a05 100%) padding-box, linear-gradient(180deg, #fff1c4, #e3a23e) border-box;
+               box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -3px 0 rgba(110, 35, 0, .35), 0 6px 14px rgba(120, 40, 0, .45); }
+        .buy::before { content: ''; position: absolute; left: 5%; right: 5%; top: 3px; height: 42%; border-radius: 10px 10px 50% 50%; pointer-events: none;
+                       background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0)); }
+        .buy-icon { grid-area: icon; width: clamp(34px, 3.2vw, 50px); aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(80, 25, 0, .5)); }
+        .buy-text { display: contents; }
+        .buy-title { grid-area: title; font-size: clamp(11px, 1vw, 13px); line-height: 1.12; letter-spacing: .08em; text-transform: uppercase; color: #fff;
+                     text-shadow: 0 1px 0 #8a3200, 0 0 8px rgba(120, 40, 0, .35); }
+        .buy-price { grid-area: price; justify-self: stretch; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: 4px 8px;
+                     font-size: clamp(12px, 1.2vw, 16px); color: #ffe7a0; background: rgba(46, 16, 0, .62); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .45); font-variant-numeric: tabular-nums; }
+        .buy:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.06); }
+        .buy:not(:disabled):active { transform: translateY(1px); }
+        .buy:disabled { opacity: 1; filter: grayscale(.85) brightness(.7) contrast(.92); }
+        .feature-note { margin: 8px 2px 0; font-size: 11px; line-height: 1.3; font-weight: 500; color: #ffd9a6; text-align: center; }
+        .ante { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
+        .feature-title { display: block; margin-bottom: 3px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); text-shadow: 0 1px 0 #3a1400; }
+        .ante-desc { display: block; font-size: 11.5px; line-height: 1.35; font-weight: 500; color: #f6e2c4; }
+        .toggle { position: relative; flex: none; width: 50px; height: 28px; padding: 0; border-radius: 999px; border: 1px solid rgba(255, 214, 150, .35);
+                  background: linear-gradient(180deg, #1e0b02, #3a1806); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .6); transition: background .2s, box-shadow .2s; }
+        .toggle i { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0, 0, 0, .5);
+                    background: radial-gradient(circle at 35% 30%, #fff7dc, #e6b65c 60%, #9c6420); transition: transform .22s cubic-bezier(.3, 1.4, .5, 1); }
+        .toggle[aria-pressed=true] { background: linear-gradient(180deg, #2f9a3c, #5fd36a); border-color: rgba(190, 255, 190, .6);
+                                     box-shadow: inset 0 2px 4px rgba(0, 40, 0, .35), 0 0 10px rgba(95, 211, 106, .45); }
+        .toggle[aria-pressed=true] i { transform: translateX(22px); background: radial-gradient(circle at 35% 30%, #fff, #f2f2f2 60%, #c9c9c9); }
+        .toggle:disabled { opacity: .55; }
+
+        /* ---- The grid in its frame ----
+           The frame's ornaments get their room above and at the sides; below, they tuck behind the bar. */
+        .frame { --bw: min(calc((100vw - 2 * var(--side) - 2 * clamp(10px, 2vw, 28px) - 24px) / (1 + 2 * var(--kx))),
+                           calc((100dvh - var(--spin) - 40px) / (1 + 1.25 * var(--ky)) * 1.2), 1000px);
+                 padding: calc(var(--bw) / 1.2 * var(--ky)) calc(var(--bw) * var(--kx)) calc(var(--bw) / 1.2 * var(--ky) * .25); flex: none; }
         .board-wrap { position: relative; width: var(--bw); aspect-ratio: 6 / 5; }
         .board { position: absolute; inset: 0; overflow: hidden; border-radius: 8px; cursor: pointer;
                  background: radial-gradient(ellipse at 50% 40%, rgba(255, 251, 240, .7), rgba(255, 236, 205, .55));
@@ -134,8 +161,8 @@
         .fs-hud b { color: var(--gold); font-size: 1.15em; }
 
         /* ---- The bar ---- */
-        .bar { flex: none; display: grid; grid-template-columns: 1fr auto auto auto 1fr; grid-template-areas: "bal bet spin win tools"; align-items: center;
-               gap: clamp(8px, 1.6vw, 22px); padding: 8px 14px max(10px, env(safe-area-inset-bottom)); margin: 0 -12px;
+        .bar { position: relative; z-index: 5; flex: none; display: grid; grid-template-columns: 1fr auto auto auto 1fr; grid-template-areas: "bal bet spin win tools";
+               align-items: center; gap: clamp(8px, 1.6vw, 22px); padding: 6px 14px max(8px, env(safe-area-inset-bottom)); margin: 0 -12px;
                background: linear-gradient(180deg, transparent, rgba(30, 12, 2, .82) 32%); }
         .meter { display: grid; text-align: center; min-width: 96px; }
         .meter small { font-size: 11px; letter-spacing: 1px; color: var(--gold); opacity: .9; }
@@ -145,7 +172,7 @@
         .winm #win { color: var(--gold); }
         .bet { grid-area: bet; display: flex; align-items: center; gap: 6px; }
         .round { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--wood-hi); background: var(--panel); font-size: 22px; line-height: 1; padding: 0; }
-        .spin { grid-area: spin; width: clamp(80px, 8.6vw, 112px); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%;
+        .spin { grid-area: spin; width: var(--spin); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%;
                 background: var(--spin-art) center / contain no-repeat; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)); transition: transform .12s ease; }
         .spin:not(:disabled):hover { transform: scale(1.04); }
         .spin:not(:disabled):active { transform: scale(.95); }
@@ -209,15 +236,20 @@
 
         @media (orientation: portrait) {
             :root { --top: clamp(40px, 9vh, 84px); }
+            .stage { --spin: clamp(76px, 22vw, 96px); }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
             .branch { top: 10vh; bottom: auto; width: clamp(160px, 42vw, 360px); }
+            .top { position: static; flex-direction: column; align-items: center; height: var(--top); flex: none; }
+            .top .logo { display: block; height: 100%; }
+            body.free .top .logo { display: none; }
+            .logo-side { display: none; }
             .play { flex-direction: column; gap: 6px; }
             .play::after { display: none; }
-            .side { order: 2; flex-direction: row; width: min(96vw, 560px); }
-            .side > .card { flex: 1; }
-            .ante { grid-template-columns: 1fr auto; text-align: left; justify-items: start; align-items: center; }
+            .side { order: 2; flex-direction: row; align-items: stretch; width: min(96vw, 560px); }
+            .side > .feature { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+            .side > .feature.ante { display: grid; }
             /* The frame may run a little past the screen's edges, so the grid stays large. */
-            .frame { --bw: min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 2 * var(--ky)) * 1.2), 640px); }
+            .frame { --bw: min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 1.25 * var(--ky)) * 1.2), 640px); }
             .bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "bal spin win" "bet spin tools"; row-gap: 6px; }
             .winm { justify-self: end; text-align: right; }
             .tools { display: grid; grid-template-columns: repeat(2, 34px); gap: 6px; }
@@ -226,6 +258,18 @@
             .bet { justify-self: start; }
             .meter { min-width: 0; }
             .dialog.plaque { margin-top: 10vh; }
+        }
+        /* Short landscape screens (phones on their side): a smaller logo and compact panels. The
+           ante's details stay in its label and in the rules. */
+        @media (orientation: landscape) and (max-height: 520px) {
+            .side { gap: 8px; }
+            .logo-side { max-height: 17vh; width: auto; max-width: 100%; align-self: center; }
+            .feature { padding: 7px; border-radius: 12px; }
+            .buy { padding: 7px 8px 8px 6px; row-gap: 6px; }
+            .buy-icon { width: 30px; }
+            .ante-desc { display: none; }
+            .feature-title { margin: 0; }
+            .feature-note { margin-top: 5px; font-size: 10px; }
         }
         @media (prefers-reduced-motion: reduce) {
             .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner { animation: none; }
@@ -254,15 +298,24 @@
 
     <section class="play">
         <aside class="side">
-            <div id="buy-box" class="card" hidden>
-                <button id="buy-btn" class="buy-btn" disabled>
-                    <span class="label">BUY<br>FREE SPINS</span>
-                    <span class="price"><span id="buy-cost">—</span> <span data-currency></span></span>
+            <img class="logo logo-side" src="{{ $theme['logo'] }}" alt="{{ $game?->name ?? 'Slot' }}">
+            <div id="buy-box" class="feature" hidden>
+                <button id="buy-btn" class="buy" disabled>
+                    <img class="buy-icon" src="{{ $theme['symbols']['S']['img'] }}" alt="">
+                    <span class="buy-text">
+                        <span class="buy-title">Buy<br>free spins</span>
+                        <span class="buy-price"><span id="buy-cost">—</span> <span data-currency></span></span>
+                    </span>
                 </button>
+                <p id="buy-note" class="feature-note" hidden></p>
             </div>
-            <div id="ante-box" class="card ante" hidden>
-                <div><strong>ANTE BET</strong><span>Free spins about 1.75× as often, for 25% more per spin</span></div>
-                <button id="ante-btn" class="switch" aria-pressed="false" aria-label="Ante bet"><i></i></button>
+            <div id="ante-box" class="feature ante" hidden>
+                <div>
+                    <span class="feature-title">Ante bet</span>
+                    <span class="ante-desc">Free spins about 1.75× as often</span>
+                    <span class="ante-desc">Stake +25%</span>
+                </div>
+                <button id="ante-btn" class="toggle" aria-pressed="false" aria-label="Ante bet: free spins about 1.75× as often, for a 25% higher stake"><i></i></button>
             </div>
         </aside>
 
