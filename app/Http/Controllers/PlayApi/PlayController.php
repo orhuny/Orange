@@ -89,6 +89,9 @@ class PlayController
             'balance' => $known['balance'],
             // No wallet call since this launch: the operator page's own figure is newer.
             'balance_before_launch' => $known['before_launch'],
+            // The session ends after this long without a request (null: never); the page
+            // counts it down itself, so it can end a session the player walked away from.
+            'idle_timeout_seconds' => $session->operator->sessionIdleSeconds(),
         ]);
     }
 

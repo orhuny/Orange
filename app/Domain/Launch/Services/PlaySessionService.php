@@ -7,6 +7,7 @@ namespace App\Domain\Launch\Services;
 use App\Domain\Launch\Exceptions\InvalidLaunchToken;
 use App\Domain\Launch\Models\LaunchToken;
 use App\Domain\Launch\Models\PlaySession;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /** Turns a launch token into a play session (once) and authenticates the page's requests. */
@@ -63,7 +64,18 @@ final class PlaySessionService
             return null;
         }
 
+        // Idle for the operator's idle time: the session ends for good. last_seen_at is written
+        // at most once a minute, so it may trail the last request by up to a minute: the page
+        // ends the session on time (play-host.js), the server within a minute after, never early.
+        $idle = $session->operator->sessionIdleSeconds();
         $lastSeen = $session->getAttribute('last_seen_at');
+        $since = $lastSeen ?? $session->getAttribute('created_at');
+        if ($idle !== null && $since instanceof CarbonInterface && $since->diffInSeconds(now(), true) >= $idle + self::TOUCH_EVERY_SECONDS) {
+            $session->forceFill(['revoked_at' => now()])->save();
+
+            return null;
+        }
+
         if ($lastSeen === null || $lastSeen->diffInSeconds(now(), true) >= self::TOUCH_EVERY_SECONDS) {
             $session->forceFill(['last_seen_at' => now()])->save();
         }

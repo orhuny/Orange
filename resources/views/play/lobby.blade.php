@@ -218,7 +218,7 @@
     <div class="expired" id="expired" role="alert">
         <div class="card">
             <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-            <h2>This session has ended</h2>
+            <h2 id="expired-title">This session has ended</h2>
             <p>Please open the games again from the casino.</p>
         </div>
     </div>
@@ -262,9 +262,12 @@
             outerOrigins: @json($outerOrigins),
             playApi: @json(url('/play-api')),
             frame: $('frame'),
-            onExpired() {
+            onExpired(reason) {
                 $('lobby').hidden = true;
                 $('game').classList.remove('shown');
+                // Unload the game too (its sounds stop); `host` may not exist yet here.
+                $('frame').src = 'about:blank';
+                if (reason === 'idle') $('expired-title').textContent = 'Your session timed out';
                 $('expired').classList.add('shown');
             },
             onBackToLobby: showLobby,

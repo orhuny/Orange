@@ -288,6 +288,7 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `launch_game` | `{ code, name }` | (new, informational) The player opened another game from the lobby: its code and the name players see (for your page's title) |
 | `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it (the game menu's Home) |
 | `bet_history` | `{}` | (new, optional) The player opened My bets. Sent only if your `player_info` said `bet_history: true` |
+| `session_expired` | `{ reason }` | (new, direct play only, informational) Orange's host page ended the play session: `reason` is `"idle"` after the idle timeout, `"expired"` when the session is no longer accepted. The page shows a notice. Close the game or launch it again |
 
 #### Messages **parent → iframe**
 
@@ -614,6 +615,13 @@ What you need:
 
 Reloading the page keeps the session. A launch token can't be reused.
 
+**Idle timeout.** A play session ends after **15 minutes** without a player request (a bet or
+spin, opening a game, My bets), and in any case 4 hours after it started. The page then shows a
+notice that the session timed out and sends you `session_expired` (`reason: "idle"`). To play
+on, the player needs a new launch. Orange can change the idle time for your operator
+(`session_idle_minutes`, see the configuration keys under "The lobby"), or turn it off (`0`) if
+your site ends sessions itself.
+
 The game page has a **My bets** list (the player's latest bets on that game). Orange's host
 page serves it from the player API, so you don't need to do anything for it.
 
@@ -628,13 +636,14 @@ page serves it from the player API, so you don't need to do anything for it.
 - **Bridge messages to your page:** `launch_game` `{ code, name }` when a game opens (show `name` as the game's title), and
   `back_to_lobby` when the player returns.
 
-Look and embedding are set on your operator configuration (flat keys):
+Look, embedding and the idle timeout are set on your operator configuration (flat keys):
 
 | Key | Value |
 |---|---|
 | `embed_origins` | Your origins, comma-separated, e.g. `https://casino.example, https://m.casino.example` |
 | `lobby_logo_url` | An `https://` image URL shown in the lobby header |
 | `lobby_primary_color` / `lobby_accent_color` / `lobby_background_color` | `#rrggbb` colours |
+| `session_idle_minutes` | Minutes without a player request before a play session ends (default 15, at most 1440; `0` = never). Applies to the lobby and to single games |
 
 Anything that isn't an `https://` URL or a `#rrggbb` colour is ignored, and the default is used.
 

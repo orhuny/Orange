@@ -19,12 +19,13 @@ function decimal(value) {
 /**
  * @param {{ gameCode: string|null, frameUrl: string|null, bearer: string|null, storageKey: string,
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
- *           onExpired: () => void, onBackToLobby?: () => void,
+ *           onExpired: (reason?: 'idle' | 'expired') => void, onBackToLobby?: () => void,
  *           onFullscreen?: (active: boolean) => void,
  *           onBalance?: (balance: string) => void,
  *           onGameReady?: (payload: { home?: boolean }) => void }} config
  *        onGameReady: the game announced itself and the host sent player_info.
  *        onBalance: the operator page reported the balance after session() had answered.
+ *        onExpired: the session is over, 'idle' when the player was away for the idle time.
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
 export function startPlayHost(config) {
@@ -44,7 +45,7 @@ export function startPlayHost(config) {
         history.replaceState(null, '', location.pathname);
     }
     if (!token) {
-        config.onExpired();
+        config.onExpired('expired');
         return null;
     }
 
@@ -56,7 +57,60 @@ export function startPlayHost(config) {
         return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
     }
 
+    // ---- Idle timeout ---------------------------------------------------------------------
+    // The session ends after the operator's idle time (/session: idle_timeout_seconds) without
+    // a player API request: a bet, opening a game, the bet history. The server ends it too,
+    // within a minute after; the page does it on time, even if the player never comes back.
+    let idleMs = null;
+    let lastRequest = Date.now();
+    let idleTimer = 0;
+    let ended = false;
+
+    function armIdle() {
+        clearTimeout(idleTimer);
+        if (idleMs !== null && !ended) {
+            idleTimer = setTimeout(checkIdle, Math.max(1000, lastRequest + idleMs - Date.now()));
+        }
+    }
+
+    // Timers are throttled in a hidden tab: the clock decides, and a tab coming back checks.
+    function checkIdle() {
+        if (idleMs === null || ended) {
+            return;
+        }
+        if (Date.now() - lastRequest >= idleMs) {
+            expire('idle');
+        } else {
+            armIdle();
+        }
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            checkIdle();
+        }
+    });
+
+    /** The session is over ('idle', or 'expired' when the server no longer accepts it). */
+    function expire(reason) {
+        if (ended) {
+            return;
+        }
+        ended = true;
+        clearTimeout(idleTimer);
+        // A reload must not bring it back.
+        try {
+            sessionStorage.removeItem(config.storageKey);
+        } catch (_) { /* storage blocked */ }
+        outer.send('session_expired', { reason });
+        config.onExpired(reason);
+    }
+
     async function api(path, { method = 'GET', body, idempotent = false } = {}) {
+        if (ended) {
+            return { ok: false, status: 401, data: { error: 'session_expired' } };
+        }
+        lastRequest = Date.now();
+        armIdle();
         const headers = { Accept: 'application/json', Authorization: `Bearer ${token}` };
         if (body !== undefined) {
             headers['Content-Type'] = 'application/json';
@@ -80,7 +134,7 @@ export function startPlayHost(config) {
             data = await response.json();
         } catch (_) { /* empty or non-JSON body */ }
         if (response.status === 401) {
-            config.onExpired();
+            expire('expired');
         }
         return { ok: response.ok, status: response.status, data };
     }
@@ -101,6 +155,9 @@ export function startPlayHost(config) {
         if (r.ok) {
             walletSinceLaunch = walletSinceLaunch === true || r.data.balance_before_launch !== true;
             balance = !walletSinceLaunch && operatorBalance !== null ? operatorBalance : (r.data.balance ?? null);
+            const idle = Number(r.data.idle_timeout_seconds);
+            idleMs = idle > 0 ? idle * 1000 : null;
+            armIdle();
         }
         return r;
     }

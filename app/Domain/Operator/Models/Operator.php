@@ -73,6 +73,27 @@ class Operator extends Model
     }
 
     /**
+     * How long a play session may go without a player request before it ends, in seconds;
+     * null = never. config.session_idle_minutes (a whole number, at most a day) overrides
+     * games.launch.idle_timeout_seconds; 0 turns it off, for operators that end sessions
+     * themselves.
+     */
+    public function sessionIdleSeconds(): ?int
+    {
+        $config = $this->getAttribute('config');
+        $minutes = is_array($config) ? ($config['session_idle_minutes'] ?? null) : null;
+        // Edited as a flat key/value pair in the panel: a number or a numeric string.
+        if (is_int($minutes) || (is_string($minutes) && ctype_digit(trim($minutes)))) {
+            $minutes = (int) $minutes;
+
+            return $minutes === 0 ? null : min($minutes, 24 * 60) * 60;
+        }
+        $default = (int) config('games.launch.idle_timeout_seconds', 15 * 60);
+
+        return $default > 0 ? $default : null;
+    }
+
+    /**
      * The operator's lobby look, from config (lobby_logo_url, lobby_*_color). Only an
      * https logo URL and #rrggbb colours are passed on; anything else falls back.
      *

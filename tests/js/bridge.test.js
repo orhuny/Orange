@@ -29,6 +29,7 @@ describe('message names', () => {
         expect(FROM_GAME).toContain('launch_game');
         expect(FROM_GAME).toContain('back_to_lobby');
         expect(FROM_GAME).toContain('bet_history');
+        expect(FROM_GAME).toContain('session_expired');
         expect(TO_GAME).toContain('bet_history_result');
     });
 });

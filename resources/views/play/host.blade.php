@@ -30,9 +30,13 @@
             outerOrigins: @json($outerOrigins),
             playApi: @json(url('/play-api')),
             frame,
-            onExpired() {
+            onExpired(reason) {
                 frame.remove();
-                document.getElementById('expired').classList.add('shown');
+                const notice = document.getElementById('expired');
+                if (reason === 'idle') {
+                    notice.textContent = 'Your session timed out because you were away for a while. Please open the game again.';
+                }
+                notice.classList.add('shown');
             },
         });
     </script>

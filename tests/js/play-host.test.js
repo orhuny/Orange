@@ -418,6 +418,77 @@ describe('startPlayHost', () => {
 
         await intent('embed_ready');
 
-        expect(expired).toHaveBeenCalled();
+        expect(expired).toHaveBeenCalledWith('expired');
+        expect(sessionStorage.getItem('orange.play.crash')).toBeNull();
+    });
+
+    describe('idle timeout', () => {
+        beforeEach(() => {
+            vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        /** A lobby whose /session gives this idle time; every other call answers 200. */
+        function lobby(idle) {
+            fetchMock.mockImplementation((url) => json(200, url.endsWith('/session')
+                ? { player: { id: 'p-1', currency: 'EUR' }, balance: '5.00', idle_timeout_seconds: idle }
+                : { bets: [] }));
+            return startPlayHost({
+                gameCode: null, frameUrl: null, bearer: 'ps_lobby', storageKey: 'orange.lobby',
+                outerOrigins: ['https://op.example'], playApi: 'https://orange.example/play-api', frame, onExpired: expired,
+            });
+        }
+
+        it('ends a session the player walked away from, so a reload can\'t bring it back', async () => {
+            const host = lobby(900);
+            await host.session();
+
+            vi.advanceTimersByTime(899_000);
+            expect(expired).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(1_000);
+
+            expect(expired).toHaveBeenCalledWith('idle');
+            expect(sessionStorage.getItem('orange.lobby')).toBeNull();
+            const calls = fetchMock.mock.calls.length;
+            expect((await host.api('/lobby')).status).toBe(401);
+            expect(fetchMock.mock.calls.length).toBe(calls);
+        });
+
+        it('counts the idle time from the last request', async () => {
+            const host = lobby(900);
+            await host.session();
+
+            vi.advanceTimersByTime(600_000);
+            await host.api('/games/dice/bets');
+            vi.advanceTimersByTime(600_000);
+            expect(expired).not.toHaveBeenCalled();
+
+            vi.advanceTimersByTime(300_000);
+            expect(expired).toHaveBeenCalledWith('idle');
+        });
+
+        it('checks the clock when a hidden tab comes back, its timers having been held back', async () => {
+            const host = lobby(900);
+            await host.session();
+            Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+
+            vi.setSystemTime(Date.now() + 901_000);
+            document.dispatchEvent(new Event('visibilitychange'));
+
+            expect(expired).toHaveBeenCalledWith('idle');
+            delete document.visibilityState;
+        });
+
+        it('never ends a session for being idle when the operator turned it off', async () => {
+            const host = lobby(null);
+            await host.session();
+
+            vi.advanceTimersByTime(24 * 3600_000);
+
+            expect(expired).not.toHaveBeenCalled();
+        });
     });
 });

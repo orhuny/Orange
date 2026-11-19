@@ -51,6 +51,9 @@ return [
         'token_ttl_seconds' => 120,
         // How long a play session lasts after the page opens.
         'session_ttl_seconds' => 4 * 3600,
+        // It ends sooner after this long without a player request (a bet, opening a game, the
+        // bet history): an operator's config.session_idle_minutes overrides it, 0 = never.
+        'idle_timeout_seconds' => 15 * 60,
     ],
 
     // Which games' rounds also go out on the legacy `crash` channel (afq's /crash page):

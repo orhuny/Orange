@@ -111,7 +111,50 @@ it('answers the player API only with a valid session', function (): void {
         ->assertJsonPath('language', 'tr')
         // No wallet call yet: Orange knows no balance, and the operator page's figure is newer.
         ->assertJsonPath('balance', null)
-        ->assertJsonPath('balance_before_launch', true);
+        ->assertJsonPath('balance_before_launch', true)
+        ->assertJsonPath('idle_timeout_seconds', 15 * 60);
+});
+
+it('ends a session left idle for the idle time, for good, but never early', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $sessions = app(PlaySessionService::class);
+    [$session, $bearer] = $sessions->exchange(launchFor($game));
+
+    Carbon::setTestNow(now()->addMinutes(10));
+    expect($sessions->authenticate($bearer))->not->toBeNull();
+    // last_seen_at moves in one-minute steps, so the server allows that minute on top.
+    Carbon::setTestNow(now()->addMinutes(15)->addSeconds(59));
+    expect($sessions->authenticate($bearer))->not->toBeNull();
+
+    Carbon::setTestNow(now()->addMinutes(16));
+    expect($sessions->authenticate($bearer))->toBeNull()
+        ->and($session->refresh()->revoked_at)->not->toBeNull();
+    Carbon::setTestNow(now()->addSecond());
+    expect($sessions->authenticate($bearer))->toBeNull();
+    getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])->assertUnauthorized();
+});
+
+it('takes the idle time from the operator: minutes, or 0 for never', function (array $config, ?int $seconds): void {
+    expect(Operator::factory()->make(['config' => $config])->sessionIdleSeconds())->toBe($seconds);
+})->with([
+    'the default' => [[], 15 * 60],
+    'minutes' => [['session_idle_minutes' => 5], 5 * 60],
+    'as typed in the panel' => [['session_idle_minutes' => ' 30 '], 30 * 60],
+    'off' => [['session_idle_minutes' => '0'], null],
+    'at most a day' => [['session_idle_minutes' => 99999], 24 * 3600],
+    'not a number' => [['session_idle_minutes' => 'soon'], 15 * 60],
+]);
+
+it('lets an operator turn the idle timeout off', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $operator = Operator::factory()->create(['config' => ['session_idle_minutes' => 0]]);
+    [, $bearer] = app(PlaySessionService::class)->exchange(launchFor($game, $operator));
+
+    Carbon::setTestNow(now()->addHours(3));
+
+    getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])
+        ->assertOk()
+        ->assertJsonPath('idle_timeout_seconds', null);
 });
 
 it('says whether the balance a wallet call last reported came before this launch', function (): void {

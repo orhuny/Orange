@@ -16,6 +16,8 @@ export const FROM_GAME = Object.freeze([
     'launch_game',
     'back_to_lobby',
     'bet_history',
+    // From Orange's host pages only: the play session ended ({ reason: 'idle' | 'expired' }).
+    'session_expired',
 ]);
 
 /** Messages the embedding page sends to a game. */
