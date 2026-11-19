@@ -8,8 +8,12 @@
     $rules = $described ? array_intersect_key($described, array_flip(['rtp', 'grid', 'paytable', 'scatter_pays', 'free_spins', 'max_win', 'costs', 'features'])) : null;
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
-    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host']));
+    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host', 'hostWing']));
+    // The host (the Queen Bee) starts in her idle pose; slot-game.js swaps the pose and its variables.
     $host = $theme['host']['idle'] ?? null;
+    $hostWing = $theme['hostWing'] ?? null;
+    $hostStyle = $host === null ? '' : sprintf('--cx: %s; --ar: %s; --k: %s; --wx: %s; --wy: %s; --wh: %s', $host['cx'], $host['ar'], $host['k'] ?? 1,
+        $host['wing']['x'] ?? 0, $host['wing']['y'] ?? 0, $host['wing']['h'] ?? 0).($hostWing ? "; --rx: {$hostWing['rx']}; --war: {$hostWing['ar']}" : '');
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
     // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
@@ -123,18 +127,29 @@
         /* ---- The host, the Queen Bee (slot-game.js, "The host") ----
            Landscape: she stands above the feature panels, which move down and hide her skirt;
            her raised hand presents the grid, over the frame's ornament. Her art is her upper
-           body, fading out at the bottom (scripts/art/process-sugar-orchard.py); --cx is where
-           her body's centre is, so she stands centred over the panels whatever her arms do.
+           body, fading out at the bottom (scripts/art/process-sugar-orchard.py). Per pose:
+           - --cx: her body's centre, so she stands centred over the panels whatever her arms do;
+           - --k: the pose's height next to idle's at the same scale (raised hands reach higher),
+             every pose ending at the same point of her body, so her size never jumps;
+           - --wx/--wy/--wh: her wings' root and length; --rx/--war: the wing's own root and shape.
+           She hovers and sways; her wings flutter from their root, behind her.
            Portrait: she peeks over the frame's top-left corner, the frame hiding the cut. */
         .side.with-host { align-self: stretch; justify-content: flex-end; }
         .host { position: relative; flex: 1; min-height: 0; z-index: -1; pointer-events: none;
-                margin-bottom: calc(var(--bh) * -.09 - 12px); }
-        .host-fig { position: absolute; left: 50%; bottom: 0; height: min(100%, calc(var(--bh) * .66)); aspect-ratio: var(--ar);
+                margin-bottom: calc(var(--bh) * -.09 - 12px); animation: host-hover 3.4s ease-in-out infinite; }
+        .host-fig { position: absolute; left: 50%; bottom: 0; height: calc(min(100%, var(--bh) * .66) * var(--k, 1)); aspect-ratio: var(--ar);
                     translate: calc(var(--cx) * -100%) 0; transform-origin: calc(var(--cx) * 100%) 100%;
                     animation: host-sway 5.5s ease-in-out infinite; }
-        .host-fig img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 8px 14px rgba(30, 10, 0, .45)); }
+        .host-fig .pose { position: relative; z-index: 1; display: block; width: 100%; height: 100%; filter: drop-shadow(0 8px 14px rgba(30, 10, 0, .45)); }
+        .host-fig .wing { position: absolute; z-index: 0; left: calc(var(--wx) * 100%); top: calc(var(--wy) * 100%); height: calc(var(--wh) * 100%);
+                          aspect-ratio: var(--war); translate: calc(var(--rx) * -100%) -100%; transform-origin: calc(var(--rx) * 100%) 100%;
+                          rotate: var(--wr); animation: wing-flutter .32s ease-in-out infinite alternate; }
+        .host-fig .wing.near { --wr: -6deg; filter: drop-shadow(0 0 10px rgba(255, 210, 120, .45)); }
+        .host-fig .wing.far { --wr: 22deg; height: calc(var(--wh) * 82%); filter: brightness(.8); animation-delay: -.16s; }
         .host-peek { display: none; }
         @keyframes host-sway { 0%, 100% { rotate: -.7deg; } 50% { rotate: .7deg; scale: 1.012; } }
+        @keyframes host-hover { 50% { translate: 0 -.8vmin; } }
+        @keyframes wing-flutter { from { rotate: var(--wr); scale: 1 1; } to { rotate: calc(var(--wr) - 9deg); scale: .8 1; } }
 
         /* ---- Buy free spins and the ante bet: chocolate glass in a gold rim ---- */
         .feature { position: relative; border-radius: 16px; padding: 10px; border: 2px solid transparent;
@@ -461,10 +476,13 @@
             .side > .feature.ante { display: grid; }
             .side .host { display: none; }
             .side.with-host { align-self: auto; }
-            /* Her head and shoulders over the frame's top-left corner; the rail hides the cut. */
+            /* Her head and shoulders over the frame's top-left corner; the rail hides the cut. The
+               box shows the top 62% of idle, cut only at the bottom (raised hands and wings rise
+               above it); every pose ends at the same point below it, as in landscape. */
             .host-peek { display: block; position: absolute; z-index: 2; left: 2%; bottom: calc(100% - 3px); width: 60%;
-                         height: clamp(60px, 14vh, 160px); overflow: hidden; pointer-events: none; }
-            .host-peek .host-fig { left: 0; top: 0; bottom: auto; height: calc(100% / .62); translate: none; transform-origin: 40% 100%; }
+                         height: clamp(60px, 14vh, 160px); clip-path: inset(-100vh -100vw 0 -100vw); pointer-events: none; }
+            .host-peek .host-fig { left: 0; bottom: calc(100% - 100% / .62); height: calc(100% / .62 * var(--k, 1)); translate: none;
+                                   transform-origin: 40% 100%; }
             .feature { padding: 5px; border-radius: 11px; }
             .buy { min-height: 44px; padding: 4px 5px; grid-template-areas: "icon title" "icon price"; column-gap: 4px; row-gap: 2px; border-radius: 8px; }
             .buy-icon { width: clamp(20px, 6vw, 32px); }
@@ -535,7 +553,7 @@
             .winm { min-width: 0; padding-inline: 8px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host-fig { animation: none; }
+            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host, .host-fig, .host-fig .wing { animation: none; }
         }
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
@@ -563,7 +581,7 @@
         <aside @class(['side', 'with-host' => $host])>
             @if ($host)
                 <div class="host" aria-hidden="true">
-                    <div class="host-fig" style="--cx: {{ $host['cx'] }}; --ar: {{ $host['ar'] }}"><img src="{{ $host['src'] }}" alt=""></div>
+                    <div class="host-fig" style="{{ $hostStyle }}">@if ($hostWing)<img class="wing far" src="{{ $hostWing['src'] }}" alt=""><img class="wing near" src="{{ $hostWing['src'] }}" alt="">@endif<img class="pose" src="{{ $host['src'] }}" alt=""></div>
                 </div>
             @endif
             <div id="buy-box" class="feature" hidden>
@@ -596,7 +614,7 @@
                 <img class="logo logo-frame" src="{{ $theme['logo'] }}" alt="">
                 @if ($host)
                     <div class="host-peek" aria-hidden="true">
-                        <div class="host-fig" style="--cx: {{ $host['cx'] }}; --ar: {{ $host['ar'] }}"><img src="{{ $host['src'] }}" alt=""></div>
+                        <div class="host-fig" style="{{ $hostStyle }}">@if ($hostWing)<img class="wing far" src="{{ $hostWing['src'] }}" alt=""><img class="wing near" src="{{ $hostWing['src'] }}" alt="">@endif<img class="pose" src="{{ $host['src'] }}" alt=""></div>
                     </div>
                 @endif
                 <canvas id="fxc" class="fxc"></canvas>

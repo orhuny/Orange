@@ -1091,20 +1091,23 @@ export function startSlot(cfg) {
         const shownArt = art ?? theme.host?.idle;
         if (!shownArt || shownPose === hostPose) return !!art;
         hostPose = shownPose;
+        // Each pose has its own size and wing root (see slot.blade.php, "The host").
+        const vars = { cx: shownArt.cx, ar: shownArt.ar, k: shownArt.k ?? 1, wx: shownArt.wing?.x, wy: shownArt.wing?.y, wh: shownArt.wing?.h };
         for (const fig of document.querySelectorAll('.host-fig')) {
-            const img = fig.querySelector('img');
             const swap = () => {
-                img.src = shownArt.src;
-                fig.style.setProperty('--cx', shownArt.cx);
-                fig.style.setProperty('--ar', shownArt.ar);
+                fig.querySelector('.pose').src = shownArt.src;
+                for (const [name, value] of Object.entries(vars)) {
+                    if (value !== undefined) fig.style.setProperty(`--${name}`, value);
+                }
             };
-            if (reducedMotion || !img.animate) {
+            if (reducedMotion || !fig.animate) {
                 swap();
                 continue;
             }
-            img.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' }).finished.catch(() => {}).then(() => {
+            // The whole figure fades (wings too), so the wings move with the pose unseen.
+            fig.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' }).finished.catch(() => {}).then(() => {
                 swap();
-                img.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'ease-out', fill: 'forwards' });
+                fig.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'ease-out', fill: 'forwards' });
             });
         }
         return !!art;

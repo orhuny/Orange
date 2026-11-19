@@ -283,7 +283,13 @@ it('serves the slot page with its theme, paytable and the shared bridge', functi
         ->assertSee('class="host"', false)
         ->assertSee('class="host-peek"', false)
         ->assertSee('host/queen-idle.webp', false)
+        ->assertSee('class="wing near"', false)
+        ->assertSee('host/wing.webp', false)
+        ->assertSee('--wx:', false)
         ->assertSee('host\/queen-waiting.webp', false)
+        ->assertSee('host\/queen-cheer.webp', false)
+        ->assertSee('host\/queen-wow.webp', false)
+        ->assertSee('host\/queen-honey.webp', false)
         ->assertSee('"paytable":', false)
         ->assertSee('"features":{"ante":true,"buy":false}', false)
         ->assertDontSee('"tables":', false);

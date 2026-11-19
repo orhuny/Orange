@@ -317,10 +317,13 @@ Hero key art for the game's lobby tile: the golden scatter basket from the first
 
 ## Round 4: the Queen Bee, the game's host (cutout, 2:3, transparent)
 
-**Status (2026-11-19): partly delivered, and in the game.**
-- **In** `storage/app/art/sugar-orchard/round4/`: `char-queen-idle` (three variants; `-b` is the one in the game) and `char-queen-waiting`.
-- **Still to generate:** `char-queen-wing`, `char-queen-cheer`, `char-queen-wow`, `char-queen-honey`. Until they arrive, she stays in her idle pose and hops at wins.
+**Status (2026-11-19): delivered and in the game.**
+- **In** `storage/app/art/sugar-orchard/round4/`: all six. `char-queen-idle` came in three variants, and `-b` is the one in the game.
 - **Build:** `python -I scripts/art/process-sugar-orchard.py --only-host` builds just her, in a few seconds.
+- **Poses vs. size:** the generator drew each pose at its own size and place: raised arms made her smaller, and a lean moved her.
+  - The script brings each pose to idle's size and cuts it at the same point below her chin, so her head never changes size when she switches.
+  - Each pose's chin, wing root and scale are measured by eye and listed in `HOST_POSES`.
+  - A regenerated pose needs those three numbers measured again.
 
 **Who she is:** a glamorous, alluring Queen Bee who presents the game: classy red-carpet glamour, fully clothed. (A cute cartoon bee was the first idea; this replaced it.)
 

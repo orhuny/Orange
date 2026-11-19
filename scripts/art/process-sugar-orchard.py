@@ -39,7 +39,7 @@ import sys
 from collections import deque
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops, ImageFilter, ImageOps
 
 REPO = Path(__file__).resolve().parents[2]
 SRC = REPO / 'storage' / 'app' / 'art' / 'sugar-orchard' / 'round3'
@@ -73,16 +73,23 @@ BANNERS = ['big-win', 'mega-win', 'epic-win', 'max-win', 'free-spins', 'total-wi
 # The game's host, the Queen Bee (round 4, its own folder). Poses not delivered yet are skipped;
 # the page falls back to idle for them.
 HOST_SRC = REPO / 'storage' / 'app' / 'art' / 'sugar-orchard' / 'round4'
-HOST_POSES = {  # pose -> source
-    'idle': 'char-queen-idle-b',  # the picked variant
-    'waiting': 'char-queen-waiting',
-    'cheer': 'char-queen-cheer',
-    'wow': 'char-queen-wow',
-    'honey': 'char-queen-honey',
+# The generator drew each pose at its own size and place (raised arms made her smaller, a lean
+# moved her), so each is brought to idle's scale and cut at the same point of her body: a
+# fixed distance below her chin. Measured by eye on each source, in its own pixels:
+# - chin: her chin's y;
+# - root: where her wings meet her upper back (hidden behind her);
+# - scale: her size next to idle's (her height from antennae to hem, checked on her face).
+HOST_POSES = {  # pose -> (source, chin y, wing root (x, y), scale)
+    'idle': ('char-queen-idle-b', 304, (385, 490), 1.0),  # the picked variant
+    'waiting': ('char-queen-waiting', 312, (450, 470), 1.0),
+    'cheer': ('char-queen-cheer', 357, (555, 540), 1.19),
+    'wow': ('char-queen-wow', 436, (505, 545), 1.1),
+    'honey': ('char-queen-honey', 380, (430, 505), 1.18),
 }
-HOST_SHOWN = 0.58  # she shows from her head down to here (of her height); the panels hide the rest
-HOST_FADE = 0.14  # the last part of that fades out, so no hard edge can show
-HOST_HEIGHT = 900  # px, the shown part at most
+HOST_BELOW_CHIN = 584  # px (idle's scale) shown below her chin, down to mid-thigh; the panels hide the rest
+HOST_FADE = 120  # px at the bottom that fade out, so no hard edge can show
+HOST_WING = 'char-queen-wing'  # one wing, root at the lower left; mirrored to sweep up and back
+HOST_WING_LENGTH = 500  # px (idle's scale): the wing's height on her
 SYMBOL_SIZE = 320
 PIECE_SCALE = 0.32  # pieces are cut at full size, then shrunk to this
 WEBP = {'quality': 90, 'method': 6}
@@ -257,14 +264,26 @@ def frame_pieces(frame, width):
     }
 
 
-def host_pose(im):
-    """One pose of the host: her upper body (HOST_SHOWN of her height), fading out at the
-    bottom, and where her body's centre is at that line (cx, a fraction of the width), so the
-    page stands her over the panels whatever her arms do."""
+def dusted(im):
+    """The image without the generator's alpha dust (near-invisible pixels all over)."""
     im = im.convert('RGBA')
-    im.putalpha(im.getchannel('A').point(lambda v: 0 if v <= FLOOR else v))  # the generator's alpha dust
-    im = trimmed(im)
-    shown = im.crop((0, 0, im.width, round(im.height * HOST_SHOWN)))
+    im.putalpha(im.getchannel('A').point(lambda v: 0 if v <= FLOOR else v))
+    return im
+
+
+def host_pose(im, chin, root, scale):
+    """One pose of the host, at idle's scale: her upper body, from the top of the figure
+    (raised hands included) down to HOST_BELOW_CHIN below her chin, fading out at the bottom.
+    Also: where her body's centre is at that line (cx, of the width), so the page stands her
+    over the panels whatever her arms do, and her wings' root (x, y) and length (h), of the
+    image's size."""
+    im = dusted(im)
+    x0, y0, x1, y1 = im.getchannel('A').getbbox()
+    bottom = min(y1, chin + round(HOST_BELOW_CHIN / scale))
+    shown = im.crop((x0, y0, x1, bottom))
+    wx, wy = (root[0] - x0) / shown.width, (root[1] - y0) / shown.height
+    if scale != 1:
+        shown = resized(shown, (round(shown.width * scale), round(shown.height * scale)))
     alpha = shown.getchannel('A')
 
     total = weighted = 0
@@ -275,34 +294,57 @@ def host_pose(im):
             weighted += a * x
     cx = weighted / total / shown.width if total else 0.5
 
-    start = round(shown.height * (1 - HOST_FADE))
+    start = shown.height - HOST_FADE
     ramp = Image.new('L', (1, shown.height), 255)
     for y in range(start, shown.height):
         ramp.putpixel((0, y), round(255 * (shown.height - 1 - y) / (shown.height - 1 - start)))
     shown.putalpha(ImageChops.multiply(alpha, ramp.resize(shown.size)))
-    if shown.height > HOST_HEIGHT:
-        shown = resized(shown, (round(shown.width * HOST_HEIGHT / shown.height), HOST_HEIGHT))
-    return shown, round(cx, 4)
+    w, h = shown.size
+    wing = {'x': round(wx, 4), 'y': round(wy, 4), 'h': round(HOST_WING_LENGTH / h, 4)}
+    return shown, {'cx': round(cx, 4), 'ar': round(w / h, 4), 'wing': wing}
+
+
+def host_wing():
+    """The wing, mirrored so it sweeps up and back from her shoulders, and where its root is
+    along its bottom edge (rx, of the width)."""
+    im = ImageOps.mirror(trimmed(dusted(Image.open(HOST_SRC / f'{HOST_WING}.png'))))
+    alpha = im.getchannel('A')
+    total = weighted = 0
+    for y in range(im.height - 12, im.height):  # the narrow root, at the bottom
+        for x in range(im.width):
+            a = alpha.getpixel((x, y))
+            total += a
+            weighted += a * x
+    rx = weighted / total / im.width if total else 1.0
+    im = fit(im, 640)
+    return {'src': save(im, 'host/wing.webp'), 'rx': round(rx, 4), 'ar': round(im.width / im.height, 4)}
 
 
 def build_host():
-    """host/: the host's poses, and art.json's host: { pose: { src, cx, ar } } (ar: width / height)."""
+    """host/: the host's poses and her wing. art.json:
+    - host: { pose: { src, cx, ar, k, wing: { x, y, h } } }. ar: width / height; k: its height
+      next to idle's, at the same scale (raised hands make it taller); wing: of its size.
+    - host_wing: { src, rx, ar }, or nothing before the wing is delivered."""
     if (OUT / 'host').exists():
         shutil.rmtree(OUT / 'host')
     host = {}
-    for pose, source in HOST_POSES.items():
+    for pose, (source, chin, root, scale) in HOST_POSES.items():
         path = HOST_SRC / f'{source}.png'
         if path.exists():
-            im, cx = host_pose(Image.open(path))
-            host[pose] = {'src': save(im, f'host/queen-{pose}.webp'), 'cx': cx, 'ar': round(im.width / im.height, 4)}
-    print('host', ', '.join(f"{pose} (cx {p['cx']})" for pose, p in host.items()))
-    return host
+            im, meta = host_pose(Image.open(path), chin, root, scale)
+            host[pose] = {'src': save(im, f'host/queen-{pose}.webp'), **meta, 'h': im.height}
+    base = host['idle']['h'] if 'idle' in host else 1
+    for meta in host.values():
+        meta['k'] = round(meta.pop('h') / base, 4)
+    wing = host_wing() if (HOST_SRC / f'{HOST_WING}.png').exists() else None
+    print('host', ', '.join(f"{pose} (cx {p['cx']}, k {p['k']})" for pose, p in host.items()), '· wing' if wing else '')
+    return host, wing
 
 
 def main():
     if '--only-host' in sys.argv:  # quick: the host alone, into the existing art.json
         art = json.loads((OUT / 'art.json').read_text())
-        art['host'] = build_host()
+        art['host'], art['host_wing'] = build_host()
         (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
         return
 
@@ -347,7 +389,7 @@ def main():
     for name in BANNERS:
         art['banners'][name] = save(fit(trimmed(load(f'txt-{name}')), 1000), f'banners/{name}.webp')
     save(load('key-thumbnail').convert('RGB').resize((1200, 900), Image.LANCZOS), 'thumbnail.jpg')
-    art['host'] = build_host()
+    art['host'], art['host_wing'] = build_host()
 
     (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
     print('frame window', art['frame']['window'])
