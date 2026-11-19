@@ -947,5 +947,17 @@
  },
  "spin": "spin.webp",
  "plaque": "plaque.webp",
- "logo": "logo.webp"
+ "logo": "logo.webp",
+ "host": {
+  "idle": {
+   "src": "host/queen-idle.webp",
+   "cx": 0.5168,
+   "ar": 0.9432
+  },
+  "waiting": {
+   "src": "host/queen-waiting.webp",
+   "cx": 0.5753,
+   "ar": 0.5777
+  }
+ }
 }

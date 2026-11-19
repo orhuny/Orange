@@ -20,13 +20,18 @@ What it builds:
   and banners. The frame also comes in pieces (left, right, a stretchable strip of line),
   so a wide grid keeps its ornaments in shape;
 - thumbnail.jpg: the lobby tile, uploaded in the admin panel.
+- host/: the game's host, the Queen Bee (round 4, from storage/app/art/sugar-orchard/round4):
+  each delivered pose as her upper body, fading out at the bottom. --only-host builds just
+  these, into the existing art.json, in seconds.
 - art.json:
   - each symbol's pieces, with where each sits in the burst (so the page throws it outward
     from there);
   - the sprite lists;
-  - the frame's inner window, so the page fits the grid exactly inside it.
+  - the frame's inner window, so the page fits the grid exactly inside it;
+  - the host's poses, with where her body's centre is (so the page stands her over the panels).
 
-The folder holds only what this builds: it starts from empty.
+The folder holds only what this builds (it starts from empty), and the hand-made
+thumbnail-v*.jpg lobby tiles, which it keeps.
 """
 import json
 import shutil
@@ -65,6 +70,19 @@ GLOWS = {  # source -> (file, size of the longer side)
     'fx-comet': ('comet', 512),
 }
 BANNERS = ['big-win', 'mega-win', 'epic-win', 'max-win', 'free-spins', 'total-win']
+# The game's host, the Queen Bee (round 4, its own folder). Poses not delivered yet are skipped;
+# the page falls back to idle for them.
+HOST_SRC = REPO / 'storage' / 'app' / 'art' / 'sugar-orchard' / 'round4'
+HOST_POSES = {  # pose -> source
+    'idle': 'char-queen-idle-b',  # the picked variant
+    'waiting': 'char-queen-waiting',
+    'cheer': 'char-queen-cheer',
+    'wow': 'char-queen-wow',
+    'honey': 'char-queen-honey',
+}
+HOST_SHOWN = 0.58  # she shows from her head down to here (of her height); the panels hide the rest
+HOST_FADE = 0.14  # the last part of that fades out, so no hard edge can show
+HOST_HEIGHT = 900  # px, the shown part at most
 SYMBOL_SIZE = 320
 PIECE_SCALE = 0.32  # pieces are cut at full size, then shrunk to this
 WEBP = {'quality': 90, 'method': 6}
@@ -239,10 +257,62 @@ def frame_pieces(frame, width):
     }
 
 
+def host_pose(im):
+    """One pose of the host: her upper body (HOST_SHOWN of her height), fading out at the
+    bottom, and where her body's centre is at that line (cx, a fraction of the width), so the
+    page stands her over the panels whatever her arms do."""
+    im = im.convert('RGBA')
+    im.putalpha(im.getchannel('A').point(lambda v: 0 if v <= FLOOR else v))  # the generator's alpha dust
+    im = trimmed(im)
+    shown = im.crop((0, 0, im.width, round(im.height * HOST_SHOWN)))
+    alpha = shown.getchannel('A')
+
+    total = weighted = 0
+    for y in range(round(shown.height * 0.88), shown.height):
+        for x in range(shown.width):
+            a = alpha.getpixel((x, y))
+            total += a
+            weighted += a * x
+    cx = weighted / total / shown.width if total else 0.5
+
+    start = round(shown.height * (1 - HOST_FADE))
+    ramp = Image.new('L', (1, shown.height), 255)
+    for y in range(start, shown.height):
+        ramp.putpixel((0, y), round(255 * (shown.height - 1 - y) / (shown.height - 1 - start)))
+    shown.putalpha(ImageChops.multiply(alpha, ramp.resize(shown.size)))
+    if shown.height > HOST_HEIGHT:
+        shown = resized(shown, (round(shown.width * HOST_HEIGHT / shown.height), HOST_HEIGHT))
+    return shown, round(cx, 4)
+
+
+def build_host():
+    """host/: the host's poses, and art.json's host: { pose: { src, cx, ar } } (ar: width / height)."""
+    if (OUT / 'host').exists():
+        shutil.rmtree(OUT / 'host')
+    host = {}
+    for pose, source in HOST_POSES.items():
+        path = HOST_SRC / f'{source}.png'
+        if path.exists():
+            im, cx = host_pose(Image.open(path))
+            host[pose] = {'src': save(im, f'host/queen-{pose}.webp'), 'cx': cx, 'ar': round(im.width / im.height, 4)}
+    print('host', ', '.join(f"{pose} (cx {p['cx']})" for pose, p in host.items()))
+    return host
+
+
 def main():
+    if '--only-host' in sys.argv:  # quick: the host alone, into the existing art.json
+        art = json.loads((OUT / 'art.json').read_text())
+        art['host'] = build_host()
+        (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
+        return
+
+    # The hand-made lobby tiles (thumbnail-v*.jpg) aren't built here: keep them.
+    keep = {p.name: p.read_bytes() for p in OUT.glob('thumbnail-v*.jpg')} if OUT.exists() else {}
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
+    for name, data in keep.items():
+        (OUT / name).write_bytes(data)
     art = {'symbols': {}, 'stars': {}, 'fragments': {}, 'fx': {}, 'banners': {}}
 
     for letter, (source, name) in SYMBOLS.items():
@@ -277,6 +347,7 @@ def main():
     for name in BANNERS:
         art['banners'][name] = save(fit(trimmed(load(f'txt-{name}')), 1000), f'banners/{name}.webp')
     save(load('key-thumbnail').convert('RGB').resize((1200, 900), Image.LANCZOS), 'thumbnail.jpg')
+    art['host'] = build_host()
 
     (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
     print('frame window', art['frame']['window'])

@@ -279,6 +279,11 @@ it('serves the slot page with its theme, paytable and the shared bridge', functi
         ->assertSee('id="intro"', false)
         ->assertSee('Skip intro')
         ->assertSee('symbols\/toffee.webp', false)
+        // The host, the Queen Bee: beside the panels, and peeking over the frame in portrait.
+        ->assertSee('class="host"', false)
+        ->assertSee('class="host-peek"', false)
+        ->assertSee('host/queen-idle.webp', false)
+        ->assertSee('host\/queen-waiting.webp', false)
         ->assertSee('"paytable":', false)
         ->assertSee('"features":{"ante":true,"buy":false}', false)
         ->assertDontSee('"tables":', false);

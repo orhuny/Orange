@@ -65,6 +65,12 @@ return [
         static fn (array $pieces): array => array_map(static fn (array $p): array => ['src' => $img("frag/{$p['src']}")] + $p, $pieces),
         (array) ($art['fragments'] ?? []),
     ),
+    // The host, the Queen Bee: { pose: { src, cx, ar } } for the poses delivered so far (idle,
+    // waiting; later cheer, wow, honey). cx: her body's centre (of the width), ar: width / height.
+    'host' => array_map(
+        static fn (array $pose): array => ['src' => $img((string) $pose['src'])] + $pose,
+        (array) ($art['host'] ?? []),
+    ),
     'fx' => [
         'frostBurst' => $img((string) ($fx['frost-burst'] ?? '')),
         'frostRing' => $img((string) ($fx['frost-ring'] ?? '')),

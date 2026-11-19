@@ -8,7 +8,8 @@
     $rules = $described ? array_intersect_key($described, array_flip(['rtp', 'grid', 'paytable', 'scatter_pays', 'free_spins', 'max_win', 'costs', 'features'])) : null;
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
-    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners']));
+    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host']));
+    $host = $theme['host']['idle'] ?? null;
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
     // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
@@ -118,6 +119,22 @@
         .play { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: var(--gap); }
 
         .side { position: relative; z-index: 4; display: flex; flex-direction: column; gap: 12px; width: var(--side); }
+
+        /* ---- The host, the Queen Bee (slot-game.js, "The host") ----
+           Landscape: she stands above the feature panels, which move down and hide her skirt;
+           her raised hand presents the grid, over the frame's ornament. Her art is her upper
+           body, fading out at the bottom (scripts/art/process-sugar-orchard.py); --cx is where
+           her body's centre is, so she stands centred over the panels whatever her arms do.
+           Portrait: she peeks over the frame's top-left corner, the frame hiding the cut. */
+        .side.with-host { align-self: stretch; justify-content: flex-end; }
+        .host { position: relative; flex: 1; min-height: 0; z-index: -1; pointer-events: none;
+                margin-bottom: calc(var(--bh) * -.09 - 12px); }
+        .host-fig { position: absolute; left: 50%; bottom: 0; height: min(100%, calc(var(--bh) * .66)); aspect-ratio: var(--ar);
+                    translate: calc(var(--cx) * -100%) 0; transform-origin: calc(var(--cx) * 100%) 100%;
+                    animation: host-sway 5.5s ease-in-out infinite; }
+        .host-fig img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 8px 14px rgba(30, 10, 0, .45)); }
+        .host-peek { display: none; }
+        @keyframes host-sway { 0%, 100% { rotate: -.7deg; } 50% { rotate: .7deg; scale: 1.012; } }
 
         /* ---- Buy free spins and the ante bet: chocolate glass in a gold rim ---- */
         .feature { position: relative; border-radius: 16px; padding: 10px; border: 2px solid transparent;
@@ -442,6 +459,12 @@
             .side { order: 2; flex-direction: row; justify-content: center; gap: 6px; width: min(100%, 440px); }
             .side > .feature { flex: 1; min-width: 0; max-width: 220px; display: flex; flex-direction: column; justify-content: center; }
             .side > .feature.ante { display: grid; }
+            .side .host { display: none; }
+            .side.with-host { align-self: auto; }
+            /* Her head and shoulders over the frame's top-left corner; the rail hides the cut. */
+            .host-peek { display: block; position: absolute; z-index: 2; left: 2%; bottom: calc(100% - 3px); width: 60%;
+                         height: clamp(60px, 14vh, 160px); overflow: hidden; pointer-events: none; }
+            .host-peek .host-fig { left: 0; top: 0; bottom: auto; height: calc(100% / .62); translate: none; transform-origin: 40% 100%; }
             .feature { padding: 5px; border-radius: 11px; }
             .buy { min-height: 44px; padding: 4px 5px; grid-template-areas: "icon title" "icon price"; column-gap: 4px; row-gap: 2px; border-radius: 8px; }
             .buy-icon { width: clamp(20px, 6vw, 32px); }
@@ -512,7 +535,7 @@
             .winm { min-width: 0; padding-inline: 8px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy) { animation: none; }
+            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host-fig { animation: none; }
         }
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
@@ -537,7 +560,12 @@
     </header>
 
     <section class="play">
-        <aside class="side">
+        <aside @class(['side', 'with-host' => $host])>
+            @if ($host)
+                <div class="host" aria-hidden="true">
+                    <div class="host-fig" style="--cx: {{ $host['cx'] }}; --ar: {{ $host['ar'] }}"><img src="{{ $host['src'] }}" alt=""></div>
+                </div>
+            @endif
             <div id="buy-box" class="feature" hidden>
                 <button id="buy-btn" class="buy" disabled>
                     <img class="buy-icon" src="{{ $theme['symbols']['S']['img'] }}" alt="">
@@ -566,6 +594,11 @@
                 <div class="fp fp-m"></div>
                 <img class="fp fp-r" src="{{ $theme['frame']['pieces']['right'] }}" alt="">
                 <img class="logo logo-frame" src="{{ $theme['logo'] }}" alt="">
+                @if ($host)
+                    <div class="host-peek" aria-hidden="true">
+                        <div class="host-fig" style="--cx: {{ $host['cx'] }}; --ar: {{ $host['ar'] }}"><img src="{{ $host['src'] }}" alt=""></div>
+                    </div>
+                @endif
                 <canvas id="fxc" class="fxc"></canvas>
             </div>
         </div>

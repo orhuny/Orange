@@ -335,6 +335,7 @@ export function startSlot(cfg) {
         const amount = winAmount(state.bet, step.pays);
         floatText(shown(amount), winners);
         sfx('win', index);
+        hostReact('win');
         await wait(650);
 
         // Frost creeps over the winners, then they burst into pieces.
@@ -531,6 +532,7 @@ export function startSlot(cfg) {
         if (base.awarded > 0) {
             if (state.auto > 0 && state.autoStopOnFeature) stopAuto();
             sfx('fsStart');
+            hostReact('free');
             await dialog(plaque('free-spins', `<div class="huge">${base.awarded}</div>
                 <p class="note">Sugar stars land in free spins and multiply every winning spin.</p>`), {
                 button: 'Start', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0,
@@ -577,6 +579,7 @@ export function startSlot(cfg) {
 
     async function bigWin(tier, units) {
         sfx('big');
+        hostReact('big');
         const banner = theme.banners?.[`${tier}-win`];
         await dialog(`${banner ? `<img class="banner" src="${banner}" alt="${TIERS[tier]}">` : `<p class="kicker">${TIERS[tier]}</p>`}<div class="huge count">0.00</div>`, {
             autoMs: 4200,
@@ -731,6 +734,7 @@ export function startSlot(cfg) {
 
         state.busy = true;
         state.quick = false;
+        hostSpin();
         audio();
         controls();
         showWin(0n);
@@ -777,6 +781,7 @@ export function startSlot(cfg) {
         state.quick = false;
         balance();
         controls();
+        hostRest();
         if (state.auto > 0) {
             state.auto -= 1;
             controls();
@@ -1066,9 +1071,81 @@ export function startSlot(cfg) {
         drop();
     }
 
+    // ---- The host: the Queen Bee beside the grid --------------------------------------------
+    // theme.host: { pose: { src, cx, ar } } (scripts/art/process-sugar-orchard.py). She sways
+    // gently, hops at a win and turns to a pose for it when it's delivered (cheer, wow, honey;
+    // until then she stays in idle). A minute without a spin, she waits, tapping her chin; the
+    // next spin brings her back. Landscape and portrait each have her (.host, .host-peek).
+
+    const HOST_REACTIONS = { win: ['cheer', 1600], big: ['wow', 4200], free: ['honey', 3000] };
+    const HOST_WAIT_MS = 60_000;
+    const hostBoxes = [...document.querySelectorAll('.host, .host-peek')];
+    let hostPose = 'idle';
+    let hostBack = 0;
+    let hostWait = 0;
+
+    /** Shows a pose, or idle when it isn't delivered. True when it could show that pose. */
+    function hostShow(pose) {
+        const art = theme.host?.[pose];
+        const shownPose = art ? pose : 'idle';
+        const shownArt = art ?? theme.host?.idle;
+        if (!shownArt || shownPose === hostPose) return !!art;
+        hostPose = shownPose;
+        for (const fig of document.querySelectorAll('.host-fig')) {
+            const img = fig.querySelector('img');
+            const swap = () => {
+                img.src = shownArt.src;
+                fig.style.setProperty('--cx', shownArt.cx);
+                fig.style.setProperty('--ar', shownArt.ar);
+            };
+            if (reducedMotion || !img.animate) {
+                swap();
+                continue;
+            }
+            img.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' }).finished.catch(() => {}).then(() => {
+                swap();
+                img.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'ease-out', fill: 'forwards' });
+            });
+        }
+        return !!art;
+    }
+
+    /** A win ('win'), a big win ('big') or free spins ('free'): a hop, and its pose for a while. */
+    function hostReact(kind) {
+        if (!hostBoxes.length) return;
+        const [pose, ms] = HOST_REACTIONS[kind];
+        if (hostShow(pose)) {
+            clearTimeout(hostBack);
+            hostBack = setTimeout(() => hostShow('idle'), dur(ms));
+        }
+        if (reducedMotion || state.quick) return;
+        for (const box of hostBoxes) {
+            box.animate?.([
+                { transform: 'translateY(0)' },
+                { transform: 'translateY(-5%)', offset: 0.35 },
+                { transform: 'translateY(0)', offset: 0.7 },
+                { transform: 'translateY(-1.5%)', offset: 0.85 },
+                { transform: 'translateY(0)' },
+            ], { duration: dur(kind === 'win' ? 520 : 760), easing: 'ease-out', iterations: kind === 'win' ? 1 : 2 });
+        }
+    }
+
+    /** A spin starts: she stops waiting. */
+    function hostSpin() {
+        clearTimeout(hostWait);
+        if (hostPose === 'waiting') hostShow('idle');
+    }
+
+    /** The game is idle again: she waits after a while. */
+    function hostRest() {
+        clearTimeout(hostWait);
+        if (hostBoxes.length) hostWait = setTimeout(() => { if (!state.busy) hostShow('waiting'); }, HOST_WAIT_MS);
+    }
+
     // The effects' art loads after the first paint, so the board shows at once.
     function preload() {
         const art = theme.fx ?? {};
+        Object.values(theme.host ?? {}).forEach((pose) => sprite(pose.src));
         [art.frostBurst, art.frostRing, art.frostCrust, art.twinkle, art.comet, ...(art.crystals ?? [])].forEach(sprite);
         Object.values(theme.fragments ?? {}).flat().forEach((piece) => sprite(piece.src));
     }
@@ -1091,6 +1168,7 @@ export function startSlot(cfg) {
     render(state.cells);
     balance();
     controls();
+    hostRest();
 
     if (!cfg.embedded) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;
