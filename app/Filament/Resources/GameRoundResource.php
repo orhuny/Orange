@@ -30,13 +30,13 @@ class GameRoundResource extends Resource
 
     protected static ?string $model = GameRound::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSignal;
 
     protected static ?string $navigationLabel = 'Live rounds';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+    protected static string|\UnitEnum|null $navigationGroup = 'Activity';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationBadge(): ?string
     {

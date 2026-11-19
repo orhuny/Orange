@@ -50,7 +50,7 @@ class GameResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPuzzlePiece;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+    protected static string|\UnitEnum|null $navigationGroup = 'Catalogue';
 
     protected static ?int $navigationSort = 10;
 
@@ -155,7 +155,7 @@ class GameResource extends Resource
             ->columns([
                 TextColumn::make('code')->searchable()->sortable()->fontFamily('mono'),
                 TextColumn::make('name')->searchable(),
-                TextColumn::make('type')->badge(),
+                TextColumn::make('type')->badge()->color('gray'),
                 TextColumn::make('category.name')->label('Category')->placeholder('—'),
                 TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'active' => 'success',
@@ -164,8 +164,8 @@ class GameResource extends Resource
                     default => 'gray',
                 }),
                 TextColumn::make('access')->badge()->color('gray'),
-                TextColumn::make('limits.currency')->label('Currencies')->badge()->placeholder('any'),
-                TextColumn::make('rtp_target')->label('RTP')->numeric(decimalPlaces: 4),
+                TextColumn::make('limits.currency')->label('Currencies')->badge()->color('gray')->placeholder('any'),
+                TextColumn::make('rtp_target')->label('RTP')->formatStateUsing(fn ($state): string => number_format((float) $state * 100, 2).'%'),
                 TextColumn::make('sort_order')->sortable()->toggleable(),
             ])
             ->filters([

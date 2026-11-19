@@ -17,7 +17,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
-use Filament\Widgets\AccountWidget;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -34,31 +34,44 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Orange Provider')
+            // The panel is branded Majestic Games; the project and the app stay "Orange".
+            ->brandName('Majestic Games')
             ->brandLogo(fn () => view('filament.brand-logo'))
-            ->favicon(asset('favicon.ico'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/majestic/favicon.svg'))
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Indigo,
                 'gray' => Color::Slate,
-                'danger' => Color::Rose,
+                'info' => Color::Sky,
                 'success' => Color::Emerald,
+                'warning' => Color::Amber,
+                'danger' => Color::Rose,
             ])
+            ->font('Inter')
+            // The panel's finishing (public/css/majestic-admin.css): plain CSS on Filament's
+            // fi-* hooks, so it needs no asset build on deploy.
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn (): string => '<link rel="stylesheet" href="'
+                .asset('css/majestic-admin.css').'?v='.filemtime(public_path('css/majestic-admin.css')).'">')
             // SPA mode — turns nav into Livewire navigate, eliminates full page
             // reloads between resources. Massive perceived-speed win for users
             // bouncing between Bets / Rounds / Operators.
             ->spa()
             ->maxContentWidth(Width::Full)
+            ->sidebarWidth('16.5rem')
             ->sidebarCollapsibleOnDesktop()
+            ->unsavedChangesAlerts()
             // Surface queued-job notifications (export completion, etc.) in the
             // top-right bell. 30s polling — internal tool, freshness within
             // 30s is plenty and cuts dashboard DB load by 3x.
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            // Groups carry no icons, so each item shows its own.
             ->navigationGroups([
-                NavigationGroup::make('Operations')->icon('heroicon-o-building-office-2'),
-                NavigationGroup::make('Game')->icon('heroicon-o-rocket-launch'),
-                NavigationGroup::make('Fairness')->icon('heroicon-o-shield-check'),
-                NavigationGroup::make('System')->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Catalogue'),
+                NavigationGroup::make('Activity'),
+                NavigationGroup::make('Operators'),
+                NavigationGroup::make('Fairness'),
+                NavigationGroup::make('Administration'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -70,7 +83,6 @@ class AdminPanelProvider extends PanelProvider
                 GlobalKpiWidget::class,
                 GameKpiTable::class,
                 TodayRoundsChart::class,
-                AccountWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

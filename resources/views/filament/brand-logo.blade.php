@@ -1,14 +1,27 @@
-<div class="flex items-center gap-2">
-    <svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+{{-- The panel's brand: the crown mark and the "Majestic Games" wordmark. Inline styles only:
+     Filament's stylesheet has no utility classes for app views. The words take the text colour,
+     so one logo serves light and dark mode. --}}
+<span class="mg-brand" style="display:inline-flex;align-items:center;gap:.625rem;height:100%;color:inherit;white-space:nowrap;">
+    <svg viewBox="0 0 32 32" style="height:100%;width:auto;flex:none;" aria-hidden="true">
         <defs>
-            <linearGradient id="o-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stop-color="#fb923c"/>
-                <stop offset="100%" stop-color="#c2410c"/>
+            <linearGradient id="mg-mark-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#4f46e5"/>
+                <stop offset="1" stop-color="#312e81"/>
+            </linearGradient>
+            <linearGradient id="mg-mark-gold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fde68a"/>
+                <stop offset="1" stop-color="#f59e0b"/>
             </linearGradient>
         </defs>
-        <circle cx="11" cy="11" r="9" fill="url(#o-grad)"/>
-        <path d="M11 6 q-4 0 -4 5 q0 5 4 5 q4 0 4 -5 q0 -5 -4 -5 m0 2 q2 0 2 3 q0 3 -2 3 q-2 0 -2 -3 q0 -3 2 -3"
-              fill="#fff" opacity="0.95"/>
+        <rect width="32" height="32" rx="8" fill="url(#mg-mark-bg)"/>
+        <path d="M8.5 20.5V12.2l4.2 3.6L16 9.9l3.3 5.9 4.2-3.6v8.3z" fill="url(#mg-mark-gold)"/>
+        <rect x="8.5" y="21.8" width="15" height="2.4" rx="1.2" fill="url(#mg-mark-gold)"/>
+        <circle cx="8.5" cy="11.4" r="1.4" fill="#fde68a"/>
+        <circle cx="16" cy="8.9" r="1.5" fill="#fde68a"/>
+        <circle cx="23.5" cy="11.4" r="1.4" fill="#fde68a"/>
     </svg>
-    <span style="font-weight:700; letter-spacing:0.02em;">Orange Provider</span>
-</div>
+    <span style="display:inline-flex;align-items:baseline;gap:.3rem;font-size:1.0625rem;line-height:1;letter-spacing:-.01em;">
+        <span style="font-weight:700;">Majestic</span>
+        <span style="font-weight:500;opacity:.62;">Games</span>
+    </span>
+</span>

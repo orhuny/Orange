@@ -13,7 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 class TodayRoundsChart extends ChartWidget
 {
-    protected ?string $heading = 'Rounds — last 24h (hourly)';
+    protected ?string $heading = 'Rounds';
+
+    protected ?string $description = 'Settled rounds per hour, last 24 hours';
+
+    protected ?string $maxHeight = '260px';
 
     // 60s poll — hourly buckets won't move within a minute anyway.
     protected ?string $pollingInterval = '60s';
@@ -29,18 +33,27 @@ class TodayRoundsChart extends ChartWidget
     {
         // The aggregation (date_trunc + group by) is the expensive part —
         // cache the resulting 24-bucket array for 30s so concurrent
-        // dashboard viewers share one DB hit.
-        $rows = Cache::remember('admin.rounds-24h-chart', 30, function () {
+        // dashboard viewers share one DB hit. Plain hour => count: the cache
+        // never unserializes objects (cache.serializable_classes = false).
+        /** @var array<string, int> $rows */
+        $rows = Cache::remember('admin.rounds-24h-chart', 30, function (): array {
             $since = Carbon::now()->subHours(24)->startOfHour();
+            // Postgres in production; SQLite (tests, local runs) has no date_trunc.
+            $hour = DB::connection()->getDriverName() === 'sqlite'
+                ? "strftime('%Y-%m-%d %H:00:00', created_at)"
+                : "date_trunc('hour', created_at)";
 
             return GameRound::query()
-                ->selectRaw("date_trunc('hour', created_at) as bucket, count(*) as total")
+                ->selectRaw("{$hour} as bucket, count(*) as total")
                 ->where('created_at', '>=', $since)
                 ->whereIn('state', [RoundState::Settled, RoundState::Crashed])
-                ->groupBy(DB::raw("date_trunc('hour', created_at)"))
+                ->groupBy(DB::raw($hour))
                 ->orderBy('bucket')
                 ->get()
-                ->keyBy(fn ($r) => Carbon::parse($r->bucket)->format('Y-m-d H:00'));
+                ->mapWithKeys(fn (GameRound $r): array => [
+                    Carbon::parse((string) $r->getAttribute('bucket'))->format('Y-m-d H:00') => (int) $r->getAttribute('total'),
+                ])
+                ->all();
         });
 
         $labels = [];
@@ -49,7 +62,7 @@ class TodayRoundsChart extends ChartWidget
             $bucket = Carbon::now()->subHours($i)->startOfHour();
             $key = $bucket->format('Y-m-d H:00');
             $labels[] = $bucket->format('H:00');
-            $counts[] = (int) ($rows[$key]->total ?? 0);
+            $counts[] = $rows[$key] ?? 0;
         }
 
         return [
@@ -57,8 +70,12 @@ class TodayRoundsChart extends ChartWidget
                 [
                     'label' => 'Settled rounds',
                     'data' => $counts,
-                    'borderColor' => '#fb923c',
-                    'backgroundColor' => 'rgba(251, 146, 60, 0.18)',
+                    // The panel's primary (indigo).
+                    'borderColor' => '#6366f1',
+                    'backgroundColor' => 'rgba(99, 102, 241, 0.12)',
+                    'borderWidth' => 2,
+                    'pointRadius' => 0,
+                    'pointHoverRadius' => 4,
                     'fill' => true,
                     'tension' => 0.35,
                 ],

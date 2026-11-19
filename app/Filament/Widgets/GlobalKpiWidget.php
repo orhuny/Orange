@@ -90,24 +90,25 @@ class GlobalKpiWidget extends StatsOverviewWidget
         return array_values(array_filter([
             // Operator users only see their own figures — the operator count is platform-wide.
             $operatorId === null ? Stat::make('Active operators', $activeOperators)
-                ->icon('heroicon-o-building-office-2')
-                ->color('emerald') : null,
+                ->description('live on the platform')
+                ->icon('heroicon-o-building-office-2') : null,
 
             Stat::make('Live rounds', $activeRounds)
-                ->description('betting + running right now')
-                ->icon('heroicon-o-rocket-launch')
+                ->description('betting or running right now')
+                ->icon('heroicon-o-signal')
                 ->color($activeRounds > 0 ? 'success' : 'gray'),
 
             Stat::make('Rounds today', number_format($todayRounds))
-                ->description('settled / crashed since midnight')
+                ->description('settled or crashed since midnight')
                 ->icon('heroicon-o-chart-bar'),
 
             Stat::make("Total bet today ({$currency})", $this->fmt($totalBet))
-                ->icon('heroicon-o-currency-dollar'),
+                ->description('stakes since midnight')
+                ->icon('heroicon-o-ticket'),
 
             Stat::make("Total payout today ({$currency})", $this->fmt($totalPayout))
-                ->icon('heroicon-o-banknotes')
-                ->color('amber'),
+                ->description('wins paid since midnight')
+                ->icon('heroicon-o-banknotes'),
 
             Stat::make("GGR today ({$currency})", $this->fmt($ggr))
                 ->description($rtp.'% RTP')

@@ -31,9 +31,9 @@ class GameCategoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Lobby categories';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+    protected static string|\UnitEnum|null $navigationGroup = 'Catalogue';
 
-    protected static ?int $navigationSort = 15;
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {

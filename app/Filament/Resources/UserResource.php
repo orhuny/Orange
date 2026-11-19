@@ -43,13 +43,13 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     protected static ?string $navigationLabel = 'Users';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
+    protected static string|\UnitEnum|null $navigationGroup = 'Administration';
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 10;
 
     public static function getEloquentQuery(): Builder
     {
@@ -146,7 +146,7 @@ class UserResource extends Resource
                     ->label('Operator')
                     ->placeholder('Platform')
                     ->visible($actorIsPlatform),
-                TextColumn::make('roles.name')->label('Roles')->badge(),
+                TextColumn::make('roles.name')->label('Roles')->badge()->color('gray'),
                 IconColumn::make('is_active')->label('Active')->boolean(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])

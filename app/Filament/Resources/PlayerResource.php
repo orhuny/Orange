@@ -25,9 +25,9 @@ class PlayerResource extends Resource
 
     protected static ?string $model = Player::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Operations';
+    protected static string|\UnitEnum|null $navigationGroup = 'Operators';
 
     protected static ?int $navigationSort = 20;
 
@@ -50,7 +50,7 @@ class PlayerResource extends Resource
                 TextColumn::make('operator.slug')->searchable(),
                 TextColumn::make('currency'),
                 TextColumn::make('country')->placeholder('—'),
-                TextColumn::make('status')->badge(),
+                TextColumn::make('status')->badge()->color(fn (string $state): string => $state === 'active' ? 'success' : 'danger'),
                 TextColumn::make('risk_score')->numeric()->placeholder('0'),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])

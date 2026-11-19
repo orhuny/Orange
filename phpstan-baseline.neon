@@ -211,12 +211,6 @@ parameters:
 			path: app/Filament/Resources/WebhookResource.php
 
 		-
-			message: '#^Access to an undefined property App\\Domain\\Game\\Models\\GameRound\:\:\$bucket\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Widgets/TodayRoundsChart.php
-
-		-
 			message: '#^Cannot access property \$value on string\.$#'
 			identifier: property.nonObject
 			count: 1

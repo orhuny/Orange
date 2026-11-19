@@ -38,9 +38,9 @@ class RoleResource extends Resource
 
     protected static ?string $navigationLabel = 'Roles';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
+    protected static string|\UnitEnum|null $navigationGroup = 'Administration';
 
-    protected static ?int $navigationSort = 81;
+    protected static ?int $navigationSort = 20;
 
     public static function getAuthorizationResponse(string $action, ?Model $record = null): Response
     {
@@ -97,7 +97,7 @@ class RoleResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->badge()->searchable()->sortable(),
+                TextColumn::make('name')->badge()->color('gray')->searchable()->sortable(),
                 TextColumn::make('scope')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))

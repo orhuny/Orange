@@ -41,11 +41,11 @@ class BetResource extends Resource
             ->with(['game:id,code', 'round:id,round_uuid', 'operator:id,slug', 'player:id,external_player_id', 'cashout']);
     }
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+    protected static string|\UnitEnum|null $navigationGroup = 'Activity';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {
@@ -57,7 +57,7 @@ class BetResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('game.code')->label('Game')->badge(),
+                TextColumn::make('game.code')->label('Game')->badge()->color('gray'),
                 TextColumn::make('round.round_uuid')->limit(8)->fontFamily('mono')->label('Round')->placeholder('—'),
                 TextColumn::make('operator.slug')->searchable(),
                 TextColumn::make('player.external_player_id')->label('Player')->searchable(),

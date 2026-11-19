@@ -33,9 +33,9 @@ class WebhookResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'System';
+    protected static string|\UnitEnum|null $navigationGroup = 'Operators';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationBadge(): ?string
     {
@@ -74,7 +74,7 @@ class WebhookResource extends Resource
             ->columns([
                 TextColumn::make('id')->sortable(),
                 TextColumn::make('operator.slug')->searchable(),
-                TextColumn::make('event')->badge(),
+                TextColumn::make('event')->badge()->color('gray'),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn ($state) => match ($state) {

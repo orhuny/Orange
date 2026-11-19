@@ -8,9 +8,11 @@ use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\Game;
 use App\Support\AccessControl;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 /** The dashboard, filterable by game and (for the per-game report) by date range. */
@@ -18,9 +20,25 @@ class Dashboard extends BaseDashboard
 {
     use HasFiltersForm;
 
+    public function getSubheading(): ?string
+    {
+        return 'Today across the platform, and each game over the dates you pick.';
+    }
+
     public function filtersForm(Schema $schema): Schema
     {
         return $schema->components([
+            // One compact row: game, currency, and the report's date range.
+            Section::make()->columnSpanFull()->columns(['md' => 2, 'xl' => 4])->schema([
+                ...$this->filterFields(),
+            ]),
+        ]);
+    }
+
+    /** @return list<Field> */
+    private function filterFields(): array
+    {
+        return [
             Select::make('game')
                 ->label('Game')
                 ->placeholder('All games')
@@ -34,7 +52,7 @@ class Dashboard extends BaseDashboard
                 ->selectablePlaceholder(false),
             DatePicker::make('from')->label('From')->native(false)->maxDate(now())->default(now()->subDays(6)->toDateString()),
             DatePicker::make('until')->label('Until')->native(false)->maxDate(now())->default(now()->toDateString()),
-        ]);
+        ];
     }
 
     /**

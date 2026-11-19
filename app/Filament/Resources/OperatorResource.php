@@ -45,7 +45,7 @@ class OperatorResource extends Resource
 
     protected static ?string $navigationLabel = 'Operators';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Operations';
+    protected static string|\UnitEnum|null $navigationGroup = 'Operators';
 
     protected static ?int $navigationSort = 10;
 
@@ -120,9 +120,9 @@ class OperatorResource extends Resource
                         OperatorStatus::Disabled => 'danger',
                         default => 'gray',
                     }),
-                TextColumn::make('callback_base_url')->limit(40)->toggleable(),
+                TextColumn::make('callback_base_url')->label('Wallet URL')->limit(32)->tooltip(fn (?string $state): ?string => $state)->toggleable(),
                 TextColumn::make('apiKeys_count')->counts('apiKeys')->label('API keys'),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('created_at')->date()->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')

@@ -15,6 +15,9 @@ Audience: anyone adding or changing a game's art. How a game uses its art: [addi
 | Where a look is wired up: slot themes | `resources/views/games/slot/themes/{theme}/theme.php` | yes |
 | Studio intro frames for crash games (optional, empty for now) | `public/images/intro/{landscape,portrait}/` | yes |
 | Fonts, each with its licence | `public/fonts/{font}/` | yes |
+| The admin panel's brand, Majestic Games: the logo | `resources/views/filament/brand-logo.blade.php` | yes |
+| The admin panel's brand: the favicon | `public/images/majestic/favicon.svg` | yes |
+| The admin panel's brand: the stylesheet (plain CSS, no build) | `public/css/majestic-admin.css` | yes |
 | Sound packs, synthesised in code (no audio files) | `public/js/orange/sound-{pack}.js` | yes |
 
 ## The games

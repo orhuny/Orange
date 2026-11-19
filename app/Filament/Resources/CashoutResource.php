@@ -29,9 +29,9 @@ class CashoutResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Game';
+    protected static string|\UnitEnum|null $navigationGroup = 'Activity';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 30;
 
     public static function getEloquentQuery(): Builder
     {
