@@ -21,6 +21,17 @@
         -$w['x0'] * $fw * 100, -$w['y0'] * $fh * 100, $fw * 100, $fh * 100,
         max($w['x0'], 1 - $w['x1']) * $fw, max($w['y0'], 1 - $w['y1']) * $fh,
     );
+    // Landscape: the frame's pieces, in heights of the grid (its window's height). How far it
+    // reaches past the grid (et, eb, el, er), each piece's width (lw, rw) and height (ph), and
+    // where the stretched strip starts and ends inside the grid (ml, mr).
+    $p = $theme['frame']['pieces']['px'];
+    $winH = max(1, $p['y1'] - $p['y0']);
+    $frameVars .= sprintf(
+        '--et:%.4f;--eb:%.4f;--el:%.4f;--er:%.4f;--lw:%.4f;--rw:%.4f;--ph:%.4f;--ml:%.4f;--mr:%.4f;--frame-fill:url(\'%s\');',
+        $p['y0'] / $winH, ($p['h'] - $p['y1']) / $winH, $p['x0'] / $winH, ($p['w'] - $p['x1']) / $winH,
+        $p['cut_l'] / $winH, ($p['w'] - $p['cut_r']) / $winH, $p['h'] / $winH,
+        ($p['cut_l'] - $p['x0']) / $winH, ($p['x1'] - $p['cut_r']) / $winH, $theme['frame']['pieces']['fill'],
+    );
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -78,18 +89,28 @@
         .petal { position: absolute; top: -8vh; width: clamp(18px, 2vw, 34px); opacity: .95; }
 
         /* ---- Layout ----
-           Landscape: the logo heads the left column and the free-spins counter floats over
-           the top, so the grid gets the full height. Portrait: the logo heads the page. */
+           Landscape:
+           - a wide grid (--ar, cells about 1.2× wider than tall), about three quarters of the
+             screen's height;
+           - the logo straddles the frame's top edge;
+           - the feature panels sit beside the grid, and the two are centred together;
+           - a slim bar below, with the spin button under the grid's right corner, overlapping it.
+           --bh is the grid's height; everything else follows from it. Portrait: see the media
+           query at the end. */
         .stage { position: relative; height: 100%; display: flex; flex-direction: column; padding: max(8px, env(safe-area-inset-top)) 12px 0;
-                 --side: clamp(140px, 14vw, 200px); --spin: clamp(76px, min(8.6vw, 13vh), 108px); }
+                 --ar: 1.45; --side: clamp(172px, 12vw, 220px); --gap: clamp(12px, 1.6vw, 28px); --spin: clamp(84px, 15vh, 140px);
+                 --topk: max(var(--et), .17);
+                 --fwk: calc(var(--ar) + var(--el) + var(--er));
+                 --bh: min(calc((100dvh - var(--spin) * .62 - 30px) / (1 + var(--topk))), calc((100vw - var(--side) - var(--gap) - 24px) / var(--fwk)), 900px);
+                 --group: calc(var(--side) + var(--gap) + var(--bh) * var(--fwk)); }
         .top { position: absolute; left: 0; right: 0; top: max(8px, env(safe-area-inset-top)); z-index: 8; display: flex; justify-content: center; pointer-events: none; }
         .top .logo { display: none; }
         .logo { filter: drop-shadow(0 6px 8px rgba(40, 15, 0, .5)); }
-        .play { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 2vw, 28px); }
+        .logo-frame { position: absolute; left: 50%; bottom: calc(100% - var(--bh) * .03); height: calc(var(--bh) * .2); translate: -50% 0; z-index: 7; pointer-events: none; }
+        body.free .logo-frame { display: none; }
+        .play { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: var(--gap); }
 
         .side { position: relative; z-index: 4; display: flex; flex-direction: column; gap: 12px; width: var(--side); }
-        .logo-side { width: 100%; height: auto; margin-bottom: 2px; }
-        .play::after { content: ''; flex: none; width: var(--side); } /* keeps the board centred */
 
         /* ---- Buy free spins and the ante bet: chocolate glass in a gold rim ---- */
         .feature { position: relative; border-radius: 16px; padding: 10px; border: 2px solid transparent;
@@ -126,18 +147,26 @@
         .toggle:disabled { opacity: .55; }
 
         /* ---- The grid in its frame ----
-           The frame's ornaments get their room above and at the sides; below, they tuck behind the bar. */
-        .frame { --bw: min(calc((100vw - 2 * var(--side) - 2 * clamp(10px, 2vw, 28px) - 24px) / (1 + 2 * var(--kx))),
-                           calc((100dvh - var(--spin) - 40px) / (1 + 1.25 * var(--ky)) * 1.2), 1000px);
-                 padding: calc(var(--bw) / 1.2 * var(--ky)) calc(var(--bw) * var(--kx)) calc(var(--bw) / 1.2 * var(--ky) * .25); flex: none; }
-        .board-wrap { position: relative; width: var(--bw); aspect-ratio: 6 / 5; }
+           Landscape: the frame in pieces scaled to the grid's height, so its ornaments keep
+           their shape at any width:
+           - the left piece, its left edge on the grid's;
+           - the right piece, on the grid's right edge;
+           - a strip of plain line stretched between them (under the logo).
+           The ornaments get their room above and at the sides; below, they tuck behind the bar. */
+        .frame { flex: none; padding: calc(var(--bh) * var(--topk)) calc(var(--bh) * var(--er)) calc(var(--bh) * .02) calc(var(--bh) * var(--el)); }
+        .board-wrap { position: relative; width: calc(var(--bh) * var(--ar)); height: var(--bh); }
+        .fp { position: absolute; top: calc(var(--bh) * var(--et) * -1); height: calc(var(--bh) * var(--ph)); z-index: 3; pointer-events: none;
+              filter: drop-shadow(0 14px 22px rgba(40, 14, 0, .45)); }
+        .fp-l { left: calc(var(--bh) * var(--el) * -1); width: calc(var(--bh) * var(--lw)); }
+        .fp-r { right: calc(var(--bh) * var(--er) * -1); width: calc(var(--bh) * var(--rw)); }
+        .fp-m { left: calc(var(--bh) * var(--ml) - 1px); right: calc(var(--bh) * var(--mr) - 1px); background: var(--frame-fill) 0 0 / 100% 100% no-repeat; }
+        .frame-art { display: none; }
         .board { position: absolute; inset: 0; overflow: hidden; border-radius: 8px; cursor: pointer;
                  background: radial-gradient(ellipse at 50% 40%, rgba(255, 251, 240, .7), rgba(255, 236, 205, .55));
                  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); box-shadow: inset 0 0 24px rgba(120, 60, 10, .25); transition: background 1.2s ease; }
         body.free .board { background: radial-gradient(ellipse at 50% 40%, rgba(40, 60, 130, .55), rgba(14, 20, 58, .62)); box-shadow: inset 0 0 28px rgba(0, 0, 30, .5); }
         .frame-art { position: absolute; left: var(--fl); top: var(--ft); width: var(--fw); height: var(--fh); z-index: 3; pointer-events: none;
-                     filter: drop-shadow(0 14px 22px rgba(40, 14, 0, .45)); }
-        .fxc { position: absolute; left: -40%; top: -40%; width: 180%; height: 180%; z-index: 6; pointer-events: none; }
+                     filter: drop-shadow(0 14px 22px rgba(40, 14, 0, .45)); }        .fxc { position: absolute; left: -40%; top: -40%; width: 180%; height: 180%; z-index: 6; pointer-events: none; }
         .sym { position: absolute; left: 0; top: 0; width: calc(100% / 6); height: calc(100% / 5); display: grid; place-items: center; z-index: 1; will-change: transform;
                container-type: size; }
         .sym > img, .sym .star { width: 90%; height: 90%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 25, 0, .35)); }
@@ -151,7 +180,7 @@
         .sym.scatter > img { animation-duration: .3s; }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
         .fx { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-        .rays-cell { position: absolute; width: calc(100% / 6 * 2.6); aspect-ratio: 1; translate: -50% -50%; z-index: 0; pointer-events: none; opacity: 0; }
+        .rays-cell { position: absolute; height: calc(100% / 5 * 2.4); aspect-ratio: 1; translate: -50% -50%; z-index: 0; pointer-events: none; opacity: 0; }
         .float { position: absolute; padding: 4px 12px; border-radius: 999px; background: rgba(60, 22, 0, .8); color: var(--gold); font-size: clamp(16px, 2.2vw, 26px);
                  white-space: nowrap; border: 2px solid var(--gold); text-shadow: 0 2px 0 #000; z-index: 7; }
         .float.mult { font-size: clamp(30px, 4.5vw, 54px); background: rgba(120, 10, 30, .85); border-color: #ffd0d0; color: #fff; }
@@ -160,25 +189,34 @@
                   font-size: clamp(15px, 2.2vw, 22px); padding: 8px 22px; box-shadow: 0 6px 16px rgba(0, 0, 0, .4); }
         .fs-hud b { color: var(--gold); font-size: 1.15em; }
 
-        /* ---- The bar ---- */
-        .bar { position: relative; z-index: 5; flex: none; display: grid; grid-template-columns: 1fr auto auto auto 1fr; grid-template-areas: "bal bet spin win tools";
-               align-items: center; gap: clamp(8px, 1.6vw, 22px); padding: 6px 14px max(8px, env(safe-area-inset-bottom)); margin: 0 -12px;
-               background: linear-gradient(180deg, transparent, rgba(30, 12, 2, .82) 32%); }
-        .meter { display: grid; text-align: center; min-width: 96px; }
+        /* ---- The bar ----
+           Landscape: one slim row, its ends lined up with the panel-and-grid group: tools,
+           balance and bet on the left; the win in the middle; − SPIN + under the grid's right
+           corner, the spin button reaching up over the grid. */
+        .bar { position: relative; z-index: 5; flex: none; display: grid; align-items: center;
+               grid-template-columns: auto auto auto 1fr auto auto auto; grid-template-areas: "tools bal betm win minus spin plus";
+               column-gap: clamp(10px, 1.4vw, 22px); margin: 0 -12px;
+               padding: 0 max(14px, calc((100vw - var(--group)) / 2)) max(8px, env(safe-area-inset-bottom));
+               background: linear-gradient(180deg, transparent, rgba(30, 12, 2, .8) 45%); }
+        .meter { display: grid; text-align: center; min-width: 84px; }
         .meter small { font-size: 11px; letter-spacing: 1px; color: var(--gold); opacity: .9; }
-        .meter span, .meter > b { font-size: clamp(16px, 1.8vw, 22px); font-variant-numeric: tabular-nums; }
+        .meter span, .meter > b { font-size: clamp(16px, 1.6vw, 22px); font-variant-numeric: tabular-nums; }
         .bal { grid-area: bal; justify-self: start; text-align: left; }
-        .winm { grid-area: win; }
-        .winm #win { color: var(--gold); }
-        .bet { grid-area: bet; display: flex; align-items: center; gap: 6px; }
-        .round { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--wood-hi); background: var(--panel); font-size: 22px; line-height: 1; padding: 0; }
-        .spin { grid-area: spin; width: var(--spin); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%;
+        .winm { grid-area: win; justify-self: center; }
+        .winm #win { color: var(--gold); font-size: clamp(18px, 2vw, 28px); }
+        .bet { display: contents; }
+        .bet .meter { grid-area: betm; text-align: left; }
+        #bet-minus { grid-area: minus; } #bet-plus { grid-area: plus; }
+        .round { width: clamp(38px, 3.2vw, 48px); aspect-ratio: 1; border-radius: 50%; padding: 0; font-size: clamp(20px, 2vw, 26px); line-height: 1; color: #fff;
+                 border: 2px solid rgba(255, 214, 150, .75); background: radial-gradient(circle at 35% 30%, rgba(120, 58, 18, .95), rgba(40, 16, 4, .95));
+                 box-shadow: 0 4px 10px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 230, 180, .3); }
+        .spin { grid-area: spin; width: var(--spin); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%; margin-top: calc(var(--spin) * -.38);
                 background: var(--spin-art) center / contain no-repeat; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)); transition: transform .12s ease; }
         .spin:not(:disabled):hover { transform: scale(1.04); }
         .spin:not(:disabled):active { transform: scale(.95); }
         .spin.busy { animation: rot .9s linear infinite; }
         @keyframes rot { to { transform: rotate(360deg); } }
-        .tools { grid-area: tools; justify-self: end; display: flex; gap: 8px; }
+        .tools { grid-area: tools; display: flex; gap: 8px; }
         .tool { position: relative; width: 40px; height: 40px; border-radius: 12px; border: 2px solid var(--wood-hi); background: var(--panel); padding: 0; display: grid; place-items: center; }
         .tool svg { width: 22px; height: 22px; }
         .tool[aria-pressed=true] { background: var(--leaf); border-color: #b7f0a0; }
@@ -242,20 +280,27 @@
             .top { position: static; flex-direction: column; align-items: center; height: var(--top); flex: none; }
             .top .logo { display: block; height: 100%; }
             body.free .top .logo { display: none; }
-            .logo-side { display: none; }
+            .logo-frame { display: none; }
             .play { flex-direction: column; gap: 6px; }
-            .play::after { display: none; }
             .side { order: 2; flex-direction: row; align-items: stretch; width: min(96vw, 560px); }
             .side > .feature { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
             .side > .feature.ante { display: grid; }
-            /* The frame may run a little past the screen's edges, so the grid stays large. */
-            .frame { --bw: min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 1.25 * var(--ky)) * 1.2), 640px); }
-            .bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "bal spin win" "bet spin tools"; row-gap: 6px; }
+            /* Portrait keeps the frame whole around a 6:5 grid. It may run a little past the
+               screen's edges, so the grid stays large. */
+            .frame { --bw: min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 1.25 * var(--ky)) * 1.2), 640px);
+                     padding: calc(var(--bw) / 1.2 * var(--ky)) calc(var(--bw) * var(--kx)) calc(var(--bw) / 1.2 * var(--ky) * .25); }
+            .board-wrap { width: var(--bw); height: auto; aspect-ratio: 6 / 5; }
+            .fp { display: none; }
+            .frame-art { display: block; }
+            .bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "bal spin win" "bet spin tools"; row-gap: 6px; column-gap: 8px; padding: 6px 14px max(8px, env(safe-area-inset-bottom)); }
+            .spin { margin-top: 0; }
             .winm { justify-self: end; text-align: right; }
-            .tools { display: grid; grid-template-columns: repeat(2, 34px); gap: 6px; }
+            .tools { justify-self: end; display: grid; grid-template-columns: repeat(2, 34px); gap: 6px; }
             .tool { width: 34px; height: 34px; border-radius: 10px; }
             .tool svg { width: 18px; height: 18px; }
-            .bet { justify-self: start; }
+            .bet { grid-area: bet; justify-self: start; display: flex; align-items: center; gap: 6px; }
+            .bet .meter { text-align: center; }
+            .round { width: 38px; }
             .meter { min-width: 0; }
             .dialog.plaque { margin-top: 10vh; }
         }
@@ -263,13 +308,18 @@
            ante's details stay in its label and in the rules. */
         @media (orientation: landscape) and (max-height: 520px) {
             .side { gap: 8px; }
-            .logo-side { max-height: 17vh; width: auto; max-width: 100%; align-self: center; }
             .feature { padding: 7px; border-radius: 12px; }
             .buy { padding: 7px 8px 8px 6px; row-gap: 6px; }
             .buy-icon { width: 30px; }
             .ante-desc { display: none; }
             .feature-title { margin: 0; }
             .feature-note { margin-top: 5px; font-size: 10px; }
+            .tools { gap: 5px; }
+            .tool { width: 32px; height: 32px; border-radius: 9px; }
+            .tool svg { width: 17px; height: 17px; }
+            .meter { min-width: 0; }
+            .meter span, .meter > b { font-size: 14px; white-space: nowrap; }
+            .round { width: 34px; }
         }
         @media (prefers-reduced-motion: reduce) {
             .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner { animation: none; }
@@ -290,7 +340,7 @@
     <div id="fireflies" class="fireflies"></div>
 </div>
 
-<main class="stage">
+<main class="stage" style="{{ $frameVars }}">
     <header class="top">
         <img class="logo" src="{{ $theme['logo'] }}" alt="{{ $game?->name ?? 'Slot' }}">
         <div id="fs-hud" class="fs-hud" hidden>FREE SPINS <b id="fs-count"></b> &nbsp;·&nbsp; WIN <b id="fs-win"></b></div>
@@ -298,7 +348,6 @@
 
     <section class="play">
         <aside class="side">
-            <img class="logo logo-side" src="{{ $theme['logo'] }}" alt="{{ $game?->name ?? 'Slot' }}">
             <div id="buy-box" class="feature" hidden>
                 <button id="buy-btn" class="buy" disabled>
                     <img class="buy-icon" src="{{ $theme['symbols']['S']['img'] }}" alt="">
@@ -319,10 +368,14 @@
             </div>
         </aside>
 
-        <div class="frame" style="{{ $frameVars }}">
+        <div class="frame">
             <div class="board-wrap">
                 <div id="board" class="board" aria-label="Slot grid"><div id="fx" class="fx"></div></div>
                 <img class="frame-art" src="{{ $theme['frame']['src'] }}" alt="">
+                <img class="fp fp-l" src="{{ $theme['frame']['pieces']['left'] }}" alt="">
+                <div class="fp fp-m"></div>
+                <img class="fp fp-r" src="{{ $theme['frame']['pieces']['right'] }}" alt="">
+                <img class="logo logo-frame" src="{{ $theme['logo'] }}" alt="">
                 <canvas id="fxc" class="fxc"></canvas>
             </div>
         </div>

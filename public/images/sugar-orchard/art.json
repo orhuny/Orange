@@ -928,6 +928,21 @@
    "y0": 0.0931,
    "x1": 0.879,
    "y1": 0.9078
+  },
+  "pieces": {
+   "left": "frame-left.webp",
+   "right": "frame-right.webp",
+   "fill": "frame-fill.webp",
+   "px": {
+    "w": 1405,
+    "h": 1106,
+    "x0": 153,
+    "x1": 1235,
+    "y0": 103,
+    "y1": 1004,
+    "cut_l": 505,
+    "cut_r": 902
+   }
   }
  },
  "spin": "spin.webp",

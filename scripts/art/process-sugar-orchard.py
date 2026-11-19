@@ -17,7 +17,8 @@ What it builds:
 - fx/: the frost burst, ring and crust, the twinkle, the fireworks, the golden rays, the comet,
   and the crystals (one sprite each), all as light on transparent; the sprinkles and petals.
 - the backgrounds, the foreground branch and lantern, the frame, spin button, plaque, logo
-  and banners;
+  and banners. The frame also comes in pieces (left, right, a stretchable strip of line),
+  so a wide grid keeps its ornaments in shape;
 - thumbnail.jpg: the lobby tile, uploaded in the admin panel.
 - art.json:
   - each symbol's pieces, with where each sits in the burst (so the page throws it outward
@@ -198,6 +199,46 @@ def frame_window(im):
     return {'x0': round(left / w, 4), 'y0': round(top / h, 4), 'x1': round(right / w, 4), 'y1': round(bottom / h, 4)}
 
 
+def frame_pieces(frame, width):
+    """The frame cut so it fits a grid of any width without stretching its ornaments:
+    - a left piece (corner and side ornaments);
+    - a right piece;
+    - a strip of plain gold line that the page stretches between them.
+    The cuts fall where the top and bottom edges hold nothing but the line. Measurements
+    are in the frame's own pixels."""
+    a = frame.getchannel('A')
+    w, h = frame.size
+    win = frame_window(frame)
+    x0, x1, y0, y1 = round(win['x0'] * w), round(win['x1'] * w), round(win['y0'] * h), round(win['y1'] * h)
+    rows = [y for y in range(h) if y < y0 - 14 or y >= y1 + 14]  # everything but the line itself
+
+    def plain(x):
+        return sum(1 for y in rows if a.getpixel((x, y)) > 40) <= 2
+
+    def longest_run(lo, hi):
+        best, start = (0, lo, lo), None
+        for x in range(lo, hi + 1):
+            if x < hi and plain(x):
+                start = x if start is None else start
+            elif start is not None:
+                best = max(best, (x - start, start, x))
+                start = None
+        return best
+
+    _, l_start, _ = longest_run(x0 + 10, w // 2)
+    _, _, r_end = longest_run(w // 2, x1 - 10)
+    cut_l, cut_r = l_start + 4, r_end - 4
+    k = width / w
+    size = lambda im: (max(4, round(im.width * k)), round(im.height * k))  # noqa: E731
+    left, right, fill = frame.crop((0, 0, cut_l, h)), frame.crop((cut_r, 0, w, h)), frame.crop((cut_l, 0, cut_l + 8, h))
+    return {
+        'left': save(resized(left, size(left)), 'frame-left.webp', quality=88),
+        'right': save(resized(right, size(right)), 'frame-right.webp', quality=88),
+        'fill': save(resized(fill, size(fill)), 'frame-fill.webp', quality=88),
+        'px': {'w': w, 'h': h, 'x0': x0, 'x1': x1, 'y0': y0, 'y1': y1, 'cut_l': cut_l, 'cut_r': cut_r},
+    }
+
+
 def main():
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -229,7 +270,7 @@ def main():
     save(fit(trimmed(load('fg-lantern')), 360), 'fg-lantern.webp')
 
     frame = trimmed(load('ui-frame'))
-    art['frame'] = {'src': save(fit(frame, 1300), 'frame.webp', quality=88), 'window': frame_window(frame)}
+    art['frame'] = {'src': save(fit(frame, 1300), 'frame.webp', quality=88), 'window': frame_window(frame), 'pieces': frame_pieces(frame, 1300)}
     art['spin'] = save(square(load('ui-spin'), 256, pad=1.0), 'spin.webp')
     art['plaque'] = save(fit(trimmed(load('ui-plaque')), 1000), 'plaque.webp')
     art['logo'] = save(fit(trimmed(load('txt-logo')), 900), 'logo.webp')

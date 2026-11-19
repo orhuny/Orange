@@ -232,12 +232,12 @@ export function startSlot(cfg) {
         canvas.height = Math.max(1, Math.round(r.height * dpr));
     }
 
-    /** A point of the grid (0..1 across, 0..1 down) in canvas pixels, with a cell's width. */
+    /** A point of the grid (0..1 across, 0..1 down) in canvas pixels, with a symbol's size (cells may be wider than tall). */
     function gridPoint(fx, fy) {
         const b = board.getBoundingClientRect();
         const c = canvas.getBoundingClientRect();
         const k = canvas.width / (c.width || 1);
-        return { x: (b.left - c.left + fx * b.width) * k, y: (b.top - c.top + fy * b.height) * k, size: (b.width / COLS) * k };
+        return { x: (b.left - c.left + fx * b.width) * k, y: (b.top - c.top + fy * b.height) * k, size: Math.min(b.width / COLS, b.height / ROWS) * k };
     }
 
     const cellBox = (cell) => gridPoint((Math.floor(cell / ROWS) + 0.5) / COLS, ((cell % ROWS) + 0.5) / ROWS);

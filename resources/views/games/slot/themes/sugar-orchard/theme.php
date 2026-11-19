@@ -41,7 +41,18 @@ return [
     // In front of the background: a branch in each lower corner; lanterns at night.
     'scenery' => ['branch' => $img('fg-branch.webp'), 'lantern' => $img('fg-lantern.webp')],
     // The grid sits exactly in the frame's window (fractions of the frame image).
-    'frame' => ['src' => $img('frame.webp'), 'window' => $art['frame']['window'] ?? ['x0' => 0, 'y0' => 0, 'x1' => 1, 'y1' => 1]],
+    // Portrait draws it whole; landscape in pieces around a wider grid (left, right, and a
+    // strip of line stretched between them). px: the frame's own pixels.
+    'frame' => [
+        'src' => $img('frame.webp'),
+        'window' => $art['frame']['window'] ?? ['x0' => 0, 'y0' => 0, 'x1' => 1, 'y1' => 1],
+        'pieces' => [
+            'left' => $img('frame-left.webp'),
+            'right' => $img('frame-right.webp'),
+            'fill' => $img('frame-fill.webp'),
+            'px' => $art['frame']['pieces']['px'] ?? ['w' => 1, 'h' => 1, 'x0' => 0, 'x1' => 1, 'y0' => 0, 'y1' => 1, 'cut_l' => 0, 'cut_r' => 1],
+        ],
+    ],
     'spin' => $img('spin.webp'),
     'plaque' => ['src' => $img('plaque.webp'), 'ratio' => $plaqueSize ? round($plaqueSize[0] / $plaqueSize[1], 4) : 1.78],
     'banners' => array_map($img, (array) ($art['banners'] ?? [])),
