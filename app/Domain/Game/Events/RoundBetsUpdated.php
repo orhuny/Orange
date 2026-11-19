@@ -8,11 +8,12 @@ use App\Domain\Game\Models\GameRound;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldRescue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /** Bets of a round that were placed or cashed out: rows of its live bet list (LiveBets::row). */
-class RoundBetsUpdated implements ShouldBroadcastNow
+class RoundBetsUpdated implements ShouldBroadcastNow, ShouldRescue
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

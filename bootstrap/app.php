@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,5 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_PROTO);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Live updates are best effort (the round events are ShouldRescue): while Reverb is
+        // down every broadcast fails, ten a second from crash:tick alone. Report one a minute.
+        $exceptions->throttle(fn (Throwable $e): ?Limit => $e instanceof BroadcastException
+            ? Limit::perMinute(1)->by('broadcast-failed')
+            : null);
     })->create();
