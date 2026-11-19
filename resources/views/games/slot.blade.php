@@ -11,15 +11,15 @@
     $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners']));
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
-    // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and how far
-    // it reaches past the grid on each side (kx, ky), which the layout keeps free.
+    // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
+    // vertical space it needs beyond the grid (ky).
     $w = $theme['frame']['window'];
     $fw = 1 / max(0.01, $w['x1'] - $w['x0']);
     $fh = 1 / max(0.01, $w['y1'] - $w['y0']);
     $frameVars = sprintf(
-        '--fl:%.3f%%;--ft:%.3f%%;--fw:%.3f%%;--fh:%.3f%%;--kx:%.4f;--ky:%.4f;',
+        '--fl:%.3f%%;--ft:%.3f%%;--fw:%.3f%%;--fh:%.3f%%;--ky:%.4f;',
         -$w['x0'] * $fw * 100, -$w['y0'] * $fh * 100, $fw * 100, $fh * 100,
-        max($w['x0'], 1 - $w['x1']) * $fw, max($w['y0'], 1 - $w['y1']) * $fh,
+        max($w['y0'], 1 - $w['y1']) * $fh,
     );
     // Landscape: the frame's pieces, in heights of the grid (its window's height). How far it
     // reaches past the grid (et, eb, el, er), each piece's width (lw, rw) and height (ph), and
@@ -348,43 +348,59 @@
         [hidden] { display: none !important; }
 
         @media (orientation: portrait) {
-            :root { --top: clamp(40px, 9vh, 84px); }
-            .stage { --spin: clamp(76px, 22vw, 96px); }
+            :root { --top: clamp(36px, 7vh, 68px); }
+            .stage { --spin: clamp(64px, 19vw, 88px); }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
             .branch { top: 10vh; bottom: auto; width: clamp(160px, 42vw, 360px); }
             .top { position: static; flex-direction: column; align-items: center; height: var(--top); flex: none; }
             .top .logo { display: block; height: 100%; }
             body.free .top .logo { display: none; }
             .logo-frame { display: none; }
-            .play { flex-direction: column; gap: 6px; }
-            .side { order: 2; flex-direction: row; align-items: stretch; width: min(96vw, 560px); }
-            .side > .feature { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+            .play { display: grid; grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); justify-items: center; gap: 4px; }
+            .side { order: 2; flex-direction: row; justify-content: center; gap: 6px; width: min(100%, 440px); }
+            .side > .feature { flex: 1; min-width: 0; max-width: 220px; display: flex; flex-direction: column; justify-content: center; }
             .side > .feature.ante { display: grid; }
-            /* Portrait keeps the frame whole around a 6:5 grid. It may run a little past the
-               screen's edges, so the grid stays large. */
-            .frame { --bw: min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 1.25 * var(--ky)) * 1.2), 640px);
-                     padding: calc(var(--bw) / 1.2 * var(--ky)) calc(var(--bw) * var(--kx)) calc(var(--bw) / 1.2 * var(--ky) * .25); }
-            .board-wrap { width: var(--bw); height: auto; aspect-ratio: 6 / 5; }
+            .feature { padding: 5px; border-radius: 11px; }
+            .buy { min-height: 44px; padding: 4px 5px; grid-template-areas: "icon title" "icon price"; column-gap: 4px; row-gap: 2px; border-radius: 8px; }
+            .buy-icon { width: clamp(20px, 6vw, 32px); }
+            .buy-title { font-size: 10px; letter-spacing: .04em; }
+            .buy-title br { display: none; }
+            .buy-price { padding: 1px 3px; font-size: 11px; }
+            .feature-note { margin: 3px 0 0; font-size: 10px; line-height: 1.15; }
+            .ante { gap: 4px; }
+            .feature-title { margin-bottom: 2px; font-size: 11px; letter-spacing: .05em; }
+            .ante-desc { font-size: 10px; line-height: 1.2; }
+            .toggle { width: 40px; height: 24px; }
+            .toggle i { width: 16px; height: 16px; }
+            .toggle[aria-pressed=true] i { transform: translateX(16px); }
+            /* Size the 6:5 grid from the space left after the logo, features and controls. */
+            .frame { container-type: size; display: grid; place-items: center; align-self: stretch; width: 100%; padding: 0; }
+            .board-wrap { --bw: min(98cqw, calc(120cqh / (1 + 2 * var(--ky))), 640px);
+                          width: var(--bw); height: auto; aspect-ratio: 6 / 5; }
             .fp { display: none; }
             .frame-art { display: block; }
-            .bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "bal spin win" "bet spin tools"; row-gap: 6px; column-gap: 8px; padding: 6px 14px max(8px, env(safe-area-inset-bottom)); }
-            .spin { margin-top: 0; }
+            .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools";
+                   row-gap: 5px; column-gap: 6px; margin-inline: auto; width: 100%; max-width: 560px; padding: 6px 2px max(8px, env(safe-area-inset-bottom)); }
+            .spin { margin-top: 0; justify-self: center; }
             .winm { justify-self: end; text-align: right; }
-            .tools { justify-self: end; display: grid; grid-template-columns: repeat(3, 34px); gap: 6px; }
-            .tool { width: 34px; }
+            .tools { --tool-size: clamp(30px, 8vw, 36px); justify-self: end; justify-content: center; display: flex; flex-wrap: wrap;
+                     width: calc(3 * var(--tool-size) + 8px); gap: 4px; }
+            .tool { width: var(--tool-size); }
             .tool svg { width: 18px; height: 18px; }
-            .bet { grid-area: bet; justify-self: start; display: flex; align-items: center; gap: 6px; }
-            .bet .meter { text-align: center; }
-            .round { width: 38px; }
+            .bet { grid-area: bet; justify-self: start; display: flex; align-items: center; gap: 3px; max-width: 100%; }
+            .bet .meter { padding-inline: 3px; }
+            .bet .meter > b, .bal span, .winm #win { white-space: normal; overflow-wrap: anywhere; }
+            .round { width: clamp(26px, 7.5vw, 36px); flex: none; }
             .meter { min-width: 0; padding: 5px 10px 6px; }
-            .meter span, .meter > b { font-size: 16px; }
-            .winm { min-width: 0; padding: 5px 12px 6px; }
+            .meter span, .meter > b { font-size: clamp(12px, 3.5vw, 16px); }
+            .bal { max-width: 100%; padding-inline: 5px; }
+            .winm { max-width: 100%; padding: 5px 12px 6px; }
             .winm #win { font-size: 20px; }
-            .perch { right: -16px; }
+            .perch { right: 0; }
             .perch img, .perch img:nth-child(2) { width: 22px; }
             .dialog.plaque { margin-top: 10vh; }
             @supports (width: round(down, 10.5px, 1px)) {
-                .frame { --bw: round(down, min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 1.25 * var(--ky)) * 1.2), 640px), 6px); }
+                .board-wrap { width: round(down, var(--bw), 6px); }
             }
         }
         /* Short landscape screens (phones on their side): a smaller logo and compact panels. The
@@ -440,7 +456,7 @@
                 <button id="buy-btn" class="buy" disabled>
                     <img class="buy-icon" src="{{ $theme['symbols']['S']['img'] }}" alt="">
                     <span class="buy-text">
-                        <span class="buy-title">Buy<br>free spins</span>
+                        <span class="buy-title">Buy<br> free spins</span>
                         <span class="buy-price"><span id="buy-cost">—</span> <span data-currency></span></span>
                     </span>
                 </button>
