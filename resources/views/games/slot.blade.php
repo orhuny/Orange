@@ -10,10 +10,11 @@
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
     $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host', 'hostWing']));
     // The host (the Queen Bee) starts in her idle pose; slot-game.js swaps the pose and its variables.
-    $host = $theme['host']['idle'] ?? null;
+    $hostPoses = (array) ($theme['host'] ?? []);
+    $host = $hostPoses['idle'] ?? null;
     $hostWing = $theme['hostWing'] ?? null;
-    $hostStyle = $host === null ? '' : sprintf('--cx: %s; --ar: %s; --k: %s; --wx: %s; --wy: %s; --wh: %s', $host['cx'], $host['ar'], $host['k'] ?? 1,
-        $host['wing']['x'] ?? 0, $host['wing']['y'] ?? 0, $host['wing']['h'] ?? 0).($hostWing ? "; --rx: {$hostWing['rx']}; --war: {$hostWing['ar']}" : '');
+    $hostStyle = static fn (array $p): string => sprintf('--cx: %s; --ar: %s; --k: %s; --wx: %s; --wy: %s; --wh: %s', $p['cx'], $p['ar'], $p['k'] ?? 1,
+        $p['wing']['x'] ?? 0, $p['wing']['y'] ?? 0, $p['wing']['h'] ?? 0).($hostWing ? "; --rx: {$hostWing['rx']}; --war: {$hostWing['ar']}" : '');
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
     // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
@@ -132,20 +133,28 @@
            - --k: the pose's height next to idle's at the same scale (raised hands reach higher),
              every pose ending at the same point of her body, so her size never jumps;
            - --wx/--wy/--wh: her wings' root and length; --rx/--war: the wing's own root and shape.
-           She hovers and sways; her wings flutter from their root, behind her.
+           Every pose is in the page, stacked; the one she shows has `on`. A new pose fades in
+           fast on top with a little spring, the old one fades out slower beneath it, so she never
+           blinks out. She hovers and sways (.host-body, so the sway never fights the switch);
+           her wings flutter from their root, behind her, faster when she's excited.
            Portrait: she peeks over the frame's top-left corner, the frame hiding the cut. */
         .side.with-host { align-self: stretch; justify-content: flex-end; }
         .host { position: relative; flex: 1; min-height: 0; z-index: -1; pointer-events: none;
                 margin-bottom: calc(var(--bh) * -.09 - 12px); animation: host-hover 3.4s ease-in-out infinite; }
         .host-fig { position: absolute; left: 50%; bottom: 0; height: calc(min(100%, var(--bh) * .66) * var(--k, 1)); aspect-ratio: var(--ar);
                     translate: calc(var(--cx) * -100%) 0; transform-origin: calc(var(--cx) * 100%) 100%;
-                    animation: host-sway 5.5s ease-in-out infinite; }
+                    opacity: 0; transform: scale(.95); transition: opacity .32s ease-in, transform .32s ease-in; }
+        .host-fig.on { z-index: 1; opacity: 1; transform: none; transition: opacity .14s ease-out, transform .45s cubic-bezier(.2, 1.6, .45, 1); }
+        .host-fig:not(.on) .wing { animation-play-state: paused; }
+        .host-body { position: absolute; inset: 0; transform-origin: calc(var(--cx) * 100%) 100%; animation: host-sway 5.5s ease-in-out infinite; }
         .host-fig .pose { position: relative; z-index: 1; display: block; width: 100%; height: 100%; filter: drop-shadow(0 8px 14px rgba(30, 10, 0, .45)); }
+        .host-fig .spark { position: absolute; z-index: 2; translate: -50% -50%; pointer-events: none; }
         .host-fig .wing { position: absolute; z-index: 0; left: calc(var(--wx) * 100%); top: calc(var(--wy) * 100%); height: calc(var(--wh) * 100%);
                           aspect-ratio: var(--war); translate: calc(var(--rx) * -100%) -100%; transform-origin: calc(var(--rx) * 100%) 100%;
                           rotate: var(--wr); animation: wing-flutter .32s ease-in-out infinite alternate; }
         .host-fig .wing.near { --wr: -6deg; filter: drop-shadow(0 0 10px rgba(255, 210, 120, .45)); }
         .host-fig .wing.far { --wr: 22deg; height: calc(var(--wh) * 82%); filter: brightness(.8); animation-delay: -.16s; }
+        .host-fig:is([data-pose=cheer], [data-pose=wow]) .wing { animation-duration: .17s; }
         .host-peek { display: none; }
         @keyframes host-sway { 0%, 100% { rotate: -.7deg; } 50% { rotate: .7deg; scale: 1.012; } }
         @keyframes host-hover { 50% { translate: 0 -.8vmin; } }
@@ -553,7 +562,8 @@
             .winm { min-width: 0; padding-inline: 8px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host, .host-fig, .host-fig .wing { animation: none; }
+            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host, .host-body, .host-fig .wing { animation: none; }
+            .host-fig { transform: none; }
         }
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
@@ -581,7 +591,7 @@
         <aside @class(['side', 'with-host' => $host])>
             @if ($host)
                 <div class="host" aria-hidden="true">
-                    <div class="host-fig" style="{{ $hostStyle }}">@if ($hostWing)<img class="wing far" src="{{ $hostWing['src'] }}" alt=""><img class="wing near" src="{{ $hostWing['src'] }}" alt="">@endif<img class="pose" src="{{ $host['src'] }}" alt=""></div>
+                    @include('games.slot.host-figs')
                 </div>
             @endif
             <div id="buy-box" class="feature" hidden>
@@ -614,7 +624,7 @@
                 <img class="logo logo-frame" src="{{ $theme['logo'] }}" alt="">
                 @if ($host)
                     <div class="host-peek" aria-hidden="true">
-                        <div class="host-fig" style="{{ $hostStyle }}">@if ($hostWing)<img class="wing far" src="{{ $hostWing['src'] }}" alt=""><img class="wing near" src="{{ $hostWing['src'] }}" alt="">@endif<img class="pose" src="{{ $host['src'] }}" alt=""></div>
+                        @include('games.slot.host-figs')
                     </div>
                 @endif
                 <canvas id="fxc" class="fxc"></canvas>

@@ -1072,65 +1072,81 @@ export function startSlot(cfg) {
     }
 
     // ---- The host: the Queen Bee beside the grid --------------------------------------------
-    // theme.host: { pose: { src, cx, ar } } (scripts/art/process-sugar-orchard.py). She sways
-    // gently, hops at a win and turns to a pose for it when it's delivered (cheer, wow, honey;
-    // until then she stays in idle). A minute without a spin, she waits, tapping her chin; the
-    // next spin brings her back. Landscape and portrait each have her (.host, .host-peek).
+    // Every pose is in the page (slot.blade.php, "The host"); `on` marks the one she shows and
+    // the CSS crossfades them, so a switch is smooth and she never blinks out. A win makes her
+    // cheer, with a springy hop and sparkles; she keeps cheering while the wins keep coming
+    // (each one hops again) and settles back a little after the last. A big win: wow; free
+    // spins: honey. A minute without a spin, she waits, tapping her chin, until the next spin.
+    // Landscape and portrait each have her (.host, .host-peek).
 
-    const HOST_REACTIONS = { win: ['cheer', 1600], big: ['wow', 4200], free: ['honey', 3000] };
+    const HOST_REACTIONS = { // kind -> [pose, how long she keeps it after the last one, sparkles]
+        win: ['cheer', 2600, 3],
+        big: ['wow', 4400, 6],
+        free: ['honey', 3200, 4],
+    };
     const HOST_WAIT_MS = 60_000;
-    const hostBoxes = [...document.querySelectorAll('.host, .host-peek')];
+    const HOST_HOP = [ // a little crouch, a springy hop, a soft landing
+        { transform: 'translateY(0) scale(1, 1)', easing: 'cubic-bezier(.3, 0, .5, 1)' },
+        { transform: 'translateY(.6%) scale(1.02, .98)', offset: 0.12, easing: 'cubic-bezier(.2, .7, .4, 1)' },
+        { transform: 'translateY(-6%) scale(.99, 1.015)', offset: 0.45, easing: 'cubic-bezier(.5, 0, .7, .4)' },
+        { transform: 'translateY(0) scale(1.015, .985)', offset: 0.78, easing: 'ease-out' },
+        { transform: 'translateY(0) scale(1, 1)' },
+    ];
+    const hostFigs = [...document.querySelectorAll('.host-fig')];
     let hostPose = 'idle';
     let hostBack = 0;
     let hostWait = 0;
+    let hostHop = null;
 
     /** Shows a pose, or idle when it isn't delivered. True when it could show that pose. */
     function hostShow(pose) {
-        const art = theme.host?.[pose];
-        const shownPose = art ? pose : 'idle';
-        const shownArt = art ?? theme.host?.idle;
-        if (!shownArt || shownPose === hostPose) return !!art;
-        hostPose = shownPose;
-        // Each pose has its own size and wing root (see slot.blade.php, "The host").
-        const vars = { cx: shownArt.cx, ar: shownArt.ar, k: shownArt.k ?? 1, wx: shownArt.wing?.x, wy: shownArt.wing?.y, wh: shownArt.wing?.h };
-        for (const fig of document.querySelectorAll('.host-fig')) {
-            const swap = () => {
-                fig.querySelector('.pose').src = shownArt.src;
-                for (const [name, value] of Object.entries(vars)) {
-                    if (value !== undefined) fig.style.setProperty(`--${name}`, value);
-                }
-            };
-            if (reducedMotion || !fig.animate) {
-                swap();
-                continue;
-            }
-            // The whole figure fades (wings too), so the wings move with the pose unseen.
-            fig.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' }).finished.catch(() => {}).then(() => {
-                swap();
-                fig.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'ease-out', fill: 'forwards' });
-            });
+        const has = hostFigs.some((fig) => fig.dataset.pose === pose);
+        const next = has ? pose : 'idle';
+        if (next !== hostPose) {
+            hostPose = next;
+            for (const fig of hostFigs) fig.classList.toggle('on', fig.dataset.pose === next);
         }
-        return !!art;
+        return has;
     }
 
-    /** A win ('win'), a big win ('big') or free spins ('free'): a hop, and its pose for a while. */
+    /** A win ('win'), a big win ('big') or free spins ('free'): its pose, a hop and sparkles. */
     function hostReact(kind) {
-        if (!hostBoxes.length) return;
-        const [pose, ms] = HOST_REACTIONS[kind];
+        if (!hostFigs.length) return;
+        const [pose, keep, sparks] = HOST_REACTIONS[kind];
         if (hostShow(pose)) {
             clearTimeout(hostBack);
-            hostBack = setTimeout(() => hostShow('idle'), dur(ms));
+            hostBack = setTimeout(() => hostShow('idle'), dur(keep));
         }
         if (reducedMotion || state.quick) return;
-        for (const box of hostBoxes) {
-            box.animate?.([
-                { transform: 'translateY(0)' },
-                { transform: 'translateY(-5%)', offset: 0.35 },
-                { transform: 'translateY(0)', offset: 0.7 },
-                { transform: 'translateY(-1.5%)', offset: 0.85 },
-                { transform: 'translateY(0)' },
-            ], { duration: dur(kind === 'win' ? 520 : 760), easing: 'ease-out', iterations: kind === 'win' ? 1 : 2 });
+        const bodies = [...document.querySelectorAll('.host-fig.on .host-body')];
+        // A hop still in the air finishes; the next win hops again.
+        if (hostHop?.playState !== 'running') {
+            const hops = bodies.map((body) => body.animate?.(HOST_HOP, { duration: dur(kind === 'win' ? 640 : 820) }));
+            hostHop = hops.find(Boolean) ?? null;
         }
+        if (theme.fx?.twinkle) {
+            for (const fig of document.querySelectorAll('.host-fig.on')) {
+                for (let i = 0; i < sparks; i++) hostSpark(fig, i);
+            }
+        }
+    }
+
+    /** A sparkle glinting around her head and shoulders. */
+    function hostSpark(fig, i) {
+        const img = document.createElement('img');
+        img.className = 'spark';
+        img.src = theme.fx.twinkle;
+        img.alt = '';
+        img.style.left = `${rand(12, 88)}%`;
+        img.style.top = `${rand(4, 50)}%`;
+        img.style.width = `${rand(14, 26)}%`;
+        fig.append(img);
+        img.animate([
+            { opacity: 0, transform: 'scale(.2) rotate(0deg)' },
+            { opacity: 1, transform: 'scale(1.1) rotate(45deg)', offset: 0.35 },
+            { opacity: 0, transform: 'scale(.3) rotate(90deg)' },
+        ], { duration: dur(720), delay: dur(i * 110 + rand(0, 80)), easing: 'ease-out', fill: 'both' })
+            .finished.catch(() => {}).then(() => img.remove());
     }
 
     /** A spin starts: she stops waiting. */
@@ -1142,13 +1158,12 @@ export function startSlot(cfg) {
     /** The game is idle again: she waits after a while. */
     function hostRest() {
         clearTimeout(hostWait);
-        if (hostBoxes.length) hostWait = setTimeout(() => { if (!state.busy) hostShow('waiting'); }, HOST_WAIT_MS);
+        if (hostFigs.length) hostWait = setTimeout(() => { if (!state.busy) hostShow('waiting'); }, HOST_WAIT_MS);
     }
 
     // The effects' art loads after the first paint, so the board shows at once.
     function preload() {
         const art = theme.fx ?? {};
-        Object.values(theme.host ?? {}).forEach((pose) => sprite(pose.src));
         [art.frostBurst, art.frostRing, art.frostCrust, art.twinkle, art.comet, ...(art.crystals ?? [])].forEach(sprite);
         Object.values(theme.fragments ?? {}).flat().forEach((piece) => sprite(piece.src));
     }
