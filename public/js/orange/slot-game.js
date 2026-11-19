@@ -1024,7 +1024,7 @@ export function startSlot(cfg) {
     $('home-btn').addEventListener('click', () => bridge.send('back_to_lobby'));
     board.addEventListener('click', () => { if (state.busy) state.quick = true; });
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && $('overlay').hidden && !e.repeat && e.target === document.body) {
+        if (e.code === 'Space' && $('overlay').hidden && !$('intro').open && !e.repeat && e.target === document.body) {
             e.preventDefault();
             spin();
         }
@@ -1095,7 +1095,25 @@ export function startSlot(cfg) {
     if (!cfg.embedded) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;
     } else {
+        if (!reducedMotion) {
+            // The lobby reveals its frame at load, so the animation starts when it is visible.
+            if (document.readyState === 'complete') playIntro();
+            else window.addEventListener('load', playIntro, { once: true });
+        }
         bridge.ready({ home: true });
+    }
+
+    function playIntro() {
+        const intro = $('intro');
+        if (state.busy || typeof intro.showModal !== 'function') return;
+        intro.showModal();
+        const finish = () => intro.close();
+        const timer = setTimeout(finish, 2400);
+        intro.addEventListener('click', finish);
+        intro.addEventListener('close', () => {
+            clearTimeout(timer);
+            intro.removeEventListener('click', finish);
+        }, { once: true });
     }
 
     function readPref(key, fallback) {

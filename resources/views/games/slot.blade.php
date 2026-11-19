@@ -345,6 +345,26 @@
         .confetti { position: fixed; top: 0; z-index: 21; pointer-events: none; }
         .toast { position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%); z-index: 25; background: rgba(120, 20, 10, .92); border-radius: 12px; padding: 10px 16px; max-width: 92vw; text-align: center; }
         .status { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 15; background: var(--panel); border-radius: 14px; padding: 12px 18px; text-align: center; }
+
+        .intro { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
+                 margin: 0; padding: 16px; border: 0; color: var(--cream); overflow: hidden;
+                 background: radial-gradient(ellipse at center, rgba(26, 27, 8, .28), rgba(23, 12, 4, .85)),
+                             var(--day-l) center / cover no-repeat #39220d; }
+        .intro::backdrop { background: transparent; }
+        .intro[open] { display: grid; place-items: center; animation: intro-screen 2.4s both; }
+        .intro-art { width: min(84vw, 110vh, 620px); display: grid; justify-items: center; gap: 2vmin; }
+        .intro-logo { width: 100%; display: block; animation: intro-arrive .55s cubic-bezier(.2, .7, .3, 1) both; }
+        .intro-fruit { display: flex; align-items: end; margin-top: -2vmin; }
+        .intro-fruit img { width: clamp(42px, 16vmin, 120px); aspect-ratio: 1; object-fit: contain;
+                           filter: drop-shadow(0 8px 7px rgba(35, 14, 0, .6)); animation: intro-arrive .5s .18s ease-out both; }
+        .intro-fruit img:nth-child(2) { width: clamp(52px, 20vmin, 150px); animation-delay: .24s; }
+        .intro-fruit img:nth-child(3) { animation-delay: .3s; }
+        .intro-skip { position: absolute; right: max(12px, env(safe-area-inset-right));
+                      bottom: max(12px, env(safe-area-inset-bottom)); min-height: 44px; padding: 0 14px;
+                      border: 1px solid rgba(255, 223, 167, .5); border-radius: 999px; background: #2e1409; }
+        @keyframes intro-arrive { from { opacity: 0; transform: translateY(14px) scale(.94); } }
+        @keyframes intro-screen { 0%, 86% { opacity: 1; } 100% { opacity: 0; } }
+
         [hidden] { display: none !important; }
         @media (orientation: landscape) and (max-width: 760px), (orientation: landscape) and (pointer: coarse) {
             .tools { display: grid; grid-template-columns: repeat(3, max-content); }
@@ -356,6 +376,7 @@
             :root { --top: clamp(36px, 7vh, 68px); }
             .stage { --spin: clamp(64px, 19vw, 88px); }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
+            .intro { background-image: radial-gradient(ellipse at center, rgba(26, 27, 8, .28), rgba(23, 12, 4, .85)), var(--day-p); }
             .branch { top: 10vh; bottom: auto; width: clamp(160px, 42vw, 360px); }
             .top { position: static; flex-direction: column; align-items: center; height: var(--top); flex: none; }
             .top .logo { display: block; height: 100%; }
@@ -537,6 +558,17 @@
 <div id="status" class="status">{{ $game ? 'Waiting for the casino…' : 'No slot game is published yet.' }}</div>
 
 @if ($game)
+<dialog id="intro" class="intro" aria-label="{{ $game->name }}">
+    <div class="intro-art" aria-hidden="true">
+        <img class="logo intro-logo" src="{{ $theme['logo'] }}" alt="">
+        <div class="intro-fruit">
+            <img src="{{ $theme['symbols']['G']['img'] }}" alt="">
+            <img src="{{ $theme['symbols']['E']['img'] }}" alt="">
+            <img src="{{ $theme['symbols']['B']['img'] }}" alt="">
+        </div>
+    </div>
+    <button class="intro-skip" type="button" autofocus>Skip intro</button>
+</dialog>
 <script type="module">
     import { startSlot } from @json($v('js/orange/slot-game.js'));
 
