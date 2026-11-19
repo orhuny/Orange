@@ -606,6 +606,11 @@ What you need:
 - **Optional:** answer the page's `embed_ready` with any message (for example
   `fullscreen_state`), so the page can forward `enter_fullscreen` / `exit_fullscreen` and
   `back_to_lobby` to you.
+- **Recommended:** answer it with `player_info` carrying the player's current `balance` (a
+  decimal string). Orange learns the balance only from its wallet calls. So after a deposit at
+  your site, the game would otherwise show the balance from the player's last bet. Your figure
+  is shown until a wallet call in this session reports a newer one. A `balance_update` from your
+  page is used the same way.
 
 Reloading the page keeps the session. A launch token can't be reused.
 

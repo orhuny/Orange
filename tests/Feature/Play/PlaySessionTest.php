@@ -10,6 +10,8 @@ use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Launch\Services\PlaySessionService;
 use App\Domain\Operator\Enums\OperatorStatus;
 use App\Domain\Operator\Models\Operator;
+use App\Domain\Wallet\Enums\WalletCallbackStatus;
+use App\Domain\Wallet\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -106,7 +108,36 @@ it('answers the player API only with a valid session', function (): void {
         ->assertJsonPath('player.currency', 'EUR')
         ->assertJsonPath('game', 'crash')
         ->assertJsonPath('lobby', false)
-        ->assertJsonPath('language', 'tr');
+        ->assertJsonPath('language', 'tr')
+        // No wallet call yet: Orange knows no balance, and the operator page's figure is newer.
+        ->assertJsonPath('balance', null)
+        ->assertJsonPath('balance_before_launch', true);
+});
+
+it('says whether the balance a wallet call last reported came before this launch', function (): void {
+    $game = Game::factory()->create(['code' => 'crash', 'slug' => 'crash']);
+    $operator = Operator::factory()->create();
+    [$session, $bearer] = app(PlaySessionService::class)->exchange(launchFor($game, $operator));
+    $reported = fn (string $balance) => WalletTransaction::factory()->create([
+        'operator_id' => $operator->id,
+        'player_id' => $session->player_id,
+        'operator_callback_status' => WalletCallbackStatus::Completed,
+        'operator_response' => ['status' => 200, 'body' => ['balance_after' => $balance]],
+    ]);
+    // The player's last bet, an hour before this launch; since then they deposited at the casino.
+    $reported('3.00')->forceFill(['created_at' => now()->subHour(), 'updated_at' => now()->subHour()])->save();
+
+    getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])
+        ->assertJsonPath('balance', '3.00')
+        ->assertJsonPath('balance_before_launch', true);
+
+    // A bet in this session: Orange's figure is the newest now.
+    Carbon::setTestNow(now()->addMinute());
+    $reported('249.00');
+
+    getJson('/play-api/session', ['Authorization' => "Bearer {$bearer}"])
+        ->assertJsonPath('balance', '249.00')
+        ->assertJsonPath('balance_before_launch', false);
 });
 
 it('gives the game the player\'s display name from the launch', function (): void {

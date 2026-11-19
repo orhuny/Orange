@@ -73,6 +73,7 @@ class PlayController
     public function session(Request $request): JsonResponse
     {
         $session = $this->playSession($request);
+        $known = $this->lastKnownBalance($session);
 
         return response()->json([
             'player' => [
@@ -85,7 +86,9 @@ class PlayController
             'lobby' => $session->lobby,
             'language' => $session->language,
             'return_url' => $session->return_url,
-            'balance' => $this->lastKnownBalance($session),
+            'balance' => $known['balance'],
+            // No wallet call since this launch: the operator page's own figure is newer.
+            'balance_before_launch' => $known['before_launch'],
         ]);
     }
 
@@ -130,7 +133,7 @@ class PlayController
                 );
 
                 return response()->json(InstantBetResponse::toArray($bet, $game) + [
-                    'player_balance' => $this->lastKnownBalance($session),
+                    'player_balance' => $this->lastKnownBalance($session)['balance'],
                 ], 201);
             }
 
@@ -165,7 +168,7 @@ class PlayController
             'amount' => (string) $bet->amount,
             'currency' => $bet->currency,
             'auto_cashout_at' => $bet->auto_cashout_at === null ? null : (string) $bet->auto_cashout_at,
-            'player_balance' => $this->lastKnownBalance($session),
+            'player_balance' => $this->lastKnownBalance($session)['balance'],
         ], 201);
     }
 
@@ -368,8 +371,15 @@ class PlayController
         return $round instanceof GameRound ? $round : throw BettingClosed::for(RoundState::Running);
     }
 
-    /** The balance the operator last reported for this player, if any. */
-    private function lastKnownBalance(PlaySession $session): ?string
+    /**
+     * The balance the operator last reported for this player in a wallet call, if any, and
+     * whether that call came before this session was launched. Orange learns the balance only
+     * from wallet calls, so a deposit at the casino since then isn't in it: the host page
+     * then shows the balance the operator's page reports instead (play-host.js).
+     *
+     * @return array{balance: ?string, before_launch: bool}
+     */
+    private function lastKnownBalance(PlaySession $session): array
     {
         $tx = WalletTransaction::query()
             ->where('operator_id', $session->operator_id)
@@ -378,7 +388,12 @@ class PlayController
             ->latest('id')
             ->first();
         $balance = data_get($tx?->getAttribute('operator_response'), 'body.balance_after');
+        $reportedAt = $tx?->updated_at;
+        $launchedAt = $session->created_at;
 
-        return is_scalar($balance) ? (string) $balance : null;
+        return [
+            'balance' => is_scalar($balance) ? (string) $balance : null,
+            'before_launch' => $reportedAt === null || $launchedAt === null || $reportedAt->lt($launchedAt),
+        ];
     }
 }

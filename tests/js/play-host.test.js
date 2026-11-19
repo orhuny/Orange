@@ -84,6 +84,89 @@ describe('startPlayHost', () => {
         });
     });
 
+    describe('after a deposit at the casino', () => {
+        /** A message from the operator page around the host. */
+        function fromOperator(type, payload) {
+            const event = new MessageEvent('message', { data: { type, payload }, origin: 'https://op.example' });
+            Object.defineProperty(event, 'source', { value: window.parent });
+            window.dispatchEvent(event);
+        }
+
+        /** /session answers with Orange's last known balance; other calls with `other`. */
+        function serve(balance, beforeLaunch, other = () => json(404, {})) {
+            fetchMock.mockImplementation((url) => (url.endsWith('/session')
+                ? json(200, { player: { id: 'p-1', currency: 'EUR' }, balance, balance_before_launch: beforeLaunch })
+                : other(url)));
+        }
+
+        const shown = () => frame.contentWindow.posted.filter((p) => ['player_info', 'balance_update'].includes(p.data.type))
+            .map((p) => [p.data.type, p.data.payload.balance ?? p.data.payload.player_balance]);
+
+        it('shows the casino\'s own balance until a bet here reports a newer one', async () => {
+            serve('3.00', true, () => json(201, { bet_id: 7, amount: '1.00', player_balance: '249.00' }));
+            start();
+            fromOperator('player_info', { id: 'p-1', currency: 'EUR', balance: '250.00' });
+
+            await intent('embed_ready');
+            expect(shown()).toEqual([['player_info', '250.00']]);
+
+            await intent('place_bet', { amount: '1.00', round_uuid: null });
+            // The game reloads; Orange's wallet call is the newer figure now, whatever /session says.
+            serve('249.00', true);
+            await intent('embed_ready');
+            expect(shown().at(-1)).toEqual(['player_info', '249.00']);
+        });
+
+        it('keeps Orange\'s balance when a wallet call since the launch reported it', async () => {
+            serve('98.00', false);
+            start();
+            fromOperator('player_info', { id: 'p-1', currency: 'EUR', balance: '250.00' });
+
+            await intent('embed_ready');
+
+            expect(shown()).toEqual([['player_info', '98.00']]);
+        });
+
+        it('updates the game and the lobby when the casino\'s figure comes after the game started', async () => {
+            const onBalance = vi.fn();
+            serve('3.00', true);
+            startPlayHost({
+                gameCode: 'crash', frameUrl: 'https://orange.example/crash', bearer: 'ps_test', storageKey: 'orange.play.crash',
+                outerOrigins: ['https://op.example'], playApi: 'https://orange.example/play-api', frame, onExpired: expired, onBalance,
+            });
+
+            await intent('embed_ready');
+            fromOperator('player_info', { id: 'p-1', currency: 'EUR', balance: '250.00' });
+
+            expect(shown()).toEqual([['player_info', '3.00'], ['balance_update', '250.00']]);
+            expect(onBalance).toHaveBeenCalledWith('250.00');
+        });
+
+        it('ignores a balance that is not a plain decimal', async () => {
+            serve('3.00', true);
+            start();
+            fromOperator('player_info', { id: 'p-1', currency: 'EUR', balance: '€250' });
+
+            await intent('embed_ready');
+
+            expect(shown()).toEqual([['player_info', '3.00']]);
+        });
+
+        it('gives the lobby the newest balance it knows', async () => {
+            serve('3.00', true);
+            const host = startPlayHost({
+                gameCode: null, frameUrl: null, bearer: 'ps_lobby', storageKey: 'orange.lobby',
+                outerOrigins: ['https://op.example'], playApi: 'https://orange.example/play-api', frame, onExpired: expired,
+            });
+            fromOperator('player_info', { id: 'p-1', currency: 'EUR', balance: '250.00' });
+
+            const r = await host.session();
+
+            expect(r.ok).toBe(true);
+            expect(host.balance).toBe('250.00');
+        });
+    });
+
     it('tells the game the limits its bets are played with', async () => {
         const limits = { min_bet: '0.10000000', max_bet: '50.00000000', max_win: null };
         fetchMock.mockImplementation((url) => (url.endsWith('/games/crash')

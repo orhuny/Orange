@@ -7,13 +7,24 @@
  */
 import { createGameBridge, createHostBridge, FROM_GAME } from './bridge.js';
 
+/** A balance as a plain decimal string ("12.50"), or null for anything else. */
+function decimal(value) {
+    if (typeof value !== 'string' && typeof value !== 'number') {
+        return null;
+    }
+    const s = String(value).trim();
+    return /^\d+(\.\d+)?$/.test(s) ? s : null;
+}
+
 /**
  * @param {{ gameCode: string|null, frameUrl: string|null, bearer: string|null, storageKey: string,
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
  *           onExpired: () => void, onBackToLobby?: () => void,
  *           onFullscreen?: (active: boolean) => void,
+ *           onBalance?: (balance: string) => void,
  *           onGameReady?: (payload: { home?: boolean }) => void }} config
  *        onGameReady: the game announced itself and the host sent player_info.
+ *        onBalance: the operator page reported the balance after session() had answered.
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
 export function startPlayHost(config) {
@@ -74,7 +85,25 @@ export function startPlayHost(config) {
         return { ok: response.ok, status: response.status, data };
     }
 
+    // The newest balance this page knows: what the game and the lobby show.
     let balance = null;
+    // Orange learns the balance only from its wallet calls, so after a deposit at the casino
+    // its figure is old. The operator page knows better: its player_info (an answer to our
+    // embed_ready) or balance_update carries the casino's own figure. That one is shown until
+    // a wallet call in this session reports a newer one (/session: balance_before_launch).
+    let operatorBalance = null;
+    let walletSinceLaunch = null; // null until /session answers; true once a bet went through here
+    let gameShown = false; // the open game has had its player_info
+
+    /** GET /session; `balance` is then the newest figure (the operator's or Orange's). */
+    async function session() {
+        const r = await api('/session');
+        if (r.ok) {
+            walletSinceLaunch = walletSinceLaunch === true || r.data.balance_before_launch !== true;
+            balance = !walletSinceLaunch && operatorBalance !== null ? operatorBalance : (r.data.balance ?? null);
+        }
+        return r;
+    }
 
     const outer = createGameBridge({
         allowedOrigins: config.outerOrigins,
@@ -85,6 +114,21 @@ export function startPlayHost(config) {
             }
             if (type === 'fullscreen_state') {
                 config.onFullscreen?.(!!payload?.active);
+            }
+            if (type === 'player_info' || type === 'balance_update') {
+                const reported = decimal(payload?.balance);
+                if (reported === null) {
+                    return;
+                }
+                operatorBalance = reported;
+                // It came after /session had answered: show it now, unless Orange's is newer.
+                if (walletSinceLaunch === false) {
+                    balance = reported;
+                    if (type === 'player_info' && gameShown) {
+                        inner.send('balance_update', { balance: reported });
+                    }
+                    config.onBalance?.(reported);
+                }
             }
         },
     });
@@ -98,13 +142,12 @@ export function startPlayHost(config) {
                     // The game's rules show the limits the player's bets are played with; without
                     // them the game still starts.
                     const [r, info] = await Promise.all([
-                        api('/session'),
+                        session(),
                         gameCode ? api(`/games/${encodeURIComponent(gameCode)}`).catch(() => null) : null,
                     ]);
                     if (!r.ok || readyLoad !== frameLoad) {
                         return;
                     }
-                    balance = r.data.balance;
                     inner.send('player_info', {
                         id: r.data.player.id,
                         // The operator's display name when the launch gave one, else the id.
@@ -123,6 +166,7 @@ export function startPlayHost(config) {
                         // { min_bet, max_bet, max_win }, decimal strings or null (no limit).
                         ...(info?.ok && info.data.limits ? { limits: info.data.limits } : {}),
                     });
+                    gameShown = true;
                     config.onGameReady?.(payload);
                     break;
                 }
@@ -155,6 +199,8 @@ export function startPlayHost(config) {
                     });
                     if (r.ok) {
                         balance = r.data.player_balance ?? balance;
+                        // A wallet call in this session: Orange's figure is the newer one now.
+                        walletSinceLaunch = true;
                         inner.send('bet_placed_result', {
                             success: true,
                             bet_id: r.data.bet_id,
@@ -226,10 +272,17 @@ export function startPlayHost(config) {
         outer,
         inner,
         api,
+        /** GET /session, which also brings `balance` up to date. */
+        session,
+        /** The newest balance this page knows, or null (the lobby shows it). */
+        get balance() {
+            return balance;
+        },
         /** Lobby: load a game into the frame; its bets go to that game from now on. The
          *  operator page is told which game, by code and by the name players see. */
         open(code, frameUrl, name = null) {
             frameLoad++;
+            gameShown = false;
             gameCode = code;
             config.frame.src = frameUrl;
             outer.send('launch_game', name ? { code, name } : { code });
@@ -237,6 +290,7 @@ export function startPlayHost(config) {
         /** Lobby: unload the game. */
         close() {
             frameLoad++;
+            gameShown = false;
             gameCode = null;
             config.frame.src = 'about:blank';
         },

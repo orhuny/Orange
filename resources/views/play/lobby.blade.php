@@ -274,6 +274,10 @@
             onFullscreen(active) {
                 document.body.classList.toggle('game-expanded', active);
             },
+            // The casino's page told us the balance after /session answered (e.g. after a deposit).
+            onBalance(balance) {
+                showBalance(balance);
+            },
         });
 
         function open(game) {
@@ -395,9 +399,15 @@
 
         const money = (amount, currency) => `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount))} ${currency}`;
 
+        let currency = '';
+        function showBalance(balance) {
+            $('balance').hidden = balance == null || balance === '';
+            if (!$('balance').hidden) $('balance-amount').textContent = money(balance, currency);
+        }
+
         async function refresh() {
             if (!host) return;
-            const [r, s] = await Promise.all([host.api('/lobby'), host.api('/session')]);
+            const [r, s] = await Promise.all([host.api('/lobby'), host.session()]);
             if (r.ok) {
                 lobby = r.data;
                 const root = document.documentElement.style;
@@ -407,9 +417,8 @@
                 if (!lobby.categories.some((c) => c.slug === tab)) tab = 'all';
                 render();
             }
-            const balance = s.ok ? s.data.balance : null;
-            $('balance').hidden = balance == null || balance === '';
-            if (!$('balance').hidden) $('balance-amount').textContent = money(balance, s.data.player.currency);
+            if (s.ok) currency = s.data.player.currency;
+            showBalance(s.ok ? host.balance : null);
         }
 
         $('search').addEventListener('input', render);
