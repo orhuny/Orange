@@ -1,122 +1,326 @@
-# Sugar Orchard: görsel prompt'ları
+# Sugar Orchard: art prompts (round 3, full redesign)
 
-Slot "Sugar Orchard" (çalışma adı) için üretilecek görseller. Prompt'lar İngilizce, çünkü görsel modelleri İngilizceyle daha iyi sonuç veriyor.
+Audience: whoever generates Sugar Orchard's art. Every prompt below is complete; copy it as is.
 
-## Durum
+Round 3 replaces all earlier art: symbols, scatter, backgrounds and logo. Rounds 1 and 2 are in git history.
 
-| Grup | Durum |
-|---|---|
-| **Tur 1, 01–10** (stil paftası ve 9 sembol) | Kullanılıyor. Key'lendi ve `public/images/sugar-orchard/symbols/` altına paketlendi. Prompt'ları aşağıda; bir sembolü yeniden üretmek gerekirse aynı aileden çıksın diye duruyor. |
-| **Tur 1, 11–26** | Kullanılmıyor. Düz vektör olarak geldi, sembollerle uyuşmadı. |
-| **Tur 2, 27–34** | Yalnızca görsel modeli gerektiren 8 görsel; 34 isteğe bağlı. |
+## How the art becomes the game
 
-Kodla yapılacaklar:
-- patlama ve parçacık efektleri
-- scatter kutlaması
-- kasa çerçevesi (34'teki dokuyla)
-- kurdele ve paneller
-- spin butonu
-- konfeti
+**What happens on a win:**
+1. The winning symbols frost over (`fx-frost-crust`).
+2. Each one bursts in a sugar-frost explosion (`fx-frost-burst`, `fx-frost-ring`).
+3. It shatters into its own pieces (`frag-*`), and crystals, sparkles and sprinkles fly (`fx-crystals`, `fx-twinkle`, `fx-sprinkles`).
+4. New symbols tumble in.
 
-Lobi thumbnail'i de üretilmeyecek: sembollerden, yeni arka plandan ve logodan ben birleştireceğim.
+**Other effects:**
+- **Big wins:** candy fireworks (`fx-fireworks`) and a banner (`txt-*-win`).
+- **Scatters and free spins:** golden rays (`fx-golden-rays`).
+- **Multiplier stars:** fly to the win as comets (`fx-comet`).
+- **Backgrounds:** they move in layers. Branches and lanterns sway in front (`fg-*`); petals drift by day and fireflies by night.
 
-## Nasıl üretilir (önemli)
+**What the code does and what the art does:** the animation is code; the art supplies the pieces it animates. That is how top slots are built (layered stills and particle systems). Image models can't draw a consistent frame-by-frame sequence, so **never ask for sprite sheets or animation frames**.
 
-- **Her prompt'u ayrı bir istek olarak üret.** "Hepsini birden yap" denince araç bir kısmını kodla çiziyor. Tur 1'deki düz görseller büyük ihtimalle bundan oldu.
-- **Referans görselleri ekle:**
-  - 27, 28 ve 33'e `01-symbol-sheet.png`'yi
-  - 30 ve 31'e 29'u
-  - 32'ye 30 ile 31'i
-- **Logo (33):** Yazıyı en doğru Ideogram veya ChatGPT görsel üretimi çıkarıyor. Harfleri tek tek kontrol et.
-- **Kesilecek görseller (27, 28, 33):** Düz magenta `#FF00FF` zemin üzerinde olmalı. Üzerlerinde pembe, mor, saydam cam ya da parlama olmamalı, çünkü magenta bunların içinden görünüyor.
-- **Arka planlar (29–32):** Tam sahne, magenta yok.
-- **Teslim:** En yüksek çözünürlükte PNG, aşağıdaki dosya adlarıyla `C:\Git\Orange\storage\app\art\sugar-orchard\` klasörüne. Bir görsel beğenmediğin gibi çıkarsa 2–3 deneme gönder, en iyisini seçerim.
+## Rules (read before generating)
 
----
+1. **One prompt per request.** Never ask for several assets at once. When asked for many, tools start drawing flat vector art with code; that is what went wrong in round 1.
+2. **Set the style first.** Generate `sym-a-toffee` until you love it.
+   - Then attach it as a style reference to every other symbol, star, fragment and UI prompt.
+   - In ChatGPT, attach the image. In Midjourney, use `--sref <image url>`.
+   - Each prompt says what to attach.
+3. **Three kinds of canvas.** Each prompt ends with one of these:
+   - **Cutout:** flat pure magenta `#FF00FF`. I key the magenta out.
+     - Nothing on the object may be pink, purple or see-through, because magenta shows through or bleeds into it.
+     - If your tool can export a real transparent PNG (ChatGPT can), that is even better: replace the magenta sentence with "on a transparent background".
+   - **Glow:** pure black `#000000`. These are light effects; the game adds them as light, so black disappears and the glow stays soft. Never on magenta.
+   - **Scene:** a full picture.
+4. **Size and format:** the largest size the tool offers, as PNG. Upscale backgrounds to at least 2560×1440 (or 1440×2560) if you can.
+5. **Text:** only the `txt-*` assets contain text. Check every letter, and regenerate until the spelling is exact.
+6. **Delivery:** use the file names below, in `C:\Git\Orange\storage\app\art\sugar-orchard\round3\`.
+   - Send 2–3 variants when unsure (`-a`, `-b`, `-c`); I pick and key the best one.
+   - You can deliver in batches. Symbols and backgrounds first already change the whole look.
+7. **Tools:**
+   - **ChatGPT image:** best for text, layouts and transparency. Use it for `txt-*`, `ui-*` and the frame.
+   - **Midjourney:** richest for backgrounds. Add `--ar 16:9` / `--ar 9:16` / `--ar 1:1`, and move each prompt's "Avoid:" list into `--no`.
+8. **Keep it ours.** No lollipops, no rainbows, no pink cotton-candy clouds, no jelly-bean hearts, no bananas, grapes, watermelons, plums or apples. That set belongs to another game.
 
-## Tur 2
+### Order
 
-### 27-scatter-basket.png · 1:1 · 01'i ekle
-Scatter artık sakız makinesi değil, meyve ve şeker dolu altın bir sepet. Bahçe temasına daha çok uyuyor, opak olduğu için temiz kesiliyor ve küçük boyutta da diğer sembollerden ayrışıyor.
-```
-High-end mobile casino slot game asset with a semi-realistic 3D-render look, like a premium slot from a top studio: glossy, juicy, tactile materials, soft studio key light from the upper left, crisp specular highlights, gentle ambient occlusion, rich saturated warm colours, slightly stylised chunky proportions. Not flat, not vector, not cartoon line art, not clip art. No text, no numbers, no watermark. A single special slot symbol, clearly the most precious one in the game: a small round woven wicker basket in polished golden straw, overflowing with treats — a shiny orange with a leaf, a pair of burgundy cherries, a bright red strawberry, a blue gummy bear and two gold-foil-wrapped toffees — with a big glossy red satin bow tied on its arched handle and tiny gold sparkles caught in the weave. Compact, about as wide as it is tall, centred, three-quarter front view, filling about 85% of the square. Match the style, lighting and finish of the attached symbol sheet exactly. Isolated on a perfectly flat solid magenta background (#FF00FF): no gradient, no texture, no cast shadow, no glow or aura, no other objects. No pink, magenta or purple anywhere on the subject. Everything opaque, nothing transparent. Keep a clear margin all round.
-```
-
-### 28-multiplier-stars.png · 1:1 · 01'i ekle
-Sayılar (2×, 10×, 100×…) yıldızın ortasına kodla yazılacak.
-```
-High-end mobile casino slot game asset with a semi-realistic 3D-render look, like a premium slot from a top studio: glossy, juicy, tactile materials, soft studio key light from the upper left, crisp specular highlights, gentle ambient occlusion, rich saturated warm colours, slightly stylised chunky proportions. Not flat, not vector, not cartoon line art, not clip art. No text, no numbers, no watermark. Four separate multiplier gems in a 2×2 grid with wide gaps: each is a chunky five-pointed star made of glossy faceted hard candy, cut like a jewel, with softly rounded points, a thick polished gold rim around its edge, and a smooth, slightly domed, calm centre with no pattern (a number will be printed over it later). All four have exactly the same shape, size and straight front view; only the candy colour changes: top left sky blue, top right emerald green, bottom left warm honey gold, bottom right deep ruby red. Light seems to glow inside the candy while it stays opaque. Match the finish of the attached symbol sheet. Isolated on a perfectly flat solid magenta background (#FF00FF): no gradient, no texture, no cast shadow, no glow or aura, no other objects. No pink, magenta or purple anywhere on the stars. Everything opaque, nothing transparent. Keep a clear margin around each star.
-```
-
-### 29-bg-day-landscape.png · 16:9
-```
-Lush painted background for a premium mobile slot game, semi-realistic 2.5D digital painting with real depth: blurred foreground, detailed midground, hazy distance, atmospheric perspective, soft bokeh, warm volumetric light. Not flat, not vector, not minimal, no hard outlines, no characters, no text, no UI. A whimsical fruit-and-candy orchard at golden hour, seen from a slight height across a green valley: rows of round, bushy fruit trees heavy with glowing oranges, lemons and cherries, with gold-wrapped sweets and red-and-white peppermint candies hanging among the fruit like ornaments; a few trees with twisting red-and-white candy-cane trunks; rolling hills fading into warm haze; a big low sun behind the hills casting long golden rays; soft cream clouds in an amber-to-peach sky. At the far left and far right edges, close to the viewer and softly out of focus: stacked wooden fruit crates spilling oranges, wicker baskets, tall grass and white blossoms. The middle 55% of the width is calm and low in contrast — open sky, distant hills and haze only — because the game grid will cover it. Rich colour and detail at the edges.
-```
-
-### 30-bg-day-portrait.png · 9:16 · 29'u ekle
-```
-Lush painted background for a premium mobile slot game, semi-realistic 2.5D digital painting with real depth: blurred foreground, detailed midground, hazy distance, atmospheric perspective, soft bokeh, warm volumetric light. Not flat, not vector, not minimal, no hard outlines, no characters, no text, no UI. The same golden-hour candy-fruit orchard as the attached image, same palette, light and painting style, recomposed as a tall 9:16 phone screen: the top quarter shows the amber sky, the glowing low sun and the leafy tops of candy-fruit trees curving in from both sides like a frame; the middle half is calm and low in contrast — distant hills and warm haze only — because the game grid will cover it; the bottom quarter shows a grassy foreground, softly out of focus, with a wooden fruit crate, a wicker basket and a few fallen oranges.
-```
-
-### 31-bg-night-landscape.png · 16:9 · 29'u ekle
-```
-Lush painted background for a premium mobile slot game, semi-realistic 2.5D digital painting with real depth: blurred foreground, detailed midground, hazy distance, atmospheric perspective, soft bokeh, warm volumetric light. Not flat, not vector, not minimal, no hard outlines, no characters, no text, no UI. The same orchard as the attached image, same composition and camera, transformed into a magical festival night for the free spins: a deep teal-to-navy sky with a large soft moon and scattered stars, strings of warm glowing paper lanterns looping between the candy trees, fireflies sparkling over the grass, the hanging fruits and sweets catching the warm lantern light, a gentle blue moonlit haze over the hills. The middle 55% of the width stays calm and low in contrast, as in the original.
-```
-
-### 32-bg-night-portrait.png · 9:16 · 30 ve 31'i ekle
-```
-Lush painted background for a premium mobile slot game, semi-realistic 2.5D digital painting with real depth: blurred foreground, detailed midground, hazy distance, atmospheric perspective, soft bokeh, warm volumetric light. Not flat, not vector, not minimal, no hard outlines, no characters, no text, no UI. The festival-night orchard of the attached landscape image (moon, stars, glowing paper lanterns, fireflies, warm lantern light on the fruit and sweets), recomposed exactly like the attached tall daytime phone image: trees and lanterns framing the top quarter, a calm low-contrast middle half for the game grid, and a softly blurred grassy foreground with a crate and a basket in the bottom quarter.
-```
-
-### 33-logo.png · 2:1 (ya da 16:9) · 01'i ekle · Ideogram veya ChatGPT önerilir
-```
-High-end mobile casino slot game logo with a semi-realistic 3D-render look: glossy, juicy, tactile materials, soft studio key light from the upper left, crisp specular highlights. Not flat, not vector, not clip art. A game logo that reads exactly "SUGAR ORCHARD" (check the spelling letter by letter). Two stacked words in chunky, bouncy, rounded 3D letters, slightly arched: "SUGAR" made of glossy golden-orange hard candy with a fine white sugar-sparkle coating on its top edges, and "ORCHARD" below it in glossy fresh leaf-green candy; both words have a thick dark chocolate-brown outline and a soft drop shadow beneath. Small decorations: a shiny orange with two leaves sitting on top of the last "R" of SUGAR, a pair of burgundy cherries hanging from the "O" of ORCHARD, and a small red-and-white peppermint swirl. Match the finish of the attached symbol sheet. Isolated on a perfectly flat solid magenta background (#FF00FF): no gradient, no texture, no glow or aura, nothing else. No pink, magenta or purple in the logo. Keep a clear margin all round.
-```
-
-### 34-wood-texture.png · 1:1 · isteğe bağlı (ızgaranın kasa çerçevesi için)
-```
-Seamless tileable square texture: warm honey-brown wooden planks of a rustic fruit crate, seen straight on, planks running horizontally, visible grain, a couple of small knots and tiny dark nail heads, softly painted with gentle highlights. Even, flat lighting with no shadows, no vignette and no perspective; it must tile perfectly on all four sides. No text.
-```
+1. `sym-a-toffee`: the style anchor.
+2. The other symbols: `sym-b` … `sym-i`, `sym-s`, `sym-m-*`.
+3. `bg-day-landscape`, then the other three backgrounds.
+4. `txt-logo`, then the banners.
+5. `fx-*`.
+6. `frag-*`.
+7. `ui-*`, `fg-*`, `key-thumbnail`.
 
 ---
 
-## Tur 1 (teslim edildi, kullanılıyor): stil paftası ve semboller 01–10
+## Symbols (square 1:1, cutout)
 
-STYLE (1–10'un başına):
-> Premium casino slot game art, polished semi-3D illustrated style: glossy, juicy, tactile surfaces with soft studio lighting from the upper left, one crisp specular highlight per object, gentle ambient occlusion, rich saturated warm colours, appetising and cheerful, slightly stylised proportions (chunky, rounded, toy-like), no outlines. Family-friendly. No text, no letters, no numbers, no watermark, no signature, no UI, no border.
+The grid shows them at about 60–120 px, so each needs a bold, instantly readable silhouette and its own dominant colour.
 
-CUTOUT (2–10'un sonuna):
-> Isolated on a perfectly flat solid magenta background (#FF00FF): no gradient, no texture, no cast shadow, no glow or aura around the subject, no other objects. No pink, magenta or purple anywhere on the subject. Everything is opaque; nothing is transparent or see-through. The subject does not touch the image edges; keep a clear margin all round.
+### sym-a-toffee.png · top symbol · generate first
+```text
+A luxurious toffee wrapped in mirror-bright gold foil, the foil twisted at both ends into two flaring fans, its crinkled facets catching the light. The foil is torn open at the front, revealing glossy amber caramel with a slow golden drip. Tiny sugar crystals sparkle on the foil, and one bright star-shaped glint sits on the top highlight. Tilted slightly toward the viewer, rich and dynamic: the most valuable symbol of the set. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-### Semboller
+### sym-b-peppermint.png · attach sym-a
+```text
+A thick domed peppermint candy disc with bold glossy red-and-white swirl stripes spiralling into its centre, glassy hard-candy shine with deep reflections, a dusting of fine sugar along one edge, and a fresh bright-green mint leaf tucked behind it. Tilted three-quarters toward the viewer. The red is a pure cherry red, never pink. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**1. Stil referans paftası** → `01-symbol-sheet.png` (oyunda kullanılmayacak) · 16:9
-> A slot-game symbol style sheet: ten symbols in a 5-column × 2-row grid, evenly spaced, all the same size and seen from the same three-quarter front angle. Top row (sweets): a gold-foil-wrapped toffee with twisted ends; a round red-and-white peppermint swirl disc; an opaque glossy blue gummy bear; a round dark-chocolate truffle with a glossy chocolate drizzle and a few gold sugar flecks. Bottom row (fruits and the special symbol): a whole shiny orange with two green leaves; a pair of deep burgundy cherries joined at green stems; a big bright-red strawberry with green leaves and golden seeds; a plump yellow lemon with one leaf; a kiwi cut in half showing its bright green flesh, black seeds and white centre. Below or beside them, slightly larger: a vintage gumball machine with a red cast-metal base and a coin slot, its round top completely filled with opaque multicoloured gumballs (red, orange, yellow, green, blue, white). Plain light warm-grey background.
+### sym-c-gummy-bear.png · attach sym-a
+```text
+A plump, cheerful emerald-green gummy bear sitting upright with a playful head tilt, soft chunky rounded shapes, glossy and squishy-looking, coated in sparkling sugar crystals, with a warm inner glow where light enters it. It is solid and opaque: the background never shows through it. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**2. Karamela (H1, en yüksek)** → `02-toffee.png` · 1:1 · 1'i ekle
-> A single slot symbol: a large toffee candy wrapped in shiny crinkled gold foil with two twisted, fanned ends, the wrapper slightly open in the middle to reveal glossy amber-brown toffee. Centred, three-quarter front view, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-d-truffle.png · attach sym-a
+```text
+A decadent dark chocolate truffle in a fluted gold paper cup, glossy molten ganache poured over its top and dripping down the sides, crowned with a whole roasted hazelnut and a flake of gold leaf, a few cocoa crumbs on the cup's rim. Rich mahogany and gold tones, velvety and luxurious. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**3. Nane şekeri (H2)** → `03-peppermint.png` · 1:1 · 1'i ekle
-> A single slot symbol: a thick round peppermint hard candy with a bold red-and-white pinwheel swirl, a glassy-looking but opaque glossy surface with one bright highlight, seen three-quarter front so its thickness shows. Centred, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-e-orange.png · the brand fruit · attach sym-a
+```text
+A vibrant ripe orange with a short stem and two glossy dark-green leaves, its dimpled peel shining with dew drops. A wedge is cut out of the front, showing glistening juicy segments, and one round juice droplet hangs in mid-air beside it. Bright, fresh and bursting with life: this orange is the brand's emblem. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**4. Gummy ayı (H3)** → `04-gummy-bear.png` · 1:1 · 1'i ekle
-> A single slot symbol: a chunky, cheerful blue-raspberry gummy bear standing, rich opaque saturated blue with a soft sugary sheen and gentle highlights, simple cute rounded shape, tiny dimple eyes pressed into the candy (no drawn face). Centred, three-quarter front view, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-f-cherries.png · attach sym-a
+```text
+A pair of deep crimson cherries joined by slender green stems with one fresh leaf, so glossy they reflect the light like lacquer, tiny dew drops on their skin, one cherry slightly in front of the other. Pure deep red, never pink. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**5. Trüf (H4)** → `05-truffle.png` · 1:1 · 1'i ekle
-> A single slot symbol: a round dark-chocolate truffle with a glossy milk-chocolate drizzle zig-zagged across the top and a sprinkle of gold sugar flecks, sitting in a small fluted gold paper cup. Centred, three-quarter front view, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-g-strawberry.png · attach sym-a
+```text
+A big plump ripe strawberry with a lush green leafy crown, glistening red skin dotted with golden seeds, dew drops, its tip lightly dusted with sparkling sugar crystals. Slightly tilted, juicy and irresistible. Pure strawberry red, never pink. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**6. Portakal (L1)** → `06-orange.png` · 1:1 · 1'i ekle
-> A single slot symbol: a whole round shiny orange with a dimpled peel, a short stem and two glossy green leaves on top. Centred, three-quarter front view, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-h-lemon.png · attach sym-a
+```text
+A vivid sunny-yellow lemon with a short stem and one glossy leaf, its textured peel beaded with dew, and a thick fresh lemon slice leaning against its front, showing bright juicy segments and a pale rind. Zesty and luminous. The slice is opaque. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**7. Kiraz (L2)** → `07-cherries.png` · 1:1 · 1'i ekle
-> A single slot symbol: a pair of plump, deep burgundy-red cherries hanging from two green stems joined at the top with one small green leaf, glossy highlights on each cherry. Centred, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-i-kiwi.png · attach sym-a
+```text
+A kiwi fruit cut in half: the front half faces the viewer, showing vivid emerald flesh, a creamy sunburst core ringed with glossy black seeds, glistening with juice; the fuzzy golden-brown uncut half sits just behind it. Fresh, bright and juicy. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**8. Çilek (L3)** → `08-strawberry.png` · 1:1 · 1'i ekle
-> A single slot symbol: a big bright-red strawberry with a fresh green leafy crown, small golden seeds and a juicy glossy surface. Centred, three-quarter front view, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### sym-s-scatter-basket.png · scatter · attach sym-a
+```text
+The scatter symbol: a woven golden wicker basket overflowing with the orchard's treasures, with oranges, cherries, a strawberry, gold-foil toffees and peppermint candies spilling over its rim, a big satin ribbon bow in deep orange tied on the handle, warm golden light glowing out from inside the basket, sparkles around the fruit. Clearly the most special and magical symbol: bigger, brighter and more radiant than any other. Front view, slightly from above. Match the style, lighting and finish of the attached image. Fills about 85% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
 
-**9. Limon (L4)** → `09-lemon.png` · 1:1 · 1'i ekle
-> A single slot symbol: a plump, sunny-yellow lemon with a textured peel, pointed ends and one green leaf at the stem, lying at a slight diagonal. Centred, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+### Multiplier stars (4 colours by value) · attach sym-a
 
-**10. Kivi (L5)** → `10-kiwi.png` · 1:1 · 1'i ekle
-> A single slot symbol: a kiwi fruit cut in half, the cut face turned toward the viewer showing bright green juicy flesh, a ring of small black seeds and a creamy white centre, the fuzzy brown skin visible at the back edge. Centred, filling about 80% of the square, matching the attached style sheet exactly. + CUTOUT
+The game prints the value (2×–100×) on the star, so the centre must stay empty. There is one prompt per colour; only the colour sentence changes.
 
+| File | Values | Colour sentence |
+|---|---|---|
+| `sym-m-star-sky.png` | 2×–6× | `in bright sky blue and white` |
+| `sym-m-star-emerald.png` | 8×–15× | `in rich emerald green` |
+| `sym-m-star-gold.png` | 20×–50× | `in molten amber gold` |
+| `sym-m-star-ruby.png` | 100× | `in deep ruby red with golden fire inside, the most dazzling and rare of the set` |
+
+```text
+A five-pointed multiplier star carved from faceted hard candy in bright sky blue and white, with plump rounded points, jewel-like facets, a bright internal glow, a thin polished gold rim around its edge and a few sugar sparkles. Its centre is a smooth, flat, clear area where a number will be printed later: no number, no text. Solid and opaque: the background never shows through it. Straight front view. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, soft subsurface glow, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No outline, no cast shadow, no frame. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing on the object is pink, purple or see-through. The whole object is in frame with a clear margin.
+```
+
+---
+
+## Explosion pieces (square 1:1, cutout)
+
+Each symbol shatters into its own pieces, and the game throws them outward with spin and gravity. Every piece must be **separate**, with magenta all around it, so I can cut each one out. **Attach the matching `sym-*` image** to each prompt.
+
+There is one prompt per symbol; only the pieces sentence changes.
+
+| File | Attach | Pieces sentence |
+|---|---|---|
+| `frag-a-toffee.png` | sym-a | `shards of glossy amber caramel, ragged strips of torn gold foil, the two twisted foil ends, small caramel crumbs` |
+| `frag-b-peppermint.png` | sym-b | `jagged shards of red-and-white striped hard candy, the mint leaf, small glassy candy crumbs` |
+| `frag-c-gummy-bear.png` | sym-c | `squishy green gummy chunks (an ear, a paw, round blobs) and sugar-crystal clusters` |
+| `frag-d-truffle.png` | sym-d | `chunks of dark chocolate oozing ganache, the hazelnut split in two, a scrap of the gold paper cup, the gold-leaf flake, cocoa crumbs` |
+| `frag-e-orange.png` | sym-e | `juicy orange segments, a curl of peel, a leaf, round solid juice drops` |
+| `frag-f-cherries.png` | sym-f | `the two cherries split open showing their flesh, the stems with the leaf, round solid juice drops` |
+| `frag-g-strawberry.png` | sym-g | `strawberry halves and wedges, the leafy crown, round solid juice drops, a few sugar crystals` |
+| `frag-h-lemon.png` | sym-h | `lemon wedges, a slice, a curl of peel, the leaf, round solid juice drops` |
+| `frag-i-kiwi.png` | sym-i | `kiwi slices and chunks showing green flesh and black seeds, pieces of fuzzy skin, round solid juice drops` |
+
+```text
+The same toffee as in the attached image, frozen at the instant it bursts apart into 8 to 10 separate pieces: shards of glossy amber caramel, ragged strips of torn gold foil, the two twisted foil ends, small caramel crumbs. The pieces are spread evenly in a loose ring with clear magenta gaps between every piece; no piece touches another piece or the edge of the image. Every piece is solid and sharp-edged: no motion blur, no mist, no spray, no speed lines. Same materials, colours and lighting as the attached image. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, juicy and tactile, rich saturated colours, crisp specular highlights, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. No text, no outline, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing is pink, purple or see-through.
+```
+For each other symbol, change "toffee" to that symbol's name and swap in its pieces sentence.
+
+---
+
+## Sugar-frost effects (square 1:1, glow on black)
+
+These are light, so the game adds them on top. Black means "no light". Keep them **centred and fading out before the edges**, except `fx-frost-crust`.
+
+### fx-frost-burst.png · the win explosion
+```text
+An explosive burst of sparkling sugar frost seen head-on: a blinding white-blue flash at the centre, thousands of glittering ice-sugar crystals blasting outward in every direction, fine frosty streaks radiating like a starburst, a few larger crystalline sugar snowflakes, delicate glitter dust toward the edges. Colours: brilliant white, ice blue and a hint of pale gold. Symmetrical radial composition, centred, fading out well before the edges of the image. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. Nothing is cropped by the frame. No text.
+```
+
+### fx-frost-ring.png · the shockwave
+```text
+A thin expanding shockwave ring of frosty light seen straight on: a perfect circle of icy white-blue glitter and tiny sugar crystals, a crisp bright outer edge fading softly inward, the centre empty and black. The ring's diameter is about 80% of the image. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. Nothing is cropped by the frame. No text.
+```
+
+### fx-frost-crust.png · the freeze before the burst
+```text
+Sugar frost crystallising across a square pane of glass, seen straight on: intricate white-blue frost ferns and glittering sugar crystals growing inward from all four edges and corners, densest at the edges, thinning toward a nearly clear centre. An even, square, edge-to-edge pattern. Glowing white and ice-blue frost on a pure black (#000000) background. No text.
+```
+
+### fx-crystals.png · flying sugar crystals
+```text
+About 30 separate glowing sugar crystals and glints scattered evenly across the image with clear black space between every one of them: small faceted ice-sugar cubes, tiny diamond-like sparkles and a few soft round glitter dots, in white, ice blue and pale gold, in different sizes. None of them touch. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. No text.
+```
+
+### fx-twinkle.png · sparkle glint
+```text
+A single four-pointed sparkle star: a tiny brilliant white core, two long razor-thin rays (one horizontal, one vertical), two shorter diagonal rays and a soft blue-white halo. Centred, with the rays fading out before the edges. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. No text.
+```
+
+### fx-fireworks.png · big-win celebration
+```text
+A spectacular celebratory firework burst made of glowing candy-coloured sparks: streaks of orange, gold, cherry red and mint green shooting outward from the centre with glittering trails, small secondary sparkle bursts and falling glitter. Joyful and radial, centred, fading out before the edges. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. Nothing is cropped by the frame. No text.
+```
+
+### fx-golden-rays.png · scatters and free spins
+```text
+A radiant burst of warm golden god-rays from a bright white-gold centre: long soft rays evenly spaced all around 360 degrees, a gentle golden haze and a few sparkles. Centred and symmetrical, fading out before the edges. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. No text.
+```
+
+### fx-comet.png · a multiplier flying to the win · 2:1
+```text
+A glowing comet streak travelling from left to right: a bright white-gold head with a small starburst, a long sparkling tapering tail of golden light and glitter fading out toward the left. Horizontal, vertically centred, nothing cropped. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. No text.
+```
+
+---
+
+## Sprinkles and petals (square 1:1, cutout)
+
+### fx-sprinkles.png · attach sym-a
+```text
+About 40 small separate candy pieces scattered evenly across the image with clear gaps, none touching each other or the edge: candy sprinkles in orange, white, gold and mint green, tiny pearly sugar balls, small star-shaped candies, and curled gold and orange foil confetti, in different sizes and angles. Each piece crisp, glossy and solid. Match the style and lighting of the attached image. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, rich saturated colours, crisp specular highlights, tack-sharp focus. No text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing is pink, purple or see-through.
+```
+
+### fx-blossoms.png · drifting petals by day
+```text
+About 20 separate orange-blossom petals, small white five-petal blossoms with golden centres and a few small fresh green leaves, scattered evenly across the image with clear gaps, none touching each other or the edge, at varied angles. Softly lit, delicate and natural, slightly glossy. Premium AAA slot game art, stylised photoreal 3D render, tack-sharp focus. No text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing is pink, purple or see-through.
+```
+
+---
+
+## Backgrounds (scene)
+
+**Layout:**
+- **Landscape:** the reel grid takes the middle, a narrow button column sits on its left, and the logo is in the header.
+- **Portrait:** the logo is at the top, the grid in the middle, and the buttons at the bottom.
+
+So keep the **grid area calm and soft**. Spend the detail on the edges, which frame it.
+
+### bg-day-landscape.png · 16:9 · generate first
+```text
+A breathtaking magical candy orchard at golden hour, seen from a garden path. Graceful trees with glossy caramel-brown bark and lush emerald canopies, their branches heavy with ripe glowing oranges, cherries, lemons and strawberries, and here and there gold-foil toffees and peppermint candies hanging like fruit. Orange blossoms drift through the air; sunbeams stream through the leaves; warm honey-gold light, soft haze and gentle bokeh sparkles. In the distance: rolling green hills, a sparkling stream and a sky of warm peach and gold. Composition for a game screen: the centre (about 60% of the width and 75% of the height) is calm, softly lit and less detailed, because the reel grid sits there; the richest detail and the biggest trees frame the left and right edges; the bottom edge is a soft, darker lawn. Painterly 3D matte painting, cinematic lighting, atmospheric depth, volumetric light, rich detail, premium AAA slot game background. No text, no logo, no characters, no UI. Avoid: lollipops, rainbows, pink cotton-candy clouds, jelly-bean hearts, bananas, grapes, watermelons, plums, apples.
+```
+
+### bg-day-portrait.png · 9:16 · attach bg-day-landscape
+```text
+The same magical candy orchard at golden hour as in the attached image, recomposed for a tall phone screen. The reel grid sits in the middle (about 85% of the width, from 15% to 60% of the height), so that area stays calm and softly lit. Trees and hanging fruit frame the sides and the top corners. The top 12% is open, glowing peach-gold sky, where the logo goes. The bottom 30% is a soft, darker garden foreground with little detail, where the buttons go. Same light, palette and style as the attached image. Painterly 3D matte painting, cinematic lighting, atmospheric depth, volumetric light, rich detail, premium AAA slot game background. No text, no logo, no characters, no UI. Avoid: lollipops, rainbows, pink cotton-candy clouds, jelly-bean hearts, bananas, grapes, watermelons, plums, apples.
+```
+
+### bg-night-landscape.png · 16:9 · attach bg-day-landscape
+```text
+The same candy orchard as in the attached image, with the same composition, now on an enchanted night for the free spins: a deep sapphire and indigo sky full of stars, a large glowing moon, warm paper lanterns strung between the trees, golden fireflies drifting among the branches, and the fruit and candies glistening with frost-like sugar sparkle in the moonlight, with a soft magical teal-and-gold glow among the leaves. The centre stays calm and softly lit for the reel grid, the edges are rich, the bottom edge darker. Painterly 3D matte painting, cinematic lighting, atmospheric depth, volumetric light, rich detail, premium AAA slot game background. No text, no logo, no characters, no UI. Avoid: lollipops, rainbows, pink cotton-candy clouds, jelly-bean hearts, bananas, grapes, watermelons, plums, apples.
+```
+
+### bg-night-portrait.png · 9:16 · attach bg-day-portrait and bg-night-landscape
+```text
+The enchanted night orchard of the second attached image, recomposed exactly like the tall phone layout of the first attached image: the reel grid in the middle (about 85% of the width, from 15% to 60% of the height) stays calm and softly lit; trees, lanterns and fireflies frame the sides and the top corners; the top 12% is open starry sky with the moon, where the logo goes; the bottom 30% is a soft, darker foreground with little detail, where the buttons go. Painterly 3D matte painting, cinematic lighting, atmospheric depth, volumetric light, rich detail, premium AAA slot game background. No text, no logo, no characters, no UI. Avoid: lollipops, rainbows, pink cotton-candy clouds, jelly-bean hearts, bananas, grapes, watermelons, plums, apples.
+```
+
+### fg-branch.png · 3:2 · cutout · attach bg-day-landscape
+This branch sways in front of the background, at the lower left and mirrored at the right. At night the game darkens it.
+```text
+A lush flowering branch of the candy orchard from the attached image, sweeping in from the left edge of the image toward the right: glossy dark-green leaves, clusters of white orange blossoms, two ripe oranges and one gold-foil toffee hanging like fruit, three cherries on a twig. The branch enters from the left edge (cut off by the edge on purpose) and ends in open space with leafy tips. Premium AAA slot game art, stylised photoreal 3D render, glossy, rich saturated colours, warm key light from the upper left, tack-sharp focus, high detail. No text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no shadow. Nothing on the branch is pink, purple or see-through.
+```
+
+### fg-lantern.png · 2:3 · cutout · attach bg-night-landscape
+Lanterns hang in front at night and sway; the game adds their glow.
+```text
+A warm paper lantern hanging from a short cord, as in the attached image: round and ribbed, made of thin orange paper with polished gold caps at the top and bottom and a small golden tassel below, lit from within by a soft candle glow. The glow stays inside the lantern: no halo or light on the background. Premium AAA slot game art, stylised photoreal 3D render, rich saturated colours, tack-sharp focus, high detail. No text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no shadow. Nothing is pink, purple or see-through.
+```
+
+---
+
+## Frame and buttons (cutout) · attach sym-a
+
+### ui-frame.png · 5:4 · ChatGPT recommended
+```text
+An ornate premium frame around a slot game's reel window, made of polished honey-coloured wood like a luxury fruit crate, trimmed with gold filigree, studded at its four corners with small gold-foil toffees and peppermint candies, with orange-blossom vines and little leaves curling over the two top corners and a small ripe orange with two leaves crowning the top centre. The frame is symmetrical left to right and evenly thick on all four sides. The inner opening is a clean, sharp-cornered rectangle with proportions of exactly 6 wide to 5 high, filled with flat pure magenta (#FF00FF); everything outside the frame is flat pure magenta too. Straight front view, no perspective. Match the style and lighting of the attached image. Premium AAA slot game art, stylised photoreal 3D render, glossy, rich saturated colours, crisp specular highlights, tack-sharp focus, high detail. No text, no cast shadow. Nothing on the frame is pink, purple or see-through.
+```
+
+### ui-spin.png · 1:1
+```text
+A round premium spin button seen straight on: a domed, glossy candy disc in vivid orange with a subtle swirl, a raised rim of sparkling sugar crystals, a polished gold outer ring, and in the centre a bold white circular double-arrow "spin" icon embossed into the candy. Juicy, tactile and irresistible to press. Match the style and lighting of the attached image. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, rich saturated colours, crisp specular highlights, tack-sharp focus, high detail. No text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing is pink, purple or see-through. The whole button is in frame with a clear margin.
+```
+
+### ui-plaque.png · 16:9 · for the free-spins intro, the buy confirmation and the win summary
+```text
+An ornate horizontal message panel for a slot game: a rounded-rectangle plaque of glossy dark chocolate with a polished gold filigree border, small gold-foil toffees at its four corners and orange-blossom sprigs over the top corners. Its large centre is a smooth, plain, empty chocolate surface, left blank for text. Symmetrical, straight front view. Match the style and lighting of the attached image. Premium AAA slot game art, stylised photoreal 3D render, glossy, rich saturated colours, crisp specular highlights, tack-sharp focus, high detail. No text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no floor, no shadow. Nothing is pink, purple or see-through. The whole panel is in frame with a clear margin.
+```
+
+---
+
+## Lettering (cutout) · ChatGPT or Ideogram
+
+Generate `txt-logo` first, then attach it to every banner so the lettering matches. Check the spelling every time.
+
+### txt-logo.png · 2:1 · attach sym-a and sym-e
+```text
+The game logo in two lines of chunky three-dimensional lettering: "SUGAR" on top, "ORCHARD" below it and larger. "SUGAR" is in sparkling white sugar-frosted letters with a glittering crystal crust and a thin gold edge; "ORCHARD" is in glossy orange candy letters with golden caramel bevels and a few honey drips, and its letter O is a ripe orange with two leaves, like the attached orange. Two small orange blossoms and a gold-foil toffee are tucked around the letters, with sparkles on the highlights. Bold, joyful, premium and perfectly legible. Spell exactly: SUGAR ORCHARD. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, rich saturated colours, crisp specular highlights, tack-sharp focus. No other text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no shadow. Nothing is pink, purple or see-through. The whole logo is in frame with a clear margin.
+```
+
+### Banners · 3:1 · attach txt-logo
+
+There is one prompt per banner; only the words and the material change.
+
+| File | Words | Material sentence |
+|---|---|---|
+| `txt-big-win.png` | `BIG WIN` | `glossy golden caramel letters with honey drips and bright sparkles` |
+| `txt-mega-win.png` | `MEGA WIN` | `glossy cherry-red candy letters with thick polished gold outlines and sparkles` |
+| `txt-epic-win.png` | `EPIC WIN` | `emerald hard-candy letters with polished gold outlines and a crust of glittering sugar frost` |
+| `txt-max-win.png` | `MAX WIN` | `brilliant diamond-white frosted crystal letters with gold rims, radiant sparkles and tiny flying sugar crystals` |
+| `txt-free-spins.png` | `FREE SPINS` | `glossy ice-blue sugar-glass letters with gold rims and small golden stars, opaque` |
+| `txt-total-win.png` | `TOTAL WIN` | `glossy golden caramel letters with honey drips and bright sparkles` |
+
+```text
+The words "BIG WIN" in chunky three-dimensional lettering on one line: glossy golden caramel letters with honey drips and bright sparkles. The same lettering style, weight and finish as the attached logo. Bold, celebratory, perfectly legible, slightly arched. Spell exactly: BIG WIN. Premium AAA slot game art, stylised photoreal 3D render, ultra glossy, rich saturated colours, crisp specular highlights, tack-sharp focus. No other text, no cast shadow. Isolated on a flat, solid, pure magenta (#FF00FF) background: no gradient, no shadow. Nothing is pink, purple or see-through. The whole word is in frame with a clear margin.
+```
+
+---
+
+## Lobby tile (scene)
+
+### key-thumbnail.png · 4:3 · attach sym-s-scatter-basket and bg-day-landscape
+The logo is placed on top afterwards; I compose it.
+```text
+Hero key art for the game's lobby tile: the golden scatter basket from the first attached image in the centre foreground, bursting open, with oranges, cherries, a strawberry, gold-foil toffees and peppermints flying out toward the viewer, a dazzling sugar-frost explosion of glittering ice-sugar crystals behind it, set in the golden-hour candy orchard of the second attached image, shallow depth of field. The top third is calmer and slightly darker, because the logo goes there afterwards. Spectacular, joyful, premium. Painterly 3D, cinematic lighting, volumetric light, rich detail, premium AAA slot game key art. No text, no logo. Avoid: lollipops, rainbows, pink cotton-candy clouds, jelly-bean hearts.
+```
+
+---
+
+## What I do when the art arrives
+
+- **Key and cut:**
+  - Cutouts are keyed out.
+  - Fragment and particle sheets are split into single pieces.
+  - Everything is packed as WebP into `public/images/sugar-orchard/`.
+- **The win sequence**, in a particle layer: frost-over, burst, ring, shatter with spin and gravity, crystals and sparkles, then the tumble.
+- **Celebrations:**
+  - fireworks and banners for big wins;
+  - golden rays and the basket's pulse for scatters;
+  - comets carrying the multipliers to the win.
+- **Backgrounds:** layered and alive, with swaying branches and lanterns, drifting petals by day and fireflies by night.
+- **Thumbnail:** I compose the lobby thumbnail from `key-thumbnail` and the logo.
+- **Stays in code:** the grid cells, the bet bar, numbers and counters stay crisp and readable.
