@@ -48,7 +48,9 @@ export function startSlot(cfg) {
 
     // ---- Sound -------------------------------------------------------------------------------
 
-    const sound = { ctx: null, pack: null, music: null, on: readPref('sound', true) };
+    // Sound effects only, while a spin plays (spin, landing, wins, free spins…). There is no
+    // background music: the pack's ambience is never started.
+    const sound = { ctx: null, pack: null, on: readPref('sound', true) };
     function audio() {
         if (!sound.on) return null;
         if (!sound.ctx) {
@@ -62,25 +64,15 @@ export function startSlot(cfg) {
             sound.pack = factory(sound.ctx, master);
         }
         if (sound.ctx.state === 'suspended') sound.ctx.resume();
-        if (!sound.music) sound.music = sound.pack.ambience();
         return sound.pack;
     }
     function sfx(name, arg) {
         if (sound.on && !state.quick) audio()?.sfx(name, arg);
     }
-    function music(level) {
-        sound.music?.intensity(level);
-    }
     function setSound(on) {
         sound.on = on;
         writePref('sound', on);
         $('sound-btn').setAttribute('aria-pressed', String(on));
-        if (!on && sound.music) {
-            sound.music.stop();
-            sound.music = null;
-        } else if (on) {
-            audio();
-        }
     }
 
     // ---- Timing --------------------------------------------------------------------------------
@@ -544,7 +536,6 @@ export function startSlot(cfg) {
                 button: 'Start', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0,
             });
             document.body.classList.add('free');
-            music(1);
             let awarded = base.awarded;
             let fsWin = 0n;
             hud(0, awarded, 0n);
@@ -565,7 +556,6 @@ export function startSlot(cfg) {
                 { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
             document.body.classList.remove('free');
             $('fs-hud').hidden = true;
-            music(0);
         }
 
         // Celebrated against what the player paid: a bought feature returning 94× its 100× price is no big win.
@@ -909,6 +899,83 @@ export function startSlot(cfg) {
         { button: 'Close', cls: 'wide' });
     }
 
+    // ---- Game history -----------------------------------------------------------------------------
+    // The casino page answers bet_history (Orange's host page does it from the player API). It
+    // offers it in player_info, which shows the History button.
+
+    let historyPending = null;
+
+    function fetchHistory() {
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => {
+                historyPending = null;
+                resolve({ success: false, error: 'timeout' });
+            }, 10_000);
+            historyPending = (payload) => {
+                clearTimeout(timer);
+                historyPending = null;
+                resolve(payload);
+            };
+            if (!bridge.send('bet_history', {})) {
+                clearTimeout(timer);
+                historyPending = null;
+                resolve({ success: false, error: 'not_connected' });
+            }
+        });
+    }
+
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    function historyRow(b) {
+        const d = b.details ?? {};
+        const payout = toUnits(b.payout_amount ?? '0') ?? 0n;
+        const won = payout > 0n;
+        const when = new Date(b.placed_at);
+        const today = !Number.isNaN(when.getTime()) && when.toDateString() === new Date().toDateString();
+        const time = Number.isNaN(when.getTime()) ? '' : when.toLocaleString([], today
+            ? { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+            : { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        const tags = [
+            d.mode === 'ante' ? '<span class="tag">Ante</span>' : '',
+            d.mode === 'buy' ? '<span class="tag">Bought</span>' : '',
+            d.free_spins > 0 ? `<span class="tag fs">${Number(d.free_spins)} free spins</span>` : '',
+            d.max_win ? '<span class="tag max">Max win</span>' : '',
+            b.status === 'refunded' ? '<span class="tag">Refunded</span>' : '',
+        ].join('');
+        const times = d.win_x ?? b.multiplier;
+        const f = b.fairness;
+        return `<details class="hrow${won ? ' won' : ''}"><summary>
+                <span class="h-time">${esc(time)}</span>
+                <span class="h-bet">${shown(b.amount)} <small>${esc(b.currency)}</small>${tags}</span>
+                <span class="h-win">${won ? shown(b.payout_amount) : '—'}${won && times ? `<small>×${esc(times)}</small>` : ''}</span>
+            </summary>
+            <dl>
+                <dt>Bet ID</dt><dd>${esc(b.bet_id)}</dd>
+                ${d.bet ? `<dt>Bet</dt><dd>${shown(d.bet)} ${esc(b.currency)}${d.mode && d.mode !== 'base' ? ` (${d.mode === 'buy' ? 'bought free spins' : 'ante'}: stake ${shown(b.amount)})` : ''}</dd>` : ''}
+                <dt>Win</dt><dd>${won ? `${shown(b.payout_amount)} ${esc(b.currency)}` : 'No win'}</dd>
+                ${f ? `<dt>Nonce</dt><dd>${esc(f.nonce)}</dd><dt>Client seed</dt><dd class="mono">${esc(f.client_seed)}</dd><dt>Server seed hash</dt><dd class="mono">${esc(f.server_seed_hash)}</dd>` : ''}
+            </dl></details>`;
+    }
+
+    async function history() {
+        sfx('click');
+        dialog(`<h2>Game history</h2>
+            <div class="hist-head"><span>Time</span><span>Bet</span><span>Win</span><span></span></div>
+            <div id="hist" class="hist"><p class="note">Loading your bets…</p></div>
+            <p class="hist-note">Your latest bets, newest first. Open a bet for its seeds: rotate your seeds to reveal the server seed and verify it at ${esc(cfg.verifyUrl)}.</p>`,
+        { button: 'Close', cls: 'wide history' });
+        const r = await fetchHistory();
+        const box = document.getElementById('hist');
+        if (!box) return; // closed meanwhile
+        if (!r.success) {
+            box.innerHTML = '<p class="note">Your history is not available right now. Please try again in a moment.</p>';
+        } else if (!r.bets?.length) {
+            box.innerHTML = '<p class="note">No bets on this game yet.</p>';
+        } else {
+            box.innerHTML = r.bets.map(historyRow).join('');
+        }
+    }
+
     // ---- Wiring ---------------------------------------------------------------------------------
 
     const bridge = createGameBridge({
@@ -920,6 +987,7 @@ export function startSlot(cfg) {
                 state.limits = payload.limits ?? null;
                 state.steps = playableSteps(cfg.config.bet_steps ?? ['1.00'], state.limits);
                 if (!state.steps.includes(state.bet)) state.bet = state.steps[0];
+                $('history-btn').hidden = payload.bet_history !== true;
                 $('status').hidden = true;
                 balance();
                 controls();
@@ -928,6 +996,8 @@ export function startSlot(cfg) {
                 if (!state.busy) balance();
             } else if (type === 'bet_placed_result') {
                 pending?.(payload);
+            } else if (type === 'bet_history_result') {
+                historyPending?.(payload);
             }
         },
     });
@@ -949,6 +1019,7 @@ export function startSlot(cfg) {
     });
     $('sound-btn').addEventListener('click', () => setSound(!sound.on));
     $('info-btn').addEventListener('click', rules);
+    $('history-btn').addEventListener('click', history);
     board.addEventListener('click', () => { if (state.busy) state.quick = true; });
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && $('overlay').hidden && !e.repeat && e.target === document.body) {

@@ -316,6 +316,32 @@
         table.pays th { font-size: 12px; color: #8a3b00; } table.pays td { text-align: center; padding: 2px 4px; border-top: 1px solid rgba(120, 60, 10, .15); }
         table.pays img { width: 44px; height: 44px; object-fit: contain; vertical-align: middle; }
         img.inline { width: 30px; height: 30px; vertical-align: middle; object-fit: contain; }
+        /* Game history: one row per bet, newest first; a row opens to its details and seeds. */
+        .dialog.history { width: min(680px, 96vw); }
+        .hist-head, .hrow summary { display: grid; grid-template-columns: minmax(84px, auto) 1fr auto 18px; gap: 10px; align-items: center; }
+        .hist-head { padding: 0 12px 4px; font: 800 10px/1 var(--num); letter-spacing: .12em; text-transform: uppercase; color: #8a5a2b; }
+        .hist-head span:nth-child(3) { text-align: right; }
+        .hist { display: grid; gap: 6px; margin-top: 4px; max-height: min(58vh, 520px); overflow: auto; padding-right: 2px; }
+        .hrow { border-radius: 12px; background: rgba(255, 255, 255, .6); border: 1px solid rgba(120, 60, 10, .16); }
+        .hrow[open] { background: #fffaf0; box-shadow: 0 4px 12px rgba(90, 40, 0, .12); }
+        .hrow summary { padding: 9px 12px; cursor: pointer; list-style: none; font-variant-numeric: tabular-nums; }
+        .hrow summary::-webkit-details-marker { display: none; }
+        .hrow summary::after { content: '▾'; color: #b07a44; transition: transform .2s; }
+        .hrow[open] summary::after { transform: rotate(180deg); }
+        .h-time { font-size: 12px; font-weight: 600; color: #8a5a2b; line-height: 1.25; }
+        .h-bet { font: 800 15px/1.3 var(--num); color: var(--ink); }
+        .h-win { font: 800 15px/1.2 var(--num); color: #a07850; text-align: right; }
+        .hrow.won .h-win { color: #1f8a3e; }
+        .h-win small { display: block; font-size: 11px; font-weight: 700; color: #8a5a2b; }
+        .tag { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; vertical-align: 2px;
+               font: 800 9.5px/1.2 var(--num); letter-spacing: .06em; text-transform: uppercase; background: #f3d9ae; color: #6a3510; }
+        .tag.fs { background: #d8e6ff; color: #1b3b86; }
+        .tag.max { background: linear-gradient(180deg, #ffe58a, #ffbf2e); color: #5a2600; }
+        .hrow dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; padding: 2px 12px 12px; font-size: 12px; }
+        .hrow dt { color: #8a5a2b; font-weight: 600; }
+        .hrow dd { margin: 0; font-weight: 600; word-break: break-all; }
+        .hrow dd.mono { font: 500 11px/1.4 ui-monospace, monospace; }
+        .hist-note { margin: 10px 0 0; font-size: 12px; opacity: .8; }
         .confetti { position: fixed; top: 0; z-index: 21; pointer-events: none; }
         .toast { position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%); z-index: 25; background: rgba(120, 20, 10, .92); border-radius: 12px; padding: 10px 16px; max-width: 92vw; text-align: center; }
         .status { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 15; background: var(--panel); border-radius: 14px; padding: 12px 18px; text-align: center; }
@@ -344,7 +370,7 @@
             .bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "bal spin win" "bet spin tools"; row-gap: 6px; column-gap: 8px; padding: 6px 14px max(8px, env(safe-area-inset-bottom)); }
             .spin { margin-top: 0; }
             .winm { justify-self: end; text-align: right; }
-            .tools { justify-self: end; display: grid; grid-template-columns: repeat(2, 34px); gap: 6px; }
+            .tools { justify-self: end; display: grid; grid-template-columns: repeat(3, 34px); gap: 6px; }
             .tool { width: 34px; }
             .tool svg { width: 18px; height: 18px; }
             .bet { grid-area: bet; justify-self: start; display: flex; align-items: center; gap: 6px; }
@@ -467,6 +493,9 @@
             </button>
             <button id="sound-btn" class="tool" aria-pressed="true" aria-label="Sound" title="Sound">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="#fff"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+            </button>
+            <button id="history-btn" class="tool" aria-label="Game history" title="Game history" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4.5V9h4.5"/><path d="M12 7.5V12l3 2"/></svg>
             </button>
             <button id="info-btn" class="tool" aria-label="Paytable and rules" title="Paytable and rules">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg>

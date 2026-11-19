@@ -229,6 +229,30 @@ it('plays a slot in direct play through the player API', function (): void {
     getJson('/play-api/games/sugar-orchard/bets', $auth)->assertOk()->assertJsonCount(1, 'bets');
 });
 
+it('lists the player\'s slot bets as a game history, with each bet\'s details and seeds', function (): void {
+    [$operator, $game] = slotSetup();
+    OperatorGame::query()->where('operator_id', $operator->id)->where('game_id', $game->id)->update(['settings' => json_encode(['play_mode' => 'direct'])]);
+    [, $bearer] = app(PlaySessionService::class)->exchange(app(LaunchService::class)->issue($operator, $game, 'p-1', 'EUR')->token);
+    $auth = ['Authorization' => "Bearer {$bearer}"];
+    postJson('/play-api/games/sugar-orchard/bets', ['amount' => '1.00', 'params' => ['mode' => 'base']], $auth + ['Idempotency-Key' => 'page-key-slot-01'])->assertCreated();
+    postJson('/play-api/games/sugar-orchard/bets', ['amount' => '1.25', 'params' => ['mode' => 'ante']], $auth + ['Idempotency-Key' => 'page-key-slot-02'])->assertCreated();
+
+    $history = getJson('/play-api/games/sugar-orchard/bets', $auth)->assertOk()
+        // Newest first: the ante bet, then the 7.85× base spin.
+        ->assertJsonPath('bets.0.game_type', 'slot')
+        ->assertJsonPath('bets.0.details.mode', 'ante')
+        ->assertJsonPath('bets.0.details.bet', '1.00')
+        ->assertJsonPath('bets.1.details', ['mode' => 'base', 'bet' => '1.00', 'win_x' => '7.85', 'free_spins' => 0, 'max_win' => false])
+        ->assertJsonPath('bets.1.payout_amount', '7.85000000')
+        ->assertJsonPath('bets.1.fairness.nonce', 1)
+        ->assertJsonPath('bets.0.fairness.nonce', 2);
+
+    // The hash commits to the server seed; the seed itself stays secret until it is rotated.
+    $seed = PlayerSeed::query()->sole();
+    expect($history->json('bets.1.fairness.server_seed_hash'))->toBe($seed->server_seed_hash)
+        ->and($history->getContent())->not->toContain($seed->server_seed);
+});
+
 it('keeps the RTP target and the variant in step', function (): void {
     $engine = app(SlotEngine::class);
     $game = new Game(['type' => 'slot', 'rtp_target' => 0.955, 'house_edge' => 0.045]);

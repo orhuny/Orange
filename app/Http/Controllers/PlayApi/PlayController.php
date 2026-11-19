@@ -179,7 +179,7 @@ class PlayController
         }
 
         $bets = Bet::query()
-            ->with('round')
+            ->with(['round', 'playerSeed'])
             ->where('operator_id', $session->operator_id)
             ->where('player_id', $session->player_id)
             ->where('game_id', $game->id)
@@ -189,10 +189,11 @@ class PlayController
             ->limit(self::BET_HISTORY_SIZE)
             ->get();
 
-        return response()->json(['bets' => $bets->map(function (Bet $bet): array {
+        return response()->json(['bets' => $bets->map(function (Bet $bet) use ($game): array {
             $status = $bet->getAttribute('status');
             $placedAt = $bet->getAttribute('placed_at');
             $round = $bet->round;
+            $seed = $bet->playerSeed;
 
             return [
                 'bet_id' => $bet->id,
@@ -207,8 +208,42 @@ class PlayController
                 'round_uuid' => $round?->round_uuid,
                 // Only once the round is over: a bet on the live round must not reveal it.
                 'crash_point' => $round?->publicCrashPoint(),
+                'game_type' => $game->engineType(),
+                'details' => $this->historyDetails($game, $bet),
+                // An instant bet's seed pair and nonce, to verify it once the seed is rotated.
+                // Never the server seed itself: the hash commits to it.
+                'fairness' => $seed === null ? null : [
+                    'server_seed_hash' => $seed->server_seed_hash,
+                    'client_seed' => $seed->client_seed,
+                    'nonce' => (int) $bet->getAttribute('nonce'),
+                ],
             ];
         })->all()]);
+    }
+
+    /**
+     * What a game's history row shows beyond the stake and the win; null when it has nothing
+     * more. A slot: its mode, the bet the stake was for, the win in multiples of that bet,
+     * the free spins played and whether the max win was reached.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function historyDetails(Game $game, Bet $bet): ?array
+    {
+        $params = (array) $bet->getAttribute('params');
+        $outcome = (array) $bet->getAttribute('outcome');
+        if ($game->engineType() !== 'slot' || $outcome === []) {
+            return null;
+        }
+        $cost = (string) ($params['cost'] ?? '1');
+
+        return [
+            'mode' => (string) ($params['mode'] ?? 'base'),
+            'bet' => bccomp($cost, '0', 2) > 0 ? bcdiv((string) $bet->amount, $cost, 2) : (string) $bet->amount,
+            'win_x' => isset($outcome['total_win_x']) ? (string) $outcome['total_win_x'] : null,
+            'free_spins' => (int) ($outcome['free_spins'] ?? 0),
+            'max_win' => (bool) ($outcome['max_win_reached'] ?? false),
+        ];
     }
 
     /** POST /play-api/bets/{bet}/cashout */
