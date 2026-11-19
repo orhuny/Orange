@@ -446,9 +446,70 @@ export function startSlot(cfg) {
 
     let betWin = 0n;
 
+    /** The win meter: counts up to a new win and lights up; its perched fruit cheer and some burst out. */
     function showWin(units) {
+        const before = betWin;
         betWin = units;
-        $("win").textContent = units > 0n ? shown(units) : "0.00";
+        const el = $('win');
+        const meter = $('win-meter');
+        if (units <= 0n) {
+            cancelAnimationFrame(rollTo.raf);
+            el.textContent = '0.00';
+            meter.classList.remove('lit', 'cheer');
+            return;
+        }
+        meter.classList.add('lit');
+        if (units > before && !state.quick) {
+            rollTo(el, before, units);
+            cheer(meter);
+        } else {
+            cancelAnimationFrame(rollTo.raf);
+            el.textContent = shown(units);
+        }
+    }
+
+    function rollTo(el, from, to) {
+        const a = Number(from) / 1e8;
+        const b = Number(to) / 1e8;
+        const started = performance.now();
+        const length = dur(520);
+        cancelAnimationFrame(rollTo.raf);
+        const step = (now) => {
+            const f = Math.min(1, (now - started) / length);
+            el.textContent = f >= 1 ? shown(to) : shown((a + (b - a) * easeOut(f)).toFixed(2));
+            if (f < 1) rollTo.raf = requestAnimationFrame(step);
+        };
+        rollTo.raf = requestAnimationFrame(step);
+        animate(el, [{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.35 }, { transform: 'scale(1)' }], 520);
+    }
+
+    function cheer(meter) {
+        meter.classList.remove('cheer');
+        void meter.offsetWidth; // restart the animation
+        meter.classList.add('cheer');
+        clearTimeout(cheer.timer);
+        cheer.timer = setTimeout(() => meter.classList.remove('cheer'), 1800);
+        if (reducedMotion) return;
+        const r = meter.getBoundingClientRect();
+        const pool = ['E', 'F', 'G', 'H', 'I', 'A', 'B'].map((s) => theme.symbols[s]?.img).filter(Boolean);
+        for (let i = 0; i < 7 && pool.length; i++) {
+            const img = document.createElement('img');
+            img.className = 'pop-fruit';
+            img.alt = '';
+            img.src = pool[i % pool.length];
+            img.style.left = `${r.left + r.width / 2}px`;
+            img.style.top = `${r.top + r.height * 0.4}px`;
+            document.body.append(img);
+            const angle = -Math.PI / 2 + (i - 3) * 0.32 + rand(-0.12, 0.12);
+            const dist = rand(95, 150);
+            const dx = Math.cos(angle) * dist;
+            const dy = Math.sin(angle) * dist;
+            animate(img, [
+                { transform: 'translate(0, 0) scale(.3) rotate(0deg)', opacity: 0 },
+                { transform: `translate(${dx * 0.6}px, ${dy * 0.7}px) scale(1) rotate(${rand(-60, 60)}deg)`, opacity: 1, offset: 0.35 },
+                { transform: `translate(${dx}px, ${dy + 60}px) scale(.7) rotate(${rand(-160, 160)}deg)`, opacity: 0 },
+            ], rand(800, 1050), { easing: 'cubic-bezier(.2,.7,.4,1)' }).then(() => img.remove());
+        }
     }
 
     async function playSpin(spin, alreadyCleared) {

@@ -48,6 +48,12 @@
     </script>
     <link rel="preload" as="image" href="{{ $theme['frame']['src'] }}">
     <style>
+        @font-face { font-family: "Slot Sora"; font-weight: 400 800; font-style: normal; font-display: swap;
+            src: url("{{ asset('fonts/sora/sora-latin-ext.woff2') }}") format("woff2");
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+        @font-face { font-family: "Slot Sora"; font-weight: 400 800; font-style: normal; font-display: swap;
+            src: url("{{ asset('fonts/sora/sora-latin.woff2') }}") format("woff2");
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
         :root {
             --cream: #fff6e2; --ink: #3a1a06; --wood: #7a3f17; --wood-hi: #b8692c; --orange: #ff8a12; --orange-hi: #ffc04a;
             --leaf: #3fae49; --gold: #ffd451; --panel: rgba(46, 20, 4, .78);
@@ -55,6 +61,7 @@
             --night-l: url('{{ $theme['backgrounds']['night']['landscape'] }}'); --night-p: url('{{ $theme['backgrounds']['night']['portrait'] }}');
             --spin-art: url('{{ $theme['spin'] }}'); --plaque: url('{{ $theme['plaque']['src'] }}'); --plaque-ratio: {{ $theme['plaque']['ratio'] }};
             --round: 'Arial Rounded MT Bold', 'Baloo 2', 'Trebuchet MS', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --num: 'Slot Sora', 'Arial Rounded MT Bold', system-ui, -apple-system, 'Segoe UI', sans-serif; /* the bar's figures and labels */
             --top: clamp(44px, 11vh, 104px);
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -155,21 +162,35 @@
            The ornaments get their room above and at the sides; below, they tuck behind the bar. */
         .frame { flex: none; padding: calc(var(--bh) * var(--topk)) calc(var(--bh) * var(--er)) calc(var(--bh) * .02) calc(var(--bh) * var(--el)); }
         .board-wrap { position: relative; width: calc(var(--bh) * var(--ar)); height: var(--bh); }
+        /* Whole pixels: the grid's height a multiple of 5 and its width of 6, so every cell
+           starts on a pixel and the symbols are never resampled between pixels. */
+        @supports (width: round(down, 10.5px, 1px)) {
+            .stage { --bh: round(down, min(calc((100dvh - var(--spin) * .62 - 30px) / (1 + var(--topk))), calc((100vw - var(--side) - var(--gap) - 24px) / var(--fwk)), 900px), 5px); }
+            .board-wrap { width: round(down, calc(var(--bh) * var(--ar)), 6px); }
+        }
         .fp { position: absolute; top: calc(var(--bh) * var(--et) * -1); height: calc(var(--bh) * var(--ph)); z-index: 3; pointer-events: none;
               filter: drop-shadow(0 14px 22px rgba(40, 14, 0, .45)); }
         .fp-l { left: calc(var(--bh) * var(--el) * -1); width: calc(var(--bh) * var(--lw)); }
         .fp-r { right: calc(var(--bh) * var(--er) * -1); width: calc(var(--bh) * var(--rw)); }
         .fp-m { left: calc(var(--bh) * var(--ml) - 1px); right: calc(var(--bh) * var(--mr) - 1px); background: var(--frame-fill) 0 0 / 100% 100% no-repeat; }
         .frame-art { display: none; }
+        /* Deep candy glass behind the symbols, with faint column lines: the fruit stands out
+           sharply against it. */
         .board { position: absolute; inset: 0; overflow: hidden; border-radius: 8px; cursor: pointer;
-                 background: radial-gradient(ellipse at 50% 40%, rgba(255, 251, 240, .7), rgba(255, 236, 205, .55));
-                 -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); box-shadow: inset 0 0 24px rgba(120, 60, 10, .25); transition: background 1.2s ease; }
-        body.free .board { background: radial-gradient(ellipse at 50% 40%, rgba(40, 60, 130, .55), rgba(14, 20, 58, .62)); box-shadow: inset 0 0 28px rgba(0, 0, 30, .5); }
+                 background: linear-gradient(90deg, transparent calc(100% - 1px), rgba(255, 226, 170, .1) 0) 0 0 / calc(100% / 6) 100% repeat-x,
+                             radial-gradient(ellipse at 50% 35%, rgba(98, 47, 17, .6), rgba(36, 13, 3, .76));
+                 -webkit-backdrop-filter: blur(6px) saturate(1.1); backdrop-filter: blur(6px) saturate(1.1);
+                 box-shadow: inset 0 0 0 1px rgba(255, 214, 150, .18), inset 0 12px 34px rgba(0, 0, 0, .38); transition: background 1.2s ease; }
+        body.free .board { background: linear-gradient(90deg, transparent calc(100% - 1px), rgba(180, 210, 255, .1) 0) 0 0 / calc(100% / 6) 100% repeat-x,
+                                       radial-gradient(ellipse at 50% 35%, rgba(36, 52, 124, .58), rgba(9, 13, 42, .76));
+                           box-shadow: inset 0 0 0 1px rgba(170, 200, 255, .2), inset 0 12px 34px rgba(0, 0, 20, .45); }
         .frame-art { position: absolute; left: var(--fl); top: var(--ft); width: var(--fw); height: var(--fh); z-index: 3; pointer-events: none;
-                     filter: drop-shadow(0 14px 22px rgba(40, 14, 0, .45)); }        .fxc { position: absolute; left: -40%; top: -40%; width: 180%; height: 180%; z-index: 6; pointer-events: none; }
-        .sym { position: absolute; left: 0; top: 0; width: calc(100% / 6); height: calc(100% / 5); display: grid; place-items: center; z-index: 1; will-change: transform;
+                     filter: drop-shadow(0 14px 22px rgba(40, 14, 0, .45)); }
+        .fxc { position: absolute; left: -40%; top: -40%; width: 180%; height: 180%; z-index: 6; pointer-events: none; }
+        /* No will-change: a symbol at rest is drawn at full quality, not as a GPU layer. */
+        .sym { position: absolute; left: 0; top: 0; width: calc(100% / 6); height: calc(100% / 5); display: grid; place-items: center; z-index: 1;
                container-type: size; }
-        .sym > img, .sym .star { width: 90%; height: 90%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 25, 0, .35)); }
+        .sym > img, .sym .star { width: 90%; height: 90%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 4px rgba(20, 8, 0, .5)); }
         .sym[data-s=S] > img { width: 98%; height: 98%; }
         .sym .star { position: relative; display: grid; place-items: center; }
         .sym .star img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
@@ -198,29 +219,57 @@
                column-gap: clamp(10px, 1.4vw, 22px); margin: 0 -12px;
                padding: 0 max(14px, calc((100vw - var(--group)) / 2)) max(8px, env(safe-area-inset-bottom));
                background: linear-gradient(180deg, transparent, rgba(30, 12, 2, .8) 45%); }
-        .meter { display: grid; text-align: center; min-width: 84px; }
-        .meter small { font-size: 11px; letter-spacing: 1px; color: var(--gold); opacity: .9; }
-        .meter span, .meter > b { font-size: clamp(16px, 1.6vw, 22px); font-variant-numeric: tabular-nums; }
-        .bal { grid-area: bal; justify-self: start; text-align: left; }
-        .winm { grid-area: win; justify-self: center; }
-        .winm #win { color: var(--gold); font-size: clamp(18px, 2vw, 28px); }
+        /* Meters: chocolate pills in a gold rim, bold figures. */
+        .meter { position: relative; display: grid; gap: 2px; text-align: center; min-width: 96px; padding: 6px 14px 7px; border-radius: 14px; border: 1.5px solid transparent;
+                 background: linear-gradient(180deg, rgba(78, 37, 12, .9), rgba(30, 11, 2, .92)) padding-box, linear-gradient(180deg, #ffe7a3, #b8741f) border-box;
+                 box-shadow: 0 6px 14px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 230, 180, .25); }
+        .meter small { font: 800 10px/1 var(--num); letter-spacing: .16em; color: var(--gold); text-shadow: 0 1px 0 #3a1400; }
+        .meter span, .meter > b { font: 800 clamp(16px, 1.6vw, 23px)/1.1 var(--num); color: #fff; letter-spacing: -.01em; font-variant-numeric: tabular-nums;
+                                  text-shadow: 0 2px 0 rgba(30, 10, 0, .55); white-space: nowrap; }
+        .bal { grid-area: bal; justify-self: start; }
         .bet { display: contents; }
-        .bet .meter { grid-area: betm; text-align: left; }
+        .bet .meter { grid-area: betm; }
         #bet-minus { grid-area: minus; } #bet-plus { grid-area: plus; }
-        .round { width: clamp(38px, 3.2vw, 48px); aspect-ratio: 1; border-radius: 50%; padding: 0; font-size: clamp(20px, 2vw, 26px); line-height: 1; color: #fff;
-                 border: 2px solid rgba(255, 214, 150, .75); background: radial-gradient(circle at 35% 30%, rgba(120, 58, 18, .95), rgba(40, 16, 4, .95));
-                 box-shadow: 0 4px 10px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 230, 180, .3); }
+        /* The win: big golden figures, with fruit perched on top that bob, and cheer at a win. */
+        .winm { grid-area: win; justify-self: center; min-width: clamp(150px, 15vw, 230px); padding: 6px 24px 8px; overflow: visible;
+                background: linear-gradient(180deg, rgba(92, 44, 14, .92), rgba(34, 12, 2, .94)) padding-box, linear-gradient(180deg, #fff1c4, #e3a23e 45%, #8a4d12) border-box; }
+        .winm #win { font-size: clamp(22px, 2.4vw, 34px); line-height: 1.05; color: transparent; text-shadow: none;
+                     background: linear-gradient(180deg, #fffbe0, #ffd34d 52%, #f08a00); -webkit-background-clip: text; background-clip: text;
+                     filter: drop-shadow(0 2px 0 #4a1e00) drop-shadow(0 0 10px rgba(255, 190, 60, .3)); display: inline-block; }
+        .winm.lit { box-shadow: 0 6px 14px rgba(0, 0, 0, .42), 0 0 22px rgba(255, 196, 70, .55), inset 0 1px 0 rgba(255, 230, 180, .3); }
+        .perch { position: absolute; right: -10px; top: 0; translate: 0 -60%; display: flex; align-items: flex-end; gap: 0; pointer-events: none; }
+        .perch img { width: clamp(24px, 2vw, 34px); aspect-ratio: 1; object-fit: contain; transform-origin: 50% 100%; filter: drop-shadow(0 3px 2px rgba(20, 8, 0, .5));
+                     animation: hop 2.6s ease-in-out infinite; }
+        .perch img:nth-child(2) { width: clamp(28px, 2.3vw, 40px); animation-delay: -.9s; }
+        .perch img:nth-child(3) { animation-delay: -1.7s; }
+        @keyframes hop { 0%, 100% { transform: translateY(0) rotate(0deg); } 30% { transform: translateY(-4px) rotate(-5deg); } 60% { transform: translateY(0) rotate(4deg) scaleY(.94); } }
+        .winm.cheer .perch img { animation: cheer .42s ease-in-out 4; }
+        @keyframes cheer { 50% { transform: translateY(-14px) rotate(10deg) scale(1.12); } }
+        .pop-fruit { position: fixed; z-index: 9; pointer-events: none; width: clamp(32px, 2.7vw, 46px); translate: -50% -50%; filter: drop-shadow(0 4px 3px rgba(20, 8, 0, .5)); }
+
+        /* Buttons: glossy candy. */
+        .round, .tool { position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 0; border-radius: 50%; color: #fff; line-height: 1;
+                        border: 2px solid rgba(255, 220, 160, .85); background: radial-gradient(circle at 35% 28%, #a8521c, #5a250a 58%, #2c0f02);
+                        box-shadow: 0 5px 12px rgba(0, 0, 0, .45), inset 0 2px 0 rgba(255, 236, 190, .35), inset 0 -3px 0 rgba(0, 0, 0, .3);
+                        transition: transform .12s ease, filter .15s ease; }
+        .round { width: clamp(40px, 3.3vw, 50px); font: 800 clamp(22px, 2vw, 28px)/1 var(--num); text-shadow: 0 2px 0 rgba(0, 0, 0, .4); }
+        .tool { width: clamp(38px, 2.9vw, 46px); }
+        :is(.round, .tool):not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.12); }
+        :is(.round, .tool):not(:disabled):active { transform: translateY(1px); }
         .spin { grid-area: spin; width: var(--spin); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%; margin-top: calc(var(--spin) * -.38);
                 background: var(--spin-art) center / contain no-repeat; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)); transition: transform .12s ease; }
+        .spin:not(:disabled):not(.busy) { animation: breathe 2.8s ease-in-out infinite; }
+        @keyframes breathe { 50% { scale: 1.035; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)) drop-shadow(0 0 14px rgba(255, 170, 60, .55)); } }
         .spin:not(:disabled):hover { transform: scale(1.04); }
         .spin:not(:disabled):active { transform: scale(.95); }
         .spin.busy { animation: rot .9s linear infinite; }
         @keyframes rot { to { transform: rotate(360deg); } }
         .tools { grid-area: tools; display: flex; gap: 8px; }
-        .tool { position: relative; width: 40px; height: 40px; border-radius: 12px; border: 2px solid var(--wood-hi); background: var(--panel); padding: 0; display: grid; place-items: center; }
-        .tool svg { width: 22px; height: 22px; }
-        .tool[aria-pressed=true] { background: var(--leaf); border-color: #b7f0a0; }
-        .tool .count { position: absolute; top: -8px; right: -8px; background: var(--orange); border-radius: 999px; font-size: 11px; padding: 1px 5px; }
+        .tool svg { width: 46%; height: 46%; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .4)); }
+        .tool[aria-pressed=true] { background: radial-gradient(circle at 35% 28%, #8ff09a, #34a845 58%, #145a1f); border-color: #d9ffd2;
+                                   box-shadow: 0 5px 12px rgba(0, 0, 0, .45), 0 0 14px rgba(95, 211, 106, .5), inset 0 2px 0 rgba(255, 255, 255, .4); }
+        .tool .count { position: absolute; top: -7px; right: -7px; min-width: 20px; padding: 2px 5px; border-radius: 999px; font: 800 11px/1.2 var(--num);
+                       background: linear-gradient(180deg, #ffb340, #e2600a); border: 1.5px solid #fff1c4; }
         .tool .count:empty { display: none; }
 
         /* ---- Dialogs: plain, on the plaque, and the celebration ---- */
@@ -296,13 +345,21 @@
             .spin { margin-top: 0; }
             .winm { justify-self: end; text-align: right; }
             .tools { justify-self: end; display: grid; grid-template-columns: repeat(2, 34px); gap: 6px; }
-            .tool { width: 34px; height: 34px; border-radius: 10px; }
+            .tool { width: 34px; }
             .tool svg { width: 18px; height: 18px; }
             .bet { grid-area: bet; justify-self: start; display: flex; align-items: center; gap: 6px; }
             .bet .meter { text-align: center; }
             .round { width: 38px; }
-            .meter { min-width: 0; }
+            .meter { min-width: 0; padding: 5px 10px 6px; }
+            .meter span, .meter > b { font-size: 16px; }
+            .winm { min-width: 0; padding: 5px 12px 6px; }
+            .winm #win { font-size: 20px; }
+            .perch { right: -16px; }
+            .perch img, .perch img:nth-child(2) { width: 22px; }
             .dialog.plaque { margin-top: 10vh; }
+            @supports (width: round(down, 10.5px, 1px)) {
+                .frame { --bw: round(down, min(calc(100vw / (1 + 2 * var(--kx)) + 8vw), calc((100dvh - var(--top) - 290px) / (1 + 1.25 * var(--ky)) * 1.2), 640px), 6px); }
+            }
         }
         /* Short landscape screens (phones on their side): a smaller logo and compact panels. The
            ante's details stay in its label and in the rules. */
@@ -315,14 +372,19 @@
             .feature-title { margin: 0; }
             .feature-note { margin-top: 5px; font-size: 10px; }
             .tools { gap: 5px; }
-            .tool { width: 32px; height: 32px; border-radius: 9px; }
+            .tool { width: 32px; }
             .tool svg { width: 17px; height: 17px; }
             .meter { min-width: 0; }
-            .meter span, .meter > b { font-size: 14px; white-space: nowrap; }
+            .meter { padding: 4px 9px 5px; }
+            .meter span, .meter > b { font-size: 14px; }
+            .winm { min-width: 120px; padding: 4px 14px 6px; }
+            .winm #win { font-size: 19px; }
+            .perch { right: -16px; }
+            .perch img, .perch img:nth-child(2) { width: 20px; }
             .round { width: 34px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner { animation: none; }
+            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy) { animation: none; }
         }
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
@@ -389,7 +451,12 @@
             <button id="bet-plus" class="round" aria-label="Raise bet">+</button>
         </div>
         <button id="spin-btn" class="spin" aria-label="Spin" disabled></button>
-        <div class="meter winm" aria-live="polite"><small>WIN</small><span id="win">0.00</span></div>
+        <div id="win-meter" class="meter winm" aria-live="polite">
+            <span class="perch" aria-hidden="true">
+                <img src="{{ $theme['symbols']['G']['img'] }}" alt=""><img src="{{ $theme['symbols']['E']['img'] }}" alt=""><img src="{{ $theme['symbols']['F']['img'] }}" alt="">
+            </span>
+            <small>WIN</small><span id="win">0.00</span>
+        </div>
         <div class="tools">
             <button id="auto-btn" class="tool" aria-pressed="false" aria-label="Autoplay" title="Autoplay">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
