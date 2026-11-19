@@ -302,8 +302,11 @@
                 case 'tick': // the win counting up
                     coin({ at: t, bus, gain: 0.025 });
                     break;
-                case 'intro': // in time with the intro: the logo falls and lands, fruit pops up, stars chime
+                case 'intro': // in time with the intro: the logo falls and lands, fruit pops up, stars chime,
+                    // the Queen Bee flies in (a soft rising whoosh) and winks (a high chime)
                     whoosh({ at: t + 0.1, bus, gain: 0.07, dur: 0.4, from: 3200, to: 450 });
+                    whoosh({ at: t + 0.7, bus, gain: 0.04, dur: 0.55, from: 600, to: 2600 });
+                    glock(midi(103), { at: t + 1.5, bus, gain: 0.045, dur: 0.9 });
                     kick({ at: t + 0.5, bus, gain: 0.35 });
                     cymbal({ at: t + 0.5, bus, gain: 0.08 });
                     fanfare([65, 69, 72, 77, 81, 84], { at: t + 0.5, bus, gap: 0.07, gain: 0.09 });

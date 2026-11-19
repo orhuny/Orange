@@ -147,13 +147,13 @@
         .host-fig.on { z-index: 1; opacity: 1; transform: none; transition: opacity .14s ease-out, transform .45s cubic-bezier(.2, 1.6, .45, 1); }
         .host-fig:not(.on) .wing { animation-play-state: paused; }
         .host-body { position: absolute; inset: 0; transform-origin: calc(var(--cx) * 100%) 100%; animation: host-sway 5.5s ease-in-out infinite; }
-        .host-fig .pose { position: relative; z-index: 1; display: block; width: 100%; height: 100%; filter: drop-shadow(0 8px 14px rgba(30, 10, 0, .45)); }
+        .host-body .pose { position: relative; z-index: 1; display: block; width: 100%; height: 100%; filter: drop-shadow(0 8px 14px rgba(30, 10, 0, .45)); }
         .host-fig .spark { position: absolute; z-index: 2; translate: -50% -50%; pointer-events: none; }
-        .host-fig .wing { position: absolute; z-index: 0; left: calc(var(--wx) * 100%); top: calc(var(--wy) * 100%); height: calc(var(--wh) * 100%);
+        .host-body .wing { position: absolute; z-index: 0; left: calc(var(--wx) * 100%); top: calc(var(--wy) * 100%); height: calc(var(--wh) * 100%);
                           aspect-ratio: var(--war); translate: calc(var(--rx) * -100%) -100%; transform-origin: calc(var(--rx) * 100%) 100%;
                           rotate: var(--wr); animation: wing-flutter .32s ease-in-out infinite alternate; }
-        .host-fig .wing.near { --wr: -6deg; filter: drop-shadow(0 0 10px rgba(255, 210, 120, .45)); }
-        .host-fig .wing.far { --wr: 22deg; height: calc(var(--wh) * 82%); filter: brightness(.8); animation-delay: -.16s; }
+        .host-body .wing.near { --wr: -6deg; filter: drop-shadow(0 0 10px rgba(255, 210, 120, .45)); }
+        .host-body .wing.far { --wr: 22deg; height: calc(var(--wh) * 82%); filter: brightness(.8); animation-delay: -.16s; }
         .host-fig:is([data-pose=cheer], [data-pose=wow]) .wing { animation-duration: .17s; }
         .host-peek { display: none; }
         @keyframes host-sway { 0%, 100% { rotate: -.7deg; } 50% { rotate: .7deg; scale: 1.012; } }
@@ -428,6 +428,19 @@
         /* Added by playIntro: the sprinkle burst, glints and petals (.behind: under the logo). */
         .intro-bit { position: absolute; z-index: 3; translate: -50% -50%; pointer-events: none; }
         .intro-bit.behind { z-index: 0; }
+        /* The Queen Bee flies in at .7 s, just after the logo lands, wings beating, and settles
+           with a spring, presenting the logo with a wink (a glint at 1.45 s); then she hovers.
+           Landscape: left of the logo, her raised hand reaching just inside its column, her
+           skirt below the screen's edge. Portrait: below the fruit. Same art and per-pose
+           variables as in the game (--ar, --cx, wings). */
+        .intro-host { position: absolute; z-index: 2; --ih: min(64vh, 600px); --artw: min(84vw, 110vh, 620px);
+                      height: var(--ih); aspect-ratio: var(--ar); bottom: calc(var(--ih) * -.1);
+                      left: calc(50% - var(--artw) / 2 + 2vmin - var(--ih) * var(--ar));
+                      transform-origin: calc(var(--cx) * 100%) 100%;
+                      animation: intro-host-in 1s .7s cubic-bezier(.2, .9, .3, 1.12) both, intro-host-hover 3s 1.7s ease-in-out infinite; }
+        .intro-host .wing { animation-duration: .16s; }
+        .intro-host .glint { position: absolute; z-index: 2; left: 41%; top: 25%; width: 24%; translate: -50% -50%; opacity: 0;
+                             pointer-events: none; animation: intro-glint .75s 1.45s ease-out both; }
         .intro-skip { position: absolute; z-index: 4; right: max(12px, env(safe-area-inset-right));
                       bottom: max(12px, env(safe-area-inset-bottom)); min-height: 44px; padding: 0 14px;
                       border: 1px solid rgba(255, 223, 167, .5); border-radius: 999px; background: #2e1409; }
@@ -461,6 +474,9 @@
         }
         @keyframes intro-leave { to { opacity: 0; } }
         @keyframes intro-through { to { transform: scale(1.14); } }
+        @keyframes intro-host-in { from { opacity: 0; transform: translate(-45%, 28%) rotate(-10deg) scale(.85); } 55% { opacity: 1; } }
+        @keyframes intro-host-hover { 50% { translate: 0 -1.2vmin; } }
+        @keyframes intro-glint { 0% { opacity: 0; scale: .2; rotate: 0deg; } 35% { opacity: 1; scale: 1.15; rotate: 45deg; } 100% { opacity: 0; scale: .3; rotate: 90deg; } }
 
         [hidden] { display: none !important; }
         @media (orientation: landscape) and (max-width: 760px), (orientation: landscape) and (pointer: coarse) {
@@ -474,6 +490,7 @@
             .stage { --spin: clamp(64px, 19vw, 88px); }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
             .intro-bg { background-image: radial-gradient(ellipse at center, rgba(26, 27, 8, .18), rgba(23, 12, 4, .8)), var(--day-p); }
+            .intro-host { --ih: min(38vh, 92vw / var(--ar)); left: calc(50% - var(--ih) * var(--ar) * var(--cx)); }
             .branch { top: 10vh; bottom: auto; width: clamp(160px, 42vw, 360px); }
             .top { position: static; flex-direction: column; align-items: center; height: var(--top); flex: none; }
             .top .logo { display: block; height: 100%; }
@@ -562,7 +579,7 @@
             .winm { min-width: 0; padding-inline: 8px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host, .host-body, .host-fig .wing { animation: none; }
+            .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host, .host-body, .host-body .wing { animation: none; }
             .host-fig { transform: none; }
         }
     </style>
@@ -679,6 +696,17 @@
 <dialog id="intro" class="intro" aria-label="{{ $game->name }}">
     <div class="intro-scene" aria-hidden="true">
         <div class="intro-bg"></div>
+        @if ($host)
+            <div class="intro-host" style="{{ $hostStyle($host) }}">
+                <div class="host-body">
+                    @if ($hostWing)
+                        <img class="wing far" src="{{ $hostWing['src'] }}" alt=""><img class="wing near" src="{{ $hostWing['src'] }}" alt="">
+                    @endif
+                    <img class="pose" src="{{ $host['src'] }}" alt="">
+                </div>
+                <img class="glint" src="{{ $theme['fx']['twinkle'] }}" alt="">
+            </div>
+        @endif
         <div class="intro-art">
             <div class="intro-head">
                 <img class="intro-rays" src="{{ $theme['fx']['rays'] }}" alt="">
