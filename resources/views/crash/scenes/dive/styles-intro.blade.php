@@ -14,15 +14,15 @@
         @keyframes is-push { to { transform: scale(1.5); filter: brightness(1.8) blur(3px); } }
 
         .is-bg {
-            background: url("{{ asset('images/bg-gothic-landscape.jpg') }}") center / cover no-repeat;
+            background: url("{{ asset('images/deep-dive/bg-gothic-landscape.jpg') }}") center / cover no-repeat;
             opacity: 0; transform: scale(1.3); filter: brightness(0.25);
         }
         @media (orientation: portrait) {
-            .is-bg { background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}"); }
+            .is-bg { background-image: url("{{ asset('images/deep-dive/bg-gothic-portrait.jpg') }}"); }
         }
-        :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-landscape.jpg')) }}"); }
+        :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/deep-dive/bg-jackpot-landscape.jpg') }}?v={{ filemtime(public_path('images/deep-dive/bg-jackpot-landscape.jpg')) }}"); }
         @media (orientation: portrait) {
-            :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-portrait.jpg')) }}"); }
+            :root[data-theme="jackpot"] .is-bg { background-image: url("{{ asset('images/deep-dive/bg-jackpot-portrait.jpg') }}?v={{ filemtime(public_path('images/deep-dive/bg-jackpot-portrait.jpg')) }}"); }
         }
         .intro.play .is-bg { animation: is-fade-in 0.6s ease-out forwards, is-bg-drift 4.4s cubic-bezier(.2, .7, .3, 1) forwards; }
         @keyframes is-fade-in { to { opacity: 1; } }

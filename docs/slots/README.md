@@ -64,7 +64,7 @@ Slot RTP has no closed form (tumbles and multipliers), so it is measured. With a
    - `logo`
    - `backgrounds`: day and night (free spins), each landscape and portrait
    - `symbols`: the model's letters mapped to `name`, `img` and `colour`
-3. Put the art in `public/images/{theme}/`. Symbols are square transparent WebP, 256 px.
+3. Put the art in `public/images/{theme}/`, built by `scripts/art/process-{theme}.py` from the raw deliveries; see [art/README.md](../art/README.md). Symbols are square transparent WebP, 256 px.
 4. Create the game in the admin panel with that theme.
 
 ## The page

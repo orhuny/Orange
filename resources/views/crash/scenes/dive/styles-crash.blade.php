@@ -17,7 +17,7 @@
         /* Frame cell placed so frame 1's sub sits exactly on the in-game art. */
         .sub-boom span {
             position: absolute; left: -8.15%; top: -48.8%; width: 106%; height: 214.5%;
-            background: url("{{ asset('images/sub-explosion.webp') }}") 0 0 / 700% 100% no-repeat;
+            background: url("{{ asset('images/deep-dive/sub-explosion.webp') }}") 0 0 / 700% 100% no-repeat;
             opacity: 0;
         }
         /* Jackpot's sprite: 36 frames in a 6x6 grid (the hull strains, cracks and crumples,
@@ -25,7 +25,7 @@
            bubbles and silt, then the wreck settling). */
         :root[data-theme="jackpot"] .sub-boom span {
             left: -4.83%; top: -39.17%; width: 97.79%; height: 160.54%;
-            background-image: url("{{ asset('images/sub-explosion-jackpot.webp') }}?v={{ filemtime(public_path('images/sub-explosion-jackpot.webp')) }}");
+            background-image: url("{{ asset('images/deep-dive/sub-explosion-jackpot.webp') }}?v={{ filemtime(public_path('images/deep-dive/sub-explosion-jackpot.webp')) }}");
             background-size: 600% 600%;
         }
         :root:is([data-theme="burton"], [data-theme="jackpot"]) .sub-boom { display: block; }

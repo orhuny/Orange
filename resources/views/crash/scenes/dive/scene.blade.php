@@ -23,8 +23,8 @@
                         <circle cx="34" cy="11" r="1.6" fill="#fff"/>
                         <circle cx="34.4" cy="11.2" r="0.9" fill="#0f172a"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/fish-gothic.png') }}" width="69" height="39" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" width="54" height="50" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/fish-gothic.png') }}" width="69" height="39" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/fish-jackpot.webp') }}" width="54" height="50" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Yellow & black striped fish, right → left -->
@@ -39,8 +39,8 @@
                         <circle cx="29" cy="9" r="1.3" fill="#fff"/>
                         <circle cx="29.3" cy="9.2" r="0.7" fill="#0f172a"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" width="50" height="39" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" width="47" height="41" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/fish-puffer-gothic.png') }}" width="50" height="39" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/fish-puffer-jackpot.webp') }}" width="47" height="41" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Pink fish, left → right -->
@@ -53,8 +53,8 @@
                         <circle cx="28" cy="9" r="1.4" fill="#fff"/>
                         <circle cx="28.3" cy="9.2" r="0.8" fill="#0f172a"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/fish-angler-gothic.png') }}" width="61" height="36" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-angler-jackpot.webp') }}" width="53" height="41" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/fish-angler-gothic.png') }}" width="61" height="36" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/fish-angler-jackpot.webp') }}" width="53" height="41" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Cyan fish, right → left, smaller -->
@@ -66,8 +66,8 @@
                         <circle cx="22" cy="7.5" r="1.2" fill="#fff"/>
                         <circle cx="22.3" cy="7.7" r="0.7" fill="#0f172a"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/fish-gothic.png') }}" width="48" height="27" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" width="37" height="35" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/fish-gothic.png') }}" width="48" height="27" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/fish-jackpot.webp') }}" width="37" height="35" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 <!-- Purple fish, left → right -->
@@ -80,8 +80,8 @@
                         <circle cx="31" cy="10" r="1.5" fill="#fff"/>
                         <circle cx="31.3" cy="10.2" r="0.8" fill="#0f172a"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" width="52" height="40" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" width="49" height="42" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/fish-puffer-gothic.png') }}" width="52" height="40" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/fish-puffer-jackpot.webp') }}" width="49" height="42" alt="" aria-hidden="true" loading="lazy">
                 </div>
             </div>
             @endif
@@ -133,8 +133,8 @@
                         <!-- Blowhole -->
                         <ellipse cx="92" cy="22" rx="3" ry="1.2" fill="rgba(15,23,42,0.7)"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/whale-gothic.png') }}" width="340" height="106" alt="" aria-hidden="true">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}?v={{ filemtime(public_path('images/whale-jackpot.webp')) }}" width="196" height="184" alt="" aria-hidden="true">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/whale-gothic.png') }}" width="340" height="106" alt="" aria-hidden="true">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/whale-jackpot.webp') }}?v={{ filemtime(public_path('images/deep-dive/whale-jackpot.webp')) }}" width="196" height="184" alt="" aria-hidden="true">
                 </div>
 
                 <!-- Anglerfish-style silhouette, right → left -->
@@ -154,11 +154,11 @@
                         <circle cx="22" cy="28" r="1" fill="rgba(186,230,253,0.7)"/>
                     </svg>
                     <span class="skin-art art-burton" aria-hidden="true">
-                        <img src="{{ asset('images/angler-deep-gothic.png') }}" width="170" height="81" alt="" loading="lazy">
+                        <img src="{{ asset('images/deep-dive/angler-deep-gothic.png') }}" width="170" height="81" alt="" loading="lazy">
                         <i class="bulb-glow"></i>
                     </span>
                     <span class="skin-art art-jackpot" aria-hidden="true">
-                        <img src="{{ asset('images/angler-deep-jackpot.webp') }}" width="130" height="106" alt="" loading="lazy">
+                        <img src="{{ asset('images/deep-dive/angler-deep-jackpot.webp') }}" width="130" height="106" alt="" loading="lazy">
                         <i class="bulb-glow"></i>
                     </span>
                 </div>
@@ -226,8 +226,8 @@
                         <circle cx="155" cy="80" r="1" fill="rgba(186,230,253,0.5)"/>
                         <circle cx="65" cy="82" r="1" fill="rgba(186,230,253,0.5)"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/octopus-gothic.png') }}" width="190" height="143" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/octopus-jackpot.webp') }}" width="162" height="168" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/octopus-gothic.png') }}" width="190" height="143" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/octopus-jackpot.webp') }}" width="162" height="168" alt="" aria-hidden="true" loading="lazy">
                 </div>
 
                 {{-- Mini octopi — five silhouettes swimming upward at random
@@ -258,17 +258,17 @@
                         <circle  cx="20" cy="34" r="0.9" fill="rgba(186,230,253,0.55)"/>
                         <circle  cx="52" cy="32" r="0.9" fill="rgba(186,230,253,0.55)"/>
                     </svg>
-                    <img class="skin-art art-burton" src="{{ asset('images/octopus-gothic.png') }}" width="{{ (int) ($o['size'] * 1.4) }}" height="{{ (int) ($o['size'] * 1.05) }}" alt="" aria-hidden="true" loading="lazy">
-                    <img class="skin-art art-jackpot" src="{{ asset('images/octopus-jackpot.webp') }}" width="{{ (int) ($o['size'] * 1.19) }}" height="{{ (int) ($o['size'] * 1.23) }}" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-burton" src="{{ asset('images/deep-dive/octopus-gothic.png') }}" width="{{ (int) ($o['size'] * 1.4) }}" height="{{ (int) ($o['size'] * 1.05) }}" alt="" aria-hidden="true" loading="lazy">
+                    <img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/octopus-jackpot.webp') }}" width="{{ (int) ($o['size'] * 1.19) }}" height="{{ (int) ($o['size'] * 1.23) }}" alt="" aria-hidden="true" loading="lazy">
                 </div>
                 @endforeach
                 @endif
             </div>
 
             @if ($seaLife['jellyfish'])
-            <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
-            <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
-            <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"><img class="skin-art art-burton" src="{{ asset('images/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
+            <div class="jelly" style="left:12%; top:50%; animation-delay:-2s;"><img class="skin-art art-burton" src="{{ asset('images/deep-dive/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
+            <div class="jelly" style="left:80%; top:35%; animation-delay:-5s;"><img class="skin-art art-burton" src="{{ asset('images/deep-dive/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
+            <div class="jelly" style="left:25%; top:70%; animation-delay:-7s;"><img class="skin-art art-burton" src="{{ asset('images/deep-dive/jelly-gothic.png') }}" width="60" height="86" alt="" aria-hidden="true" loading="lazy"><img class="skin-art art-jackpot" src="{{ asset('images/deep-dive/jelly-jackpot.webp') }}" width="55" height="95" alt="" aria-hidden="true" loading="lazy"></div>
             @endif
 
             <div class="sub-wrap">
@@ -478,15 +478,15 @@
                                 <stop offset="100%" stop-color="#f5e08a" stop-opacity="0"/>
                             </radialGradient>
                         </defs>
-                        <image class="sub-prop" href="{{ asset('images/sub-gothic-prop.webp') }}?v={{ filemtime(public_path('images/sub-gothic-prop.webp')) }}" x="5.84" y="46.06" width="20.06" height="39.03" style="--axis: 51.4%" preserveAspectRatio="none"/>
-                        <image href="{{ asset('images/sub-gothic-hull.webp') }}?v={{ filemtime(public_path('images/sub-gothic-hull.webp')) }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
+                        <image class="sub-prop" href="{{ asset('images/deep-dive/sub-gothic-prop.webp') }}?v={{ filemtime(public_path('images/deep-dive/sub-gothic-prop.webp')) }}" x="5.84" y="46.06" width="20.06" height="39.03" style="--axis: 51.4%" preserveAspectRatio="none"/>
+                        <image href="{{ asset('images/deep-dive/sub-gothic-hull.webp') }}?v={{ filemtime(public_path('images/deep-dive/sub-gothic-hull.webp')) }}" x="-5" y="-32" width="232" height="137.4" preserveAspectRatio="xMidYMid meet"/>
                         <circle class="gothic-lantern-glow" cx="171" cy="-5" r="20" fill="url(#gothicLanternGlow)"/>
                     </g>
 
                     {{-- Jackpot Reef sub: its propeller hub on the same wake origin (22,64). --}}
                     <g class="sub-jackpot" aria-hidden="true">
-                        <image class="sub-prop" href="{{ asset('images/sub-jackpot-prop.webp') }}?v={{ filemtime(public_path('images/sub-jackpot-prop.webp')) }}" x="14.2" y="35.53" width="12.85" height="56.42" style="--axis: 52%" preserveAspectRatio="none"/>
-                        <image href="{{ asset('images/sub-jackpot-hull.webp') }}?v={{ filemtime(public_path('images/sub-jackpot-hull.webp')) }}" x="14.2" y="-34.3" width="200" height="145.8" preserveAspectRatio="xMidYMid meet"/>
+                        <image class="sub-prop" href="{{ asset('images/deep-dive/sub-jackpot-prop.webp') }}?v={{ filemtime(public_path('images/deep-dive/sub-jackpot-prop.webp')) }}" x="14.2" y="35.53" width="12.85" height="56.42" style="--axis: 52%" preserveAspectRatio="none"/>
+                        <image href="{{ asset('images/deep-dive/sub-jackpot-hull.webp') }}?v={{ filemtime(public_path('images/deep-dive/sub-jackpot-hull.webp')) }}" x="14.2" y="-34.3" width="200" height="145.8" preserveAspectRatio="xMidYMid meet"/>
                     </g>
                 </svg>
                 {{-- Gothic implosion sprite; shares .sub-svg so it tilts exactly like the sub. --}}

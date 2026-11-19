@@ -89,13 +89,13 @@ return (static function (): array {
         ],
         // The built-in intro's backdrop per skin.
         'introBg' => [
-            'burton' => ['landscape' => asset('images/bg-gothic-landscape.jpg'), 'portrait' => asset('images/bg-gothic-portrait.jpg')],
+            'burton' => ['landscape' => asset('images/deep-dive/bg-gothic-landscape.jpg'), 'portrait' => asset('images/deep-dive/bg-gothic-portrait.jpg')],
             'jackpot' => [
-                'landscape' => asset('images/bg-jackpot-landscape.jpg').'?v='.filemtime(public_path('images/bg-jackpot-landscape.jpg')),
-                'portrait' => asset('images/bg-jackpot-portrait.jpg').'?v='.filemtime(public_path('images/bg-jackpot-portrait.jpg')),
+                'landscape' => asset('images/deep-dive/bg-jackpot-landscape.jpg').'?v='.filemtime(public_path('images/deep-dive/bg-jackpot-landscape.jpg')),
+                'portrait' => asset('images/deep-dive/bg-jackpot-portrait.jpg').'?v='.filemtime(public_path('images/deep-dive/bg-jackpot-portrait.jpg')),
             ],
         ],
         // Each skin's crash sprite, preloaded so it is decoded before the first crash.
-        'sprites' => ['burton' => asset('images/sub-explosion.webp'), 'jackpot' => asset('images/sub-explosion-jackpot.webp').'?v='.filemtime(public_path('images/sub-explosion-jackpot.webp'))],
+        'sprites' => ['burton' => asset('images/deep-dive/sub-explosion.webp'), 'jackpot' => asset('images/deep-dive/sub-explosion-jackpot.webp').'?v='.filemtime(public_path('images/deep-dive/sub-explosion-jackpot.webp'))],
     ];
 })();

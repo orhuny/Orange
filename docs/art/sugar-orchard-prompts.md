@@ -315,7 +315,7 @@ Hero key art for the game's lobby tile: the golden scatter basket from the first
 - **Key and cut:**
   - Cutouts are keyed out.
   - Fragment and particle sheets are split into single pieces.
-  - Everything is packed as WebP into `public/images/sugar-orchard/`.
+  - Everything is packed as WebP into `public/images/sugar-orchard/` by `scripts/art/process-sugar-orchard.py`.
 - **The win sequence**, in a particle layer: frost-over, burst, ring, shatter with spin and gravity, crystals and sparkles, then the tumble.
 - **Celebrations:**
   - fireworks and banners for big wins;

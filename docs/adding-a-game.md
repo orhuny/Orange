@@ -165,10 +165,13 @@ so a scene restyles them under `:root[data-theme="<its skin>"]` in `styles-crash
 
 ## Art
 
-Generated art comes as images on flat magenta (`#FF00FF`). Keep the sources out of git
-(`storage/app/art/<scene>/`) and build the served files with a script, as
-`scripts/art/process-lucky-duck.py` does: key out the magenta, line frames up on a fixed point,
-make strips tile, pack sheets into equal frames.
+Where everything goes and the naming rules: [art/README.md](art/README.md). In short:
+- A game's served art lives in `public/images/{game}/`, with its lobby tile as `thumbnail.jpg`.
+- Generated art comes as images on flat magenta (`#FF00FF`). Keep the raw deliveries out of git
+  (`storage/app/art/{game}/`).
+- Build the served files with `scripts/art/process-{game}.py`, as `process-lucky-duck.py` does:
+  key out the magenta, line frames up on a fixed point, make strips tile, pack sheets into
+  equal frames.
 
 ## Checklist
 
@@ -177,6 +180,6 @@ make strips tile, pack sheets into equal frames.
 2. `CrashPageTest`: the game renders its scene and none of another's.
 3. Replay a round in a browser at desktop and phone sizes: betting, take-off, each tier, the crash.
 4. Admin panel: **Games → New**, type crash, a new code, **Scene**; limits per currency; enable
-   for operators (play mode `direct` for the lobby); a thumbnail.
+   for operators (play mode `direct` for the lobby); the thumbnail (`public/images/{game}/thumbnail.jpg`).
 5. Run one more `crash:loop --game=<code>` (`scripts/start-stack.ps1 -CrashGames`, and in
    production).

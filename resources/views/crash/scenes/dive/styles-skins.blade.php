@@ -68,13 +68,13 @@
            rays and hills step aside; the portrait art also has its own moon.
            Depth darkening still comes from the .scene filter. */
         :root[data-theme="burton"] .backdrop {
-            background-image: url("{{ asset('images/bg-gothic-landscape.jpg') }}?v=2");
+            background-image: url("{{ asset('images/deep-dive/bg-gothic-landscape.jpg') }}?v=2");
         }
         :root[data-theme="burton"] .scene::after,
         :root[data-theme="burton"] .rays { display: none; }
         @media (orientation: portrait) {
             :root[data-theme="burton"] .backdrop {
-                background-image: url("{{ asset('images/bg-gothic-portrait.jpg') }}");
+                background-image: url("{{ asset('images/deep-dive/bg-gothic-portrait.jpg') }}");
                 background-position: center top;
             }
             :root[data-theme="burton"] .backdrop::after { display: none; }
@@ -83,11 +83,11 @@
            Sunlit reef backdrops (they carry their own rays and seabed), gold
            HUD from the tokens, a chunky rounded face for the numbers. */
         :root[data-theme="jackpot"] .backdrop {
-            background-image: url("{{ asset('images/bg-jackpot-landscape.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-landscape.jpg')) }}");
+            background-image: url("{{ asset('images/deep-dive/bg-jackpot-landscape.jpg') }}?v={{ filemtime(public_path('images/deep-dive/bg-jackpot-landscape.jpg')) }}");
         }
         @media (orientation: portrait) {
             :root[data-theme="jackpot"] .backdrop {
-                background-image: url("{{ asset('images/bg-jackpot-portrait.jpg') }}?v={{ filemtime(public_path('images/bg-jackpot-portrait.jpg')) }}");
+                background-image: url("{{ asset('images/deep-dive/bg-jackpot-portrait.jpg') }}?v={{ filemtime(public_path('images/deep-dive/bg-jackpot-portrait.jpg')) }}");
                 background-position: center top;
             }
         }

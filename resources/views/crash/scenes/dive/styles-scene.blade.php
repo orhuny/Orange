@@ -90,10 +90,10 @@
         :root[data-theme="burton"] .wall-r { --tile-ratio: 4.014; }
         :root[data-theme="jackpot"] .wall-l { --tile-ratio: 3.327; }
         :root[data-theme="jackpot"] .wall-r { --tile-ratio: 3.726; }
-        :root[data-theme="burton"] .wall-l b { background-image: url("{{ asset('images/wall-gothic-left.webp') }}?v={{ filemtime(public_path('images/wall-gothic-left.webp')) }}"); }
-        :root[data-theme="burton"] .wall-r b { background-image: url("{{ asset('images/wall-gothic-right.webp') }}?v={{ filemtime(public_path('images/wall-gothic-right.webp')) }}"); }
-        :root[data-theme="jackpot"] .wall-l b { background-image: url("{{ asset('images/wall-jackpot-left.webp') }}?v={{ filemtime(public_path('images/wall-jackpot-left.webp')) }}"); }
-        :root[data-theme="jackpot"] .wall-r b { background-image: url("{{ asset('images/wall-jackpot-right.webp') }}?v={{ filemtime(public_path('images/wall-jackpot-right.webp')) }}"); }
+        :root[data-theme="burton"] .wall-l b { background-image: url("{{ asset('images/deep-dive/wall-gothic-left.webp') }}?v={{ filemtime(public_path('images/deep-dive/wall-gothic-left.webp')) }}"); }
+        :root[data-theme="burton"] .wall-r b { background-image: url("{{ asset('images/deep-dive/wall-gothic-right.webp') }}?v={{ filemtime(public_path('images/deep-dive/wall-gothic-right.webp')) }}"); }
+        :root[data-theme="jackpot"] .wall-l b { background-image: url("{{ asset('images/deep-dive/wall-jackpot-left.webp') }}?v={{ filemtime(public_path('images/deep-dive/wall-jackpot-left.webp')) }}"); }
+        :root[data-theme="jackpot"] .wall-r b { background-image: url("{{ asset('images/deep-dive/wall-jackpot-right.webp') }}?v={{ filemtime(public_path('images/deep-dive/wall-jackpot-right.webp')) }}"); }
 
         /* ---------- God rays ---------- */
         .rays {

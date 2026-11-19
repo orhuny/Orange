@@ -12,7 +12,8 @@ fringe on the edges), trims it, and packs it the way the marsh scene uses it:
 - sprite sheets (flight, take-off, hit): one strip of equal frames. The flight and
   take-off frames are lined up on the duck's head and drawn at one scale, so the duck never
   jumps between frames or between the two sheets;
-- the fox, his gun arm and the logo: trimmed cut-outs.
+- the fox, his gun arm and the logo: trimmed cut-outs;
+- the lobby thumbnail: a 4:3 JPEG, uploaded in the admin panel.
 
 The muzzle flash is drawn by the scene: the delivered strip is clipped.
 
@@ -29,9 +30,7 @@ from PIL import Image
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SRC = os.path.join(REPO, 'storage', 'app', 'art', 'lucky-duck')
 OUT = os.path.join(REPO, 'public', 'images', 'lucky-duck')
-EXTRA_OUT = os.path.join(SRC, 'out')  # not served: the lobby thumbnail, uploaded in the admin panel
 os.makedirs(OUT, exist_ok=True)
-os.makedirs(EXTRA_OUT, exist_ok=True)
 # OUT holds only what this builds: start from empty, so a renamed sprite leaves nothing behind.
 for stale in os.listdir(OUT):
     if stale.endswith(('.webp', '.jpg')):
@@ -513,9 +512,10 @@ logo = trim(key(load('lucky_duck_winged_mascot_logo.png')))
 img = scale(to_image(logo), 960 / logo.shape[1])
 report['logo.webp'] = {'size': img.size, 'bytes': save_webp(img, 'logo.webp', quality=88)}
 
+# The lobby tile: kept with the game's art, like every game's, and uploaded in the admin panel.
 thumb = Image.open(os.path.join(SRC, 'lucky_duck_golden_sky_chase.png')).convert('RGB').resize((1024, 768), Image.LANCZOS)
-thumb.save(os.path.join(EXTRA_OUT, 'lobby-thumbnail.jpg'), 'JPEG', quality=88, optimize=True, progressive=True)
-report['lobby-thumbnail.jpg'] = {'size': thumb.size, 'where': os.path.join(EXTRA_OUT, 'lobby-thumbnail.jpg')}
+thumb.save(os.path.join(OUT, 'thumbnail.jpg'), 'JPEG', quality=88, optimize=True, progressive=True)
+report['thumbnail.jpg'] = {'size': thumb.size}
 
 json.dump(report, sys.stdout, indent=1, default=lambda o: o.tolist() if hasattr(o, 'tolist') else str(o))
 print()

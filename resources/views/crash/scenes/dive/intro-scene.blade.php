@@ -3,18 +3,18 @@
             <div class="is-layer is-tint"></div>
             <div class="is-rays"></div>
             <div class="is-layer is-motes">@for ($m = 0; $m < 18; $m++)<i style="--x: {{ ($m * 37) % 100 }}%; --s: {{ 2 + $m % 4 }}px; --t: {{ 2.2 + ($m % 5) * 0.45 }}s; --d: -{{ fmod($m * 0.61, 3) }}s"></i>@endfor</div>
-            <img class="is-whale art-burton" src="{{ asset('images/whale-gothic.png') }}" alt="">
-            <img class="is-whale art-jackpot" src="{{ asset('images/whale-jackpot.webp') }}?v={{ filemtime(public_path('images/whale-jackpot.webp')) }}" alt="">
-            <img class="is-fish is-fish-1 art-burton" src="{{ asset('images/fish-gothic.png') }}" alt="">
-            <img class="is-fish is-fish-1 art-jackpot" src="{{ asset('images/fish-jackpot.webp') }}" alt="">
-            <img class="is-fish is-fish-2 art-burton" src="{{ asset('images/fish-puffer-gothic.png') }}" alt="">
-            <img class="is-fish is-fish-2 art-jackpot" src="{{ asset('images/fish-puffer-jackpot.webp') }}" alt="">
+            <img class="is-whale art-burton" src="{{ asset('images/deep-dive/whale-gothic.png') }}" alt="">
+            <img class="is-whale art-jackpot" src="{{ asset('images/deep-dive/whale-jackpot.webp') }}?v={{ filemtime(public_path('images/deep-dive/whale-jackpot.webp')) }}" alt="">
+            <img class="is-fish is-fish-1 art-burton" src="{{ asset('images/deep-dive/fish-gothic.png') }}" alt="">
+            <img class="is-fish is-fish-1 art-jackpot" src="{{ asset('images/deep-dive/fish-jackpot.webp') }}" alt="">
+            <img class="is-fish is-fish-2 art-burton" src="{{ asset('images/deep-dive/fish-puffer-gothic.png') }}" alt="">
+            <img class="is-fish is-fish-2 art-jackpot" src="{{ asset('images/deep-dive/fish-puffer-jackpot.webp') }}" alt="">
             <div class="is-layer is-pings"><i style="--n: 0"></i><i style="--n: 1"></i><i style="--n: 2"></i><i style="--n: 3.3"></i></div>
             <div class="is-layer is-sub-path">
                 <div class="is-sub-fly">
                     <div class="is-sub-bob">
-                        <img class="is-sub art-burton" src="{{ asset('images/sub-gothic.png') }}" width="856" height="507" alt="">
-                        <img class="is-sub art-jackpot" src="{{ asset('images/sub-jackpot.webp') }}" width="716" height="522" alt="">
+                        <img class="is-sub art-burton" src="{{ asset('images/deep-dive/sub-gothic.png') }}" width="856" height="507" alt="">
+                        <img class="is-sub art-jackpot" src="{{ asset('images/deep-dive/sub-jackpot.webp') }}" width="716" height="522" alt="">
                         <span class="is-beam"></span>
                         <div class="is-bubbles">
                             <i style="--s:9px;  --d:0s;    --t:1.5s; --x:-70px"></i>
