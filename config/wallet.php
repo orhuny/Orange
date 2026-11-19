@@ -3,10 +3,24 @@
 declare(strict_types=1);
 
 return [
+    // Credits and rollbacks: sent from the queue, retried there and by wallet:reconcile.
     'callback' => [
         'timeout_seconds' => (int) env('WALLET_CALLBACK_TIMEOUT_SECONDS', 5),
         'retry_attempts' => (int) env('WALLET_CALLBACK_RETRY_ATTEMPTS', 3),
         'retry_backoff_ms' => (int) env('WALLET_CALLBACK_RETRY_BACKOFF_MS', 500),
+        // Every wallet call: an operator host that can't be reached fails fast.
+        'connect_timeout_seconds' => (float) env('WALLET_CALLBACK_CONNECT_TIMEOUT_SECONDS', 2),
+    ],
+
+    // Direct play: the stake debit a player waits for. One more attempt (same tx_id, which
+    // the operator applies once) when the first fails early (unreachable, a proxy error)
+    // and enough time is left; never past the deadline. Then the bet is answered
+    // 503 wallet_unavailable and the stake rolled back.
+    'debit' => [
+        'timeout_seconds' => (float) env('WALLET_DEBIT_TIMEOUT_SECONDS', 8),
+        'deadline_seconds' => (float) env('WALLET_DEBIT_DEADLINE_SECONDS', 10),
+        'min_retry_seconds' => (float) env('WALLET_DEBIT_MIN_RETRY_SECONDS', 3),
+        'retry_backoff_ms' => (int) env('WALLET_DEBIT_RETRY_BACKOFF_MS', 100),
     ],
 
     // A stake debit that got no answer is rolled back, but only after this long: a slow

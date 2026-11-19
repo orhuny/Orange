@@ -145,18 +145,6 @@ parameters:
 			path: app/Domain/Wallet/Listeners/WebhookOnGameEvents.php
 
 		-
-			message: '#^Dead catch \- Illuminate\\Http\\Client\\ConnectionException is never thrown in the try block\.$#'
-			identifier: catch.neverThrown
-			count: 1
-			path: app/Domain/Wallet/Services/OperatorWalletClient.php
-
-		-
-			message: '#^Dead catch \- Illuminate\\Http\\Client\\RequestException is never thrown in the try block\.$#'
-			identifier: catch.neverThrown
-			count: 1
-			path: app/Domain/Wallet/Services/OperatorWalletClient.php
-
-		-
 			message: '#^Strict comparison using \=\=\= between string and App\\Domain\\Game\\Enums\\BetStatus\:\:Lost will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1

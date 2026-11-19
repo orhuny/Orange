@@ -94,7 +94,76 @@ it('rejects the bet when the operator refuses the stake, and takes nothing', fun
 
     expect(Bet::sole()->status)->toBe(BetStatus::Rejected)
         ->and((string) $round->fresh()->total_bet_amount)->toBe('0.00000000');
-    Http::assertNotSent(fn (Request $r): bool => str_ends_with($r->url(), '/wallet/rollback'));
+    // A refusal is an answer: it is never sent again.
+    Http::assertSentCount(1);
+});
+
+/** @return list<string> the tx_id of every debit sent, in order */
+function debitTxIdsSent(): array
+{
+    return Http::recorded(fn (Request $r): bool => str_ends_with($r->url(), '/wallet/debit'))
+        ->map(fn (array $pair): string => $pair[0]['tx_id'])
+        ->values()
+        ->all();
+}
+
+/** @return array<string, mixed> what Orange recorded about the stake debit's call */
+function debitResponse(): array
+{
+    return (array) WalletTransaction::query()->where('type', WalletTransactionType::Debit)->sole()->getAttribute('operator_response');
+}
+
+it('sends a stake debit it could not deliver once more, with the same tx_id', function (Closure $firstAnswer): void {
+    Http::fakeSequence('wallet.test/w/wallet/debit')
+        ->pushResponse($firstAnswer())
+        ->push(['balance_after' => '98.00'], 200);
+    [, , , $bearer] = directPlay();
+
+    directBet($bearer)->assertCreated()->assertJsonPath('player_balance', '98.00');
+
+    expect(debitTxIdsSent())->toBe(['bet:ps-browser-key-0001', 'bet:ps-browser-key-0001'])
+        ->and(Bet::sole()->status)->toBe(BetStatus::Placed)
+        ->and(debitResponse()['attempts'])->toBe(2);
+})->with([
+    'unreachable' => fn (): Closure => fn () => Http::failedConnection('cURL error 7: Failed to connect to wallet.test port 443'),
+    'a proxy error' => fn (): Closure => fn () => Http::response('<html>502 Bad Gateway</html>', 502),
+]);
+
+it('answers wallet_unavailable after two unanswered debits, saying why', function (): void {
+    Http::fake([
+        'wallet.test/w/wallet/debit' => Http::failedConnection(),
+        'wallet.test/*' => Http::response(['ok' => true], 200),
+    ]);
+    [, , , $bearer] = directPlay();
+
+    directBet($bearer)->assertStatus(503)->assertJsonPath('error', 'wallet_unavailable');
+
+    $debit = WalletTransaction::query()->where('type', WalletTransactionType::Debit)->sole();
+    expect(debitTxIdsSent())->toHaveCount(2)
+        ->and($debit->operator_callback_status)->toBe(WalletCallbackStatus::Failed)
+        ->and(debitResponse()['attempts'])->toBe(2)
+        ->and(debitResponse()['reason'])->toBe('dns')
+        ->and(Bet::sole()->status)->toBe(BetStatus::RolledBack);
+});
+
+it('does not send a debit again when too little time is left before its deadline', function (): void {
+    config()->set('wallet.debit.timeout_seconds', 0.5);
+    config()->set('wallet.debit.deadline_seconds', 0.5);
+    config()->set('wallet.debit.min_retry_seconds', 0.4);
+    Http::fake([
+        'wallet.test/w/wallet/debit' => function () {
+            usleep(150_000);
+
+            return Http::response(['error' => 'down'], 503);
+        },
+        'wallet.test/*' => Http::response(['ok' => true], 200),
+    ]);
+    [, , , $bearer] = directPlay();
+
+    directBet($bearer)->assertStatus(503)->assertJsonPath('error', 'wallet_unavailable');
+
+    expect(debitTxIdsSent())->toHaveCount(1)
+        ->and(debitResponse()['reason'])->toBe('http_503');
 });
 
 it('rolls the bet back when the operator does not answer', function (): void {
@@ -172,7 +241,8 @@ it('says at what a bet was cashed out when its auto cash-out got there first', f
         ->assertStatus(409)
         ->assertJsonPath('error', 'already_settled')
         ->assertJsonPath('bet_status', 'won')
-        ->assertJsonPath('cashout.multiplier', (float) $cashout->multiplier)
+        // Compared as numbers: a whole multiplier (1.00) comes back as the JSON number 1.
+        ->assertJsonPath('cashout.multiplier', fn (mixed $m): bool => (float) $m === (float) $cashout->multiplier)
         ->assertJsonPath('cashout.payout_amount', (string) $cashout->payout_amount)
         ->assertJsonPath('cashout.is_auto', true);
 });

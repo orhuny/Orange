@@ -38,8 +38,9 @@ class WalletService
 
     /**
      * Direct play: debits the stake and waits for the operator's answer, so a bet only
-     * counts once its stake is confirmed. One attempt, no retries: the caller rolls back
-     * a debit that got no definite answer instead of guessing.
+     * counts once its stake is confirmed. Within the debit's budget (config wallet.debit),
+     * an early failure is sent once more with the same tx_id. A debit that still got no
+     * definite answer is rolled back by the caller, never guessed.
      */
     public function debitNow(
         Operator $operator,
@@ -80,7 +81,7 @@ class WalletService
                 playerExternalId: $payload['player_external_id'],
                 idempotencyKey: $payload['idempotency_key'],
                 reference: $payload['reference'],
-                maxAttempts: 1,
+                budget: WalletCallBudget::debit(),
             );
             $tx->forceFill(['operator_callback_status' => WalletCallbackStatus::Completed, 'operator_response' => $result])->save();
         } catch (WalletCallbackFailed $e) {
@@ -91,7 +92,22 @@ class WalletService
             ])->save();
         }
 
-        return $this->debitResultFor($tx);
+        $result = $this->debitResultFor($tx);
+        if ($result->outcome === DebitResult::UNKNOWN) {
+            // What a player saw as 503 wallet_unavailable: the line to count and alert on.
+            $response = (array) $tx->getAttribute('operator_response');
+            Log::channel('operator')->error('wallet.debit.unanswered', [
+                'operator_id' => $operator->id,
+                'tx_id' => $idempotencyKey,
+                'bet_id' => $betId,
+                'attempts' => $response['attempts'] ?? null,
+                'reason' => $response['reason'] ?? null,
+                'status' => $response['status'] ?? null,
+                'duration_ms' => $response['duration_ms'] ?? null,
+            ]);
+        }
+
+        return $result;
     }
 
     private function debitResultFor(WalletTransaction $tx): DebitResult

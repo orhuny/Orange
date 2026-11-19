@@ -409,6 +409,11 @@ Every 4xx above means **no bet was placed and no debit was sent**, so it is safe
 - [ ] **Server-side signer**. A small helper that computes the HMAC for every outbound REST call. Keep `api_secret` out of client bundles.
 - [ ] **Wallet ledger**. Debit on `/v1/bets` success, credit on `/v1/bets/{id}/cashout` success. Treat amounts as decimal strings end-to-end; use bcmath / `bignumber.js` / equivalent — never floats.
 - [ ] **Idempotency** — generate a fresh UUID per request. If you retry a failed request, **reuse the same key** so Orange returns the same response (instead of placing a duplicate bet).
+- [ ] **Idempotent wallet callbacks** — Orange may send a wallet call again with the same `tx_id`:
+  - credits and rollbacks are retried until you acknowledge them;
+  - a direct-play debit that couldn't be delivered is sent once more.
+
+  Apply each `tx_id` at most once, and answer a repeat with the first answer.
 - [ ] **Round state tracking** — subscribe to the `crash` channel from the browser (and ideally also server-side) so you know which `round_uuid` is currently in `betting` state when the user clicks Place Bet.
 - [ ] **postMessage bridge** between iframe and parent (see §6).
 - [ ] **Fullscreen support** — `allow="fullscreen"` and `allowfullscreen` on the iframe, plus handle `enter_fullscreen`/`exit_fullscreen` messages.
@@ -590,7 +595,12 @@ What you need:
   synchronously, with `tx_id` = `bet:ps-…`, before the bet counts.
   - A 4xx from your wallet rejects the bet (`wallet_rejected`, with your error code passed to
     the game).
-  - No answer rolls it back (`rollback:{bet_id}`).
+  - **Answer within 8 seconds.** The player is waiting.
+  - **The debit may arrive twice.** If the first call fails early, Orange sends the debit once
+    more with the **same `tx_id`**. That happens when your host can't be reached or a proxy
+    answers 5xx. Apply a `tx_id` at most once, and answer a repeat with the first answer.
+  - **No answer:** Orange waits at most 10 seconds in all. Then the game gets
+    `503 wallet_unavailable` and the stake is rolled back (`rollback:{bet_id}`).
 
   Wins and refunds come as usual through `/wallet/credit` and `/wallet/rollback`.
 - **Optional:** answer the page's `embed_ready` with any message (for example
