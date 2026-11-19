@@ -346,6 +346,15 @@
         .toast { position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%); z-index: 25; background: rgba(120, 20, 10, .92); border-radius: 12px; padding: 10px 16px; max-width: 92vw; text-align: center; }
         .status { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 15; background: var(--panel); border-radius: 14px; padding: 12px 18px; text-align: center; }
         [hidden] { display: none !important; }
+        #home-btn { display: none; }
+        @media (max-width: 760px), (pointer: coarse) {
+            #home-btn { display: grid; }
+            @media (orientation: landscape) {
+                .tools { display: grid; grid-template-columns: repeat(3, max-content); }
+                .bar { grid-template-columns: auto auto 1fr auto auto auto auto;
+                       grid-template-areas: "bal betm win minus spin plus tools"; }
+            }
+        }
 
         @media (orientation: portrait) {
             :root { --top: clamp(36px, 7vh, 68px); }
@@ -424,6 +433,10 @@
             .perch { right: -16px; }
             .perch img, .perch img:nth-child(2) { width: 20px; }
             .round { width: 34px; }
+        }
+        @media (orientation: landscape) and (max-width: 650px) {
+            .bar { column-gap: 5px; padding-inline: 8px; }
+            .winm { min-width: 0; padding-inline: 8px; }
         }
         @media (prefers-reduced-motion: reduce) {
             .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy) { animation: none; }
@@ -515,6 +528,9 @@
             </button>
             <button id="info-btn" class="tool" aria-label="Paytable and rules" title="Paytable and rules">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg>
+            </button>
+            <button id="home-btn" type="button" class="tool" aria-label="Back to lobby" title="Back to lobby" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h5v-6h4v6h5V9"/></svg>
             </button>
         </div>
     </footer>

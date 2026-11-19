@@ -64,10 +64,10 @@ export function createGameBridge({ allowedOrigins, onMessage, parent = window.pa
         get parentOrigin() {
             return parentOrigin;
         },
-        /** Announce the game; the parent answers with player_info. */
-        ready() {
+        /** Announce the game and any capabilities; the parent answers with player_info. */
+        ready(payload) {
             if (parent && parent !== self) {
-                parent.postMessage({ type: 'embed_ready' }, '*');
+                parent.postMessage(payload === undefined ? { type: 'embed_ready' } : { type: 'embed_ready', payload }, '*');
             }
         },
         /** @returns {boolean} false while no parent has spoken yet */

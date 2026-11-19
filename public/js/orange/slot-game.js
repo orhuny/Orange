@@ -988,6 +988,7 @@ export function startSlot(cfg) {
                 state.steps = playableSteps(cfg.config.bet_steps ?? ['1.00'], state.limits);
                 if (!state.steps.includes(state.bet)) state.bet = state.steps[0];
                 $('history-btn').hidden = payload.bet_history !== true;
+                $('home-btn').hidden = payload.home !== true;
                 $('status').hidden = true;
                 balance();
                 controls();
@@ -1020,6 +1021,7 @@ export function startSlot(cfg) {
     $('sound-btn').addEventListener('click', () => setSound(!sound.on));
     $('info-btn').addEventListener('click', rules);
     $('history-btn').addEventListener('click', history);
+    $('home-btn').addEventListener('click', () => bridge.send('back_to_lobby'));
     board.addEventListener('click', () => { if (state.busy) state.quick = true; });
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && $('overlay').hidden && !e.repeat && e.target === document.body) {
@@ -1093,7 +1095,7 @@ export function startSlot(cfg) {
     if (!cfg.embedded) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;
     } else {
-        bridge.ready();
+        bridge.ready({ homeOnMobile: true });
     }
 
     function readPref(key, fallback) {

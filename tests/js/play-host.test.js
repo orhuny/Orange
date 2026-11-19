@@ -253,6 +253,38 @@ describe('startPlayHost', () => {
         expect(frame.contentWindow.posted.at(-1).data.payload).toMatchObject({ home: true });
     });
 
+    it('keeps the lobby fallback until Home can be enabled in the current game', async () => {
+        const ready = vi.fn(() => {
+            expect(frame.contentWindow.posted.at(-1).data).toMatchObject({ type: 'player_info', payload: { home: true } });
+        });
+        const host = startPlayHost({
+            gameCode: null, frameUrl: null, bearer: 'ps_lobby', storageKey: 'orange.lobby',
+            outerOrigins: [], playApi: 'https://orange.example/play-api', frame, onExpired: expired,
+            onBackToLobby: vi.fn(), onGameReady: ready,
+        });
+        const mobileHome = { homeOnMobile: true };
+        const session = { player: { id: 'p-1', currency: 'TRY' }, balance: '50.00' };
+        let sessionResponse = json(503, {});
+        fetchMock.mockImplementation((url) => url.endsWith('/session') ? sessionResponse : json(200, {}));
+        host.open('sugar-orchard', 'https://orange.example/games/slot');
+        await intent('embed_ready', mobileHome);
+        expect(ready).not.toHaveBeenCalled();
+
+        let finishSession;
+        sessionResponse = new Promise((resolve) => { finishSession = resolve; });
+        await intent('embed_ready', mobileHome);
+        host.close();
+        host.open('sugar-orchard', 'https://orange.example/games/slot');
+        finishSession(json(200, session));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(ready).not.toHaveBeenCalled();
+        expect(frame.contentWindow.posted).toEqual([]);
+
+        sessionResponse = json(200, session);
+        await intent('embed_ready', mobileHome);
+        expect(ready).toHaveBeenCalledExactlyOnceWith(mobileHome);
+    });
+
     it('lets a lobby open games, bet on the open one, and come back', async () => {
         const back = vi.fn();
         const host = startPlayHost({

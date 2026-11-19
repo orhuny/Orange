@@ -12,12 +12,13 @@ import { createGameBridge, createHostBridge, FROM_GAME } from './bridge.js';
  *           outerOrigins: string[], playApi: string, frame: HTMLIFrameElement,
  *           onExpired: () => void, onBackToLobby?: () => void,
  *           onFullscreen?: (active: boolean) => void,
- *           onGameReady?: (payload: { home?: boolean }) => void }} config
- *        onGameReady: the game announced itself (embed_ready); home: it has its own way back.
+ *           onGameReady?: (payload: { home?: boolean, homeOnMobile?: boolean }) => void }} config
+ *        onGameReady: the game announced itself and the host sent player_info.
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
 export function startPlayHost(config) {
     let gameCode = config.gameCode;
+    let frameLoad = 0;
 
     let token = config.bearer;
     try {
@@ -93,14 +94,14 @@ export function startPlayHost(config) {
         async onIntent(type, payload) {
             switch (type) {
                 case 'embed_ready': {
-                    config.onGameReady?.(payload);
+                    const readyLoad = frameLoad;
                     // The game's rules show the limits the player's bets are played with; without
                     // them the game still starts.
                     const [r, info] = await Promise.all([
                         api('/session'),
                         gameCode ? api(`/games/${encodeURIComponent(gameCode)}`).catch(() => null) : null,
                     ]);
-                    if (!r.ok) {
+                    if (!r.ok || readyLoad !== frameLoad) {
                         return;
                     }
                     balance = r.data.balance;
@@ -122,6 +123,7 @@ export function startPlayHost(config) {
                         // { min_bet, max_bet, max_win }, decimal strings or null (no limit).
                         ...(info?.ok && info.data.limits ? { limits: info.data.limits } : {}),
                     });
+                    config.onGameReady?.(payload);
                     break;
                 }
                 case 'bet_history': {
@@ -227,12 +229,14 @@ export function startPlayHost(config) {
         /** Lobby: load a game into the frame; its bets go to that game from now on. The
          *  operator page is told which game, by code and by the name players see. */
         open(code, frameUrl, name = null) {
+            frameLoad++;
             gameCode = code;
             config.frame.src = frameUrl;
             outer.send('launch_game', name ? { code, name } : { code });
         },
         /** Lobby: unload the game. */
         close() {
+            frameLoad++;
             gameCode = null;
             config.frame.src = 'about:blank';
         },
