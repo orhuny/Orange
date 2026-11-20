@@ -97,6 +97,22 @@ export function startSlot(cfg) {
         el.dataset.s = cell.s;
         if (cell.s === MULTIPLIER) {
             el.innerHTML = `<div class="star" aria-label="${cell.v}× multiplier"><img src="${theme.stars?.[starTier(cell.v)] ?? ''}" alt="" draggable="false"><b>${cell.v}×</b></div>`;
+        } else if (cell.s === SCATTER) {
+            // The basket says what it is, like the stars show their value; the word is text, so it stays crisp at any size.
+            const box = document.createElement('div');
+            box.className = 'basket';
+            box.setAttribute('role', 'img');
+            box.setAttribute('aria-label', theme.symbols[cell.s]?.name ?? 'Scatter');
+            const img = document.createElement('img');
+            img.src = theme.symbols[cell.s]?.img ?? '';
+            img.alt = '';
+            img.draggable = false;
+            const word = document.createElement('b');
+            word.textContent = 'SCATTER';
+            word.dataset.word = 'SCATTER';
+            word.setAttribute('aria-hidden', 'true');
+            box.append(img, word);
+            el.append(box);
         } else {
             const img = document.createElement('img');
             img.src = theme.symbols[cell.s]?.img ?? '';

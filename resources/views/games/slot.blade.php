@@ -261,10 +261,17 @@
         /* No will-change: a symbol at rest is drawn at full quality, not as a GPU layer. */
         .sym { position: absolute; left: 0; top: 0; width: calc(100% / 6); height: calc(100% / 5); display: grid; place-items: center; z-index: 1;
                container-type: size; }
-        .sym > img, .sym .star { width: 90%; height: 90%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 4px rgba(20, 8, 0, .5)); }
-        .sym[data-s=S] > img { width: 98%; height: 98%; }
+        .sym > img, .sym .star, .sym .basket { width: 90%; height: 90%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 4px rgba(20, 8, 0, .5)); }
+        .sym .basket { width: 98%; height: 98%; position: relative; }
         .sym .star { position: relative; display: grid; place-items: center; }
-        .sym .star img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+        .sym .star img, .sym .basket img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+        /* "SCATTER" across the basket's woven front: the <b> draws the dark outline, its ::after the candy fill on top. */
+        .sym .basket b { position: absolute; left: 0; right: 0; top: 71%; translate: 0 -50%; rotate: -4deg; text-align: center; white-space: nowrap;
+                         font: 900 16cqmin/1 var(--round); letter-spacing: .02em; color: #4a1300; -webkit-text-stroke: .2em #4a1300;
+                         filter: drop-shadow(0 .06em 0 #250800) drop-shadow(0 0 .15em rgba(255, 230, 150, .6)); }
+        .sym .basket b::after { content: attr(data-word); position: absolute; inset: 0; -webkit-text-stroke: 0;
+                                background: linear-gradient(#fffbe6 12%, #ffe25a 40%, #ff9a26 62%, #ff3b2f 90%); -webkit-background-clip: text; background-clip: text;
+                                color: transparent; -webkit-text-fill-color: transparent; }
         .sym .star b { position: relative; margin-top: 6%; font: 900 26cqmin/1 var(--round); color: #fff; -webkit-text-stroke: .14em #3d1600; paint-order: stroke fill;
                        text-shadow: 0 .06em 0 #3d1600; letter-spacing: -.02em; }
         .sym .frost { position: absolute; inset: 3%; width: 94%; height: 94%; opacity: 0; pointer-events: none; }
@@ -272,8 +279,8 @@
         .sym .dew { position: absolute; z-index: 2; aspect-ratio: 64 / 72; translate: -50% -50%; pointer-events: none; transform-origin: 50% 30%;
                     background: var(--droplet) center / contain no-repeat; filter: drop-shadow(0 1.5px 1px rgba(40, 10, 0, .35)); }
         .sym .dew-glint { position: absolute; z-index: 3; width: 22%; translate: -60% -70%; pointer-events: none; }
-        .sym.win > img, .sym.win .star { animation: pulse .42s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #fff7b0) drop-shadow(0 0 4px #ffae00); }
-        .sym.scatter > img { animation-duration: .3s; }
+        .sym.win > img, .sym.win .star, .sym.win .basket { animation: pulse .42s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #fff7b0) drop-shadow(0 0 4px #ffae00); }
+        .sym.scatter .basket { animation-duration: .3s; }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
         .fx { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
         .rays-cell { position: absolute; height: calc(100% / 5 * 2.4); aspect-ratio: 1; translate: -50% -50%; z-index: 0; pointer-events: none; opacity: 0; }
