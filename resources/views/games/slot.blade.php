@@ -285,11 +285,11 @@
         .fs-hud b { color: var(--gold); font-size: 1.15em; }
 
         /* ---- The bar ----
-           Landscape: one slim row, its ends lined up with the panel-and-grid group: tools,
-           balance and bet on the left; the win in the middle; − SPIN + under the grid's right
-           corner, the spin button reaching up over the grid. */
+           Landscape: one slim row, its ends lined up with the panel-and-grid group: the tools on
+           the left; the win in the middle; on the right BALANCE − SPIN + BET, the balance right
+           beside the spin button, the spin button reaching up over the grid. */
         .bar { position: relative; z-index: 5; flex: none; display: grid; align-items: center;
-               grid-template-columns: auto auto auto 1fr auto auto auto; grid-template-areas: "tools bal betm win minus spin plus";
+               grid-template-columns: auto 1fr auto auto auto auto auto; grid-template-areas: "tools win bal minus spin plus betm";
                column-gap: clamp(10px, 1.4vw, 22px); margin: 0 -12px;
                padding: 0 max(14px, calc((100vw - var(--group)) / 2)) max(8px, env(safe-area-inset-bottom));
                background: linear-gradient(180deg, transparent, rgba(30, 12, 2, .8) 45%); }
@@ -514,8 +514,8 @@
         [hidden] { display: none !important; }
         @media (orientation: landscape) and (max-width: 760px), (orientation: landscape) and (pointer: coarse) {
             .tools { display: grid; grid-template-columns: repeat(3, max-content); }
-            .bar { grid-template-columns: auto auto 1fr auto auto auto auto;
-                   grid-template-areas: "bal betm win minus spin plus tools"; }
+            .bar { grid-template-columns: 1fr auto auto auto auto auto auto;
+                   grid-template-areas: "win bal minus spin plus betm tools"; }
         }
 
         @media (orientation: portrait) {
