@@ -286,16 +286,23 @@
         .fs-hud b { color: var(--gold); font-size: 1.15em; }
 
         /* ---- The bar ----
-           Landscape: one slim row, its ends lined up with the panel-and-grid group: the tools on
-           the left; the win in the middle; on the right BALANCE − SPIN + BET, the balance right
-           beside the spin button. The spin button reaches up over the grid (--reach of its size),
-           and everything else rises half as far, so they all share its centre line; the three
-           meters are one height (--mh: the win's). Portrait has no reach. */
-        .bar { position: relative; z-index: 5; flex: none; display: grid; align-items: center;
-               grid-template-columns: auto 1fr auto auto auto auto auto; grid-template-areas: "tools win bal minus spin plus betm";
-               column-gap: clamp(10px, 1.4vw, 22px); margin: 0 -12px;
+           Landscape: one slim row whose columns follow the panel-and-grid group above it: the
+           tools under the panels; under the grid, WIN from the grid's left edge, BET to its right
+           edge, and BALANCE − SPIN + between them, the balance right beside the spin button. The
+           first and last columns are the room the panels and the frame's side ornaments take
+           (--side, --gap, --el, --er of the grid's height), so the rest is exactly the grid's
+           width; the spacing is margins (--g), so no gap pushes WIN or BET off the grid's edges.
+           The spin button reaches up over the grid (--reach of its size), and everything else
+           rises half as far, so they all share its centre line; the three meters are one height
+           (--mh: the win's). Portrait has no reach. */
+        .bar { position: relative; z-index: 5; flex: none; display: grid; align-items: center; --g: clamp(10px, 1.4vw, 22px);
+               grid-template-columns: calc(var(--side) + var(--gap) + var(--bh) * var(--el)) auto minmax(0, 1fr) auto auto auto auto minmax(0, 1fr) auto calc(var(--bh) * var(--er));
+               grid-template-areas: "tools win . bal minus spin plus . betm .";
+               column-gap: 0; margin: 0 -12px;
                padding: 0 max(14px, calc((100vw - var(--group)) / 2)) max(8px, env(safe-area-inset-bottom));
                background: linear-gradient(180deg, transparent, rgba(30, 12, 2, .8) 45%); }
+        .winm, .bal, #bet-minus { margin-right: var(--g); }
+        #bet-plus, .bet .meter { margin-left: var(--g); }
         /* Meters: chocolate pills in a gold rim, bold figures. */
         .meter { position: relative; display: grid; gap: 2px; text-align: center; min-width: 96px; padding: 6px 14px 7px; border-radius: 14px; border: 1.5px solid transparent;
                  background: linear-gradient(180deg, rgba(78, 37, 12, .9), rgba(30, 11, 2, .92)) padding-box, linear-gradient(180deg, #ffe7a3, #b8741f) border-box;
@@ -308,16 +315,16 @@
         .tools, .winm, .bal, .bet > * { translate: 0 calc(var(--spin) * var(--reach) / -2); }
         .bal { grid-area: bal; justify-self: start; }
         .bet { display: contents; }
-        .bet .meter { grid-area: betm; }
+        .bet .meter { grid-area: betm; justify-self: end; }
         #bet-minus { grid-area: minus; } #bet-plus { grid-area: plus; }
         /* The win: big golden figures, with fruit perched on top that bob, and cheer at a win. */
-        .winm { grid-area: win; justify-self: center; min-width: clamp(150px, 15vw, 230px); padding: 4px 22px 5px; overflow: visible;
+        .winm { grid-area: win; justify-self: start; min-width: clamp(140px, 13vw, 210px); padding: 4px 22px 5px; overflow: visible;
                 background: linear-gradient(180deg, rgba(92, 44, 14, .92), rgba(34, 12, 2, .94)) padding-box, linear-gradient(180deg, #fff1c4, #e3a23e 45%, #8a4d12) border-box; }
         .winm #win { font-size: clamp(20px, 2.1vw, 30px); line-height: 1.05; color: transparent; text-shadow: none;
                      background: linear-gradient(180deg, #fffbe0, #ffd34d 52%, #f08a00); -webkit-background-clip: text; background-clip: text;
                      filter: drop-shadow(0 2px 0 #4a1e00) drop-shadow(0 0 10px rgba(255, 190, 60, .3)); display: inline-block; }
         .winm.lit { box-shadow: 0 6px 14px rgba(0, 0, 0, .42), 0 0 22px rgba(255, 196, 70, .55), inset 0 1px 0 rgba(255, 230, 180, .3); }
-        .perch { position: absolute; right: -10px; top: 0; translate: 0 -60%; display: flex; align-items: flex-end; gap: 0; pointer-events: none; }
+        .perch { position: absolute; right: -24px; top: 0; translate: 0 -60%; display: flex; align-items: flex-end; gap: 0; pointer-events: none; }
         .perch img { width: clamp(24px, 2vw, 34px); aspect-ratio: 1; object-fit: contain; transform-origin: 50% 100%; filter: drop-shadow(0 3px 2px rgba(20, 8, 0, .5));
                      animation: hop 2.6s ease-in-out infinite; }
         .perch img:nth-child(2) { width: clamp(28px, 2.3vw, 40px); animation-delay: -.9s; }
@@ -344,7 +351,7 @@
         .spin:not(:disabled):active { transform: scale(.95); }
         .spin.busy { animation: rot .9s linear infinite; }
         @keyframes rot { to { transform: rotate(360deg); } }
-        .tools { grid-area: tools; display: flex; gap: 8px; }
+        .tools { grid-area: tools; justify-self: start; display: flex; gap: 8px; }
         .tool svg { width: 46%; height: 46%; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .4)); }
         .tool[aria-pressed=true] { background: radial-gradient(circle at 35% 28%, #8ff09a, #34a845 58%, #145a1f); border-color: #d9ffd2;
                                    box-shadow: 0 5px 12px rgba(0, 0, 0, .45), 0 0 14px rgba(95, 211, 106, .5), inset 0 2px 0 rgba(255, 255, 255, .4); }
@@ -522,12 +529,14 @@
             .tools { display: grid; grid-template-columns: repeat(3, max-content); }
             .bar { grid-template-columns: 1fr auto auto auto auto auto auto;
                    grid-template-areas: "win bal minus spin plus betm tools"; }
+            .bar .tools { margin-left: var(--g); }
         }
 
         @media (orientation: portrait) {
             :root { --top: clamp(36px, 7vh, 68px); }
             .stage { --spin: clamp(64px, 19vw, 88px); --reach: 0; }
             .bar .meter { min-height: 0; }
+            .winm, .bal, #bet-minus, #bet-plus, .bet .meter { margin: 0; }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
             .intro-bg { background-image: radial-gradient(ellipse at center, rgba(26, 27, 8, .18), rgba(23, 12, 4, .8)), var(--day-p); }
             .intro-host { --ih: min(38vh, 92vw / var(--ar)); left: calc(50% - var(--ih) * var(--ar) * var(--cx)); }
