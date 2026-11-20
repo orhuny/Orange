@@ -100,7 +100,7 @@ it('takes the stake, spins, pays the tumbles and reports how to verify it', func
         ->assertJsonPath('multiplier', '7.8500')
         ->assertJsonPath('payout_amount', '15.70000000')
         ->assertJsonPath('fairness.nonce', 1);
-    expect($bet->params)->toBe(['mode' => 'base', 'model' => 'sugar-orchard', 'variant' => 'v1-9650', 'cost' => '1.00', 'rtp' => '0.9650']);
+    expect($bet->params)->toBe(['mode' => 'base', 'model' => 'sugar-orchard', 'variant' => 'v1-9650', 'max_win_x' => 5000, 'cost' => '1.00', 'rtp' => '0.9650']);
 
     Http::assertSent(fn (Request $r): bool => str_ends_with($r->url(), '/wallet/debit') && $r['tx_id'] === 'bet:slot-1' && bccomp((string) $r['amount'], '2', 8) === 0);
     Http::assertSent(fn (Request $r): bool => str_ends_with($r->url(), '/wallet/credit') && $r['tx_id'] === "payout:{$bet->id}" && $r['amount'] === '15.70000000');
@@ -258,7 +258,7 @@ it('keeps the RTP target and the variant in step', function (): void {
     $game = new Game(['type' => 'slot', 'rtp_target' => 0.955, 'house_edge' => 0.045]);
 
     expect($engine->validateConfig($game, ['variant' => 'v1-9550']))->toBe([
-        'model' => 'sugar-orchard', 'variant' => 'v1-9550', 'theme' => 'sugar-orchard', 'ante' => true, 'buy' => true, 'autoplay' => true,
+        'model' => 'sugar-orchard', 'variant' => 'v1-9550', 'max_win_x' => 5000, 'theme' => 'sugar-orchard', 'ante' => true, 'buy' => true, 'autoplay' => true,
         'bet_steps' => ['0.20', '0.40', '0.60', '0.80', '1.00', '2.00', '3.00', '4.00', '5.00', '10.00', '20.00', '50.00', '100.00'],
     ])
         ->and(fn () => $engine->validateConfig($game, ['variant' => 'v1-9650']))->toThrow(InvalidGameConfig::class, 'set the game\'s RTP target to 0.9650')

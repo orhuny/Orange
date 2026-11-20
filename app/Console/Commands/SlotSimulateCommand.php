@@ -33,6 +33,8 @@ class SlotSimulateCommand extends Command
         {--seed=1 : Seed (different seeds give independent runs)}
         {--rng=fast : fast (xoshiro256**) or hmac (production RandomStream)}
         {--processes=1 : Parallel worker processes}
+        {--max-win= : The cap on a bet\'s total win, × the bet (default: the model\'s)}
+        {--caps= : Also report the RTP at these lower caps (× the bet, comma-separated), from the same bets}
         {--json : Print the raw totals as JSON}
         {--worker : Internal: run as one worker of a parallel run}';
 
@@ -63,10 +65,20 @@ class SlotSimulateCommand extends Command
         $seed = (int) $this->option('seed');
         $processes = max(1, (int) $this->option('processes'));
 
+        // A capped bet wins min(its uncapped win, cap): the running total only grows, and the
+        // cap only stops the bet. So one run at the highest cap measures every lower one.
+        $cap = $this->option('max-win') ? (int) $this->option('max-win') * 100 : $model->maxWin;
+        $caps = array_values(array_filter(array_map(fn (string $c): int => (int) trim($c) * 100, explode(',', (string) $this->option('caps')))));
+        if ($cap <= 0 || array_filter($caps, fn (int $c): bool => $c <= 0 || $c > $cap) !== []) {
+            $this->error('--max-win must be positive, and every --caps value positive and no higher than it.');
+
+            return self::FAILURE;
+        }
+
         $started = microtime(true);
         $totals = $processes === 1 || $this->option('worker')
-            ? $this->simulate($model, $variantId, $mode, $spins, $seed, $rng)
-            : $this->parallel($code, $variantId, $mode, $spins, $seed, $rng, $processes);
+            ? $this->simulate($model, $variantId, $mode, $spins, $seed, $rng, $cap, $caps)
+            : $this->parallel($code, $variantId, $mode, $spins, $seed, $rng, $processes, $cap, $caps);
 
         if ($this->option('worker') || $this->option('json')) {
             $this->line((string) json_encode($totals));
@@ -74,13 +86,16 @@ class SlotSimulateCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->report($model, $variantId, $mode, $rng, $totals, microtime(true) - $started);
+        $this->report($model, $variantId, $mode, $rng, $totals, microtime(true) - $started, $cap, $caps);
 
         return self::SUCCESS;
     }
 
-    /** @return array<string, int|float|list<int>> */
-    private function simulate(TumbleModel $model, string $variantId, string $mode, int $spins, int $seed, string $rng): array
+    /**
+     * @param  list<int>  $caps
+     * @return array<string, int|float|list<int>>
+     */
+    private function simulate(TumbleModel $model, string $variantId, string $mode, int $spins, int $seed, string $rng, int $cap, array $caps): array
     {
         $variant = $model->variant($variantId);
         $randomizer = new Randomizer(new Xoshiro256StarStar($seed));
@@ -89,10 +104,13 @@ class SlotSimulateCommand extends Command
         $bounds = array_values(self::BUCKETS);
 
         $t = ['n' => $spins, 'win' => 0, 'sumSq' => 0.0, 'base' => 0, 'free' => 0, 'hits' => 0, 'triggers' => 0, 'freeSpins' => 0, 'maxed' => 0,
-            'biggest' => 0, 'buckets' => array_fill(0, count($bounds), 0)];
+            'biggest' => 0, 'buckets' => array_fill(0, count($bounds), 0), 'capped' => array_fill(0, count($caps), 0)];
         for ($i = 0; $i < $spins; $i++) {
             $next = $rng === 'fast' ? $fast : (new RandomStream("simulation-{$seed}", 'simulation', $i))->nextInt(...);
-            $r = SpinResolver::resolve($model, $variant, $mode, $next, false);
+            $r = SpinResolver::resolve($model, $variant, $mode, $next, false, $cap);
+            foreach ($caps as $k => $c) {
+                $t['capped'][$k] += min($r->win, $c);
+            }
 
             $t['win'] += $r->win;
             $t['sumSq'] += ($r->win / $cost) ** 2;
@@ -118,8 +136,11 @@ class SlotSimulateCommand extends Command
         return $t;
     }
 
-    /** @return array<string, int|float|list<int>> */
-    private function parallel(string $code, string $variantId, string $mode, int $spins, int $seed, string $rng, int $processes): array
+    /**
+     * @param  list<int>  $caps
+     * @return array<string, int|float|list<int>>
+     */
+    private function parallel(string $code, string $variantId, string $mode, int $spins, int $seed, string $rng, int $processes, int $cap, array $caps): array
     {
         $per = intdiv($spins, $processes);
         $workers = [];
@@ -128,7 +149,8 @@ class SlotSimulateCommand extends Command
             $process = new Process([
                 PHP_BINARY, '-d', 'opcache.enable_cli=1', '-d', 'opcache.jit=tracing', '-d', 'opcache.jit_buffer_size=64M', '-d', 'memory_limit=512M',
                 base_path('artisan'), 'slot:simulate', $code, "--variant={$variantId}", "--mode={$mode}", "--spins={$count}",
-                '--seed='.($seed * 1000 + $p), "--rng={$rng}", '--worker',
+                '--seed='.($seed * 1000 + $p), "--rng={$rng}", '--max-win='.intdiv($cap, 100),
+                '--caps='.implode(',', array_map(fn (int $c): int => intdiv($c, 100), $caps)), '--worker',
             ]);
             $process->setTimeout(null);
             $process->start();
@@ -161,8 +183,11 @@ class SlotSimulateCommand extends Command
         return $totals ?? [];
     }
 
-    /** @param  array<string, mixed>  $t */
-    private function report(TumbleModel $model, string $variantId, string $mode, string $rng, array $t, float $seconds): void
+    /**
+     * @param  array<string, mixed>  $t
+     * @param  list<int>  $caps
+     */
+    private function report(TumbleModel $model, string $variantId, string $mode, string $rng, array $t, float $seconds, int $cap, array $caps): void
     {
         $n = (int) $t['n'];
         $cost = TumbleModel::COSTS[$mode];
@@ -172,7 +197,7 @@ class SlotSimulateCommand extends Command
         $pct = fn (float $v): string => number_format($v * 100, 3).'%';
         $oneIn = fn (int $k): string => $k > 0 ? '1 in '.number_format($n / $k, 1) : 'never';
 
-        $this->info("{$model->code} {$variantId} · {$mode} · ".number_format($n)." bets · rng={$rng} · ".number_format($seconds, 1).'s');
+        $this->info("{$model->code} {$variantId} · {$mode} · max win ".number_format($cap / 100).'× · '.number_format($n)." bets · rng={$rng} · ".number_format($seconds, 1).'s');
         $this->table(['Measure', 'Value'], [
             ['RTP', $pct($rtp).' ± '.$pct($ci).' (95%)'],
             ['  base game', $pct($t['base'] / $n / $cost)],
@@ -188,5 +213,14 @@ class SlotSimulateCommand extends Command
         $this->table(array_map(fn (string $label): string => "{$label}×", array_keys(self::BUCKETS)), [
             array_map(fn (int $count): string => number_format($count / $n * 100, 3).'%', (array) $t['buckets']),
         ]);
+
+        if ($caps !== []) {
+            // The difference is measured on the same bets, so it is far more precise than either RTP.
+            $this->table(['Max win', 'RTP', 'vs this run'], array_map(fn (int $c, int|float $sum): array => [
+                number_format($c / 100).'×',
+                $pct($sum / $n / $cost),
+                sprintf('%+.4f%%', ($sum - $t['win']) / $n / $cost * 100),
+            ], $caps, (array) $t['capped']));
+        }
     }
 }

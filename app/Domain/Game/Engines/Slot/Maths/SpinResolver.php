@@ -13,15 +13,21 @@ use InvalidArgumentException;
  * result. The draw order is part of the fairness contract (SlotVerifier::describe()):
  *
  *   1. The grid, column 0 to the last, each column top to bottom: one draw per cell from
- *      that column's table; a multiplier cell draws its value next.
+ *      that column's table; a multiplier cell draws its value next (outside free spins
+ *      from the variant's base multiplier table, if it has one).
  *      A bought spin first draws the scatter count, then their cells by a partial
  *      Fisher–Yates shuffle of 0 … cells − 1 (i-th: swap i with i + nextInt(cells − i)),
  *      then fills the other cells in order from the buy tables.
  *   2. Pay symbols with at least payTiers[0] copies anywhere win. They are removed, the
  *      rest fall, and the gaps refill: columns left to right, new cells top to bottom,
  *      drawn like step 1. Repeat until nothing wins.
- *   3. Free spins: a multiplier sum (the values on the final grid) multiplies the spin's
- *      win, if it has one. Scatters are counted on the final grid.
+ *   3. The multiplier sum (the values on the final grid) of a spin that won:
+ *      - base game (models with base multipliers): multiplies the spin's line win;
+ *      - free spins, SPIN: multiplies the spin's win;
+ *      - free spins, TIDE: joins the tide (a running total from 0), and the tide, if above
+ *        0, multiplies the spin's win.
+ *      Scatters are counted on the final grid; their pay is never multiplied.
+ *   4. A bet's total win stops at the cap, and nothing more is played.
  *
  * Cells are numbered column by column: cell = column × rows + row, row 0 at the top.
  */
@@ -30,33 +36,45 @@ final class SpinResolver
     /** A tumble chain or a bonus this long can't happen in practice; the cap only guarantees an end. */
     private const MAX_TUMBLES = 1000;
 
-    /** @param  Closure(int): int  $nextInt  a uniform integer in [0, n) */
-    public static function resolve(TumbleModel $model, Variant $variant, string $mode, Closure $nextInt, bool $record = true): SpinResult
+    /**
+     * @param  Closure(int): int  $nextInt  a uniform integer in [0, n)
+     * @param  int|null  $maxWin  the cap on the total win, in hundredths of the bet (default: the model's)
+     */
+    public static function resolve(TumbleModel $model, Variant $variant, string $mode, Closure $nextInt, bool $record = true, ?int $maxWin = null): SpinResult
     {
         if (! isset(TumbleModel::COSTS[$mode])) {
             throw new InvalidArgumentException("Unknown mode [{$mode}].");
         }
+        $cap = $maxWin ?? $model->maxWin;
+        if ($cap <= 0) {
+            throw new InvalidArgumentException("The max win must be positive, got {$cap}.");
+        }
 
         $set = $variant->set($mode === 'ante' ? 'ante' : ($mode === 'buy' ? 'buy' : 'base'));
+        $baseValues = $model->baseMultipliers ? ($variant->baseMultipliers ?? $variant->multipliers) : null;
         [$grid, $values] = $mode === 'buy'
-            ? self::boughtGrid($model, $variant, $nextInt)
-            : self::drawGrid($model, $set, null, $nextInt);
+            ? self::boughtGrid($model, $variant, $baseValues, $nextInt)
+            : self::drawGrid($model, $set, $baseValues, $nextInt);
 
-        $first = self::tumble($model, $set, null, $grid, $values, $nextInt, $record);
+        $first = self::tumble($model, $set, $baseValues, $grid, $values, $nextInt, $record);
+        $baseSum = $first['win'] > 0 ? $first['multiplier'] : 0;
+        $lineWin = $baseSum > 0 ? $first['win'] * $baseSum : $first['win'];
         $scatterWin = $model->scatterPay($first['scatters']);
-        $baseWin = min($first['win'] + $scatterWin, $model->maxWin);
-        $maxed = $baseWin >= $model->maxWin;
+        $baseWin = min($lineWin + $scatterWin, $cap);
+        $maxed = $baseWin >= $cap;
         $awarded = ! $maxed && $first['scatters'] >= $model->freeSpinsTriggerAt ? $model->freeSpinsAwarded : 0;
 
         $spins = [];
         if ($record) {
-            $spins[] = $first['record'] + [
+            $spins[] = $first['record'] + ($model->baseMultipliers ? ['multiplier' => $baseSum] : []) + [
                 'scatter_win_x' => TumbleModel::x($scatterWin),
                 'win_x' => TumbleModel::x($baseWin),
                 'free_spins_awarded' => $awarded,
             ];
         }
 
+        $tides = $model->freeSpinMultiplier === TumbleModel::TIDE;
+        $tide = 0;
         $total = $baseWin;
         $freeWin = 0;
         $played = 0;
@@ -65,9 +83,12 @@ final class SpinResolver
             [$grid, $values] = self::drawGrid($model, $variant->free, $variant->multipliers, $nextInt);
             $spin = self::tumble($model, $variant->free, $variant->multipliers, $grid, $values, $nextInt, $record);
 
-            $win = $spin['win'] > 0 && $spin['multiplier'] > 0 ? $spin['win'] * $spin['multiplier'] : $spin['win'];
-            if ($total + $win >= $model->maxWin) {
-                $win = $model->maxWin - $total;
+            $sum = $spin['win'] > 0 ? $spin['multiplier'] : 0;
+            $tide += $sum;
+            $factor = $tides ? $tide : $sum;
+            $win = $spin['win'] > 0 && $factor > 0 ? $spin['win'] * $factor : $spin['win'];
+            if ($total + $win >= $cap) {
+                $win = $cap - $total;
                 $maxed = true;
             }
             $total += $win;
@@ -79,10 +100,10 @@ final class SpinResolver
 
             if ($record) {
                 $spins[] = $spin['record'] + [
-                    'multiplier' => $spin['win'] > 0 ? $spin['multiplier'] : 0,
+                    'multiplier' => $sum,
                     'win_x' => TumbleModel::x($win),
                     'retrigger' => $retrigger,
-                ];
+                ] + ($tides ? ['tide' => $tide] : []);
             }
         }
 
@@ -125,12 +146,13 @@ final class SpinResolver
     }
 
     /**
-     * A bought trigger spin: the scatters first, then the rest from the buy tables.
+     * A bought trigger spin: the scatters first, then the rest from the buy tables (a
+     * multiplier cell draws its value next).
      *
      * @param  Closure(int): int  $nextInt
      * @return array{0: list<int>, 1: list<int>}
      */
-    private static function boughtGrid(TumbleModel $model, Variant $variant, Closure $nextInt): array
+    private static function boughtGrid(TumbleModel $model, Variant $variant, ?WeightTable $multipliers, Closure $nextInt): array
     {
         $count = $variant->buyScatters->pick($nextInt($variant->buyScatters->total));
         $cells = range(0, $model->cells - 1);
@@ -141,16 +163,20 @@ final class SpinResolver
         $scatters = array_flip(array_slice($cells, 0, $count));
 
         $grid = [];
+        $values = [];
         for ($cell = 0; $cell < $model->cells; $cell++) {
             if (isset($scatters[$cell])) {
                 $grid[] = $model->scatter;
+                $values[] = 0;
             } else {
                 $table = $variant->buy[intdiv($cell, $model->rows)];
-                $grid[] = $table->pick($nextInt($table->total));
+                $symbol = $table->pick($nextInt($table->total));
+                $grid[] = $symbol;
+                $values[] = $symbol === $model->multiplier ? self::multiplierValue($model, $multipliers, $nextInt) : 0;
             }
         }
 
-        return [$grid, array_fill(0, $model->cells, 0)];
+        return [$grid, $values];
     }
 
     /**

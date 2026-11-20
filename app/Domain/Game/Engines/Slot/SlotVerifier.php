@@ -25,6 +25,8 @@ final class SlotVerifier implements FairnessVerifier
         $config = app(SlotEngine::class)->validateConfig($game, (array) $game->config);
         $model = SlotModels::get($config['model']);
         $variant = $model->variant($config['variant']);
+        $cap = $config['max_win_x'] * 100;
+        $rtp = $model->rtp($variant, $cap);
         $letters = fn (WeightTable $table): array => array_combine(
             array_map(fn (int $symbol): string => $model->symbols[$symbol], array_keys($table->weights())),
             array_values($table->weights()),
@@ -42,18 +44,29 @@ final class SlotVerifier implements FairnessVerifier
             ];
         }
 
+        $multipliers = match (true) {
+            $model->freeSpinMultiplier === TumbleModel::TIDE => 'In free spins the multiplier sum of every spin that pays joins the tide (a running total from 0), '
+                .'and a spin that pays is multiplied by the tide once it is above 0. ',
+            default => 'In free spins a spin that pays is multiplied by the sum of the multiplier values on its final grid. ',
+        };
+        if ($model->baseMultipliers) {
+            $multipliers = 'Outside free spins a multiplier cell (M) draws its value from "base_multipliers"; a spin that pays has its line win '
+                .'(not the scatter pay) multiplied by the sum of the multiplier values on its final grid. '.$multipliers;
+        }
+
         return [
             'algorithm' => self::ALGORITHM,
             'model' => $model->code,
             'variant' => $variant->id,
-            'rtp' => $variant->rtp,
-            'house_edge' => bcsub('1', $variant->rtp, 4),
+            'rtp' => $rtp,
+            'house_edge' => bcsub('1', $rtp, 4),
             'inputs' => [
                 'server_seed' => 'revealed when the player rotates their seed pair (its SHA-256 is shown beforehand)',
                 'client_seed' => "the player's own client seed",
                 'nonce' => 'the bet number on that seed pair, shown with every bet',
                 'mode' => 'base, ante or buy (in the bet\'s outcome)',
                 'variant' => 'the RTP variant the bet was played with (in its outcome); defaults to the game\'s current one',
+                'max_win_x' => 'the max win the bet was played with (in its outcome); defaults to the game\'s current one',
             ],
             'formula' => 'nextInt(n): read unsigned 32-bit big-endian integers from block_k = HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}:{k}"), '
                 .'k = 0, 1, …, eight per block; take the first u < floor(2^32 / n) * n, then u mod n. '
@@ -67,7 +80,7 @@ final class SlotVerifier implements FairnessVerifier
                 .'(columns left to right, new cells top to bottom, same draws); repeat until nothing pays. '
                 ."Scatters (S) are counted on the final grid: {$model->freeSpinsTriggerAt}+ pay the scatter pay and award {$model->freeSpinsAwarded} free spins; "
                 ."in free spins {$model->retriggerAt}+ add {$model->retriggerAwarded} (at most {$model->maxFreeSpins} in all). "
-                .'In free spins a spin that pays is multiplied by the sum of the multiplier values on its final grid. '
+                .$multipliers
                 .'A bet\'s total win stops at max_win and the feature ends there. Wins are multiples of the bet; '
                 .'payout_multiplier = floor4(total win / cost), cost = 1 (base), 1.25 (ante) or 100 (buy).',
             'grid' => ['columns' => $model->cols, 'rows' => $model->rows],
@@ -78,7 +91,8 @@ final class SlotVerifier implements FairnessVerifier
                 'trigger_scatters' => $model->freeSpinsTriggerAt, 'awarded' => $model->freeSpinsAwarded,
                 'retrigger_scatters' => $model->retriggerAt, 'retrigger_awarded' => $model->retriggerAwarded, 'max' => $model->maxFreeSpins,
             ],
-            'max_win' => TumbleModel::x($model->maxWin),
+            'max_win' => TumbleModel::x($cap),
+            'multipliers' => ['base_game' => $model->baseMultipliers, 'free_spins' => $model->freeSpinMultiplier],
             'costs' => array_combine(SlotEngine::MODES, array_map(fn (string $mode): string => SlotEngine::cost($mode), SlotEngine::MODES)),
             'features' => ['ante' => $config['ante'], 'buy' => $config['buy']],
             'tables' => [
@@ -88,7 +102,7 @@ final class SlotVerifier implements FairnessVerifier
                 'free' => array_map($letters, $variant->free),
                 'multipliers' => $variant->multipliers->weights(),
                 'buy_scatters' => $variant->buyScatters->weights(),
-            ],
+            ] + ($model->baseMultipliers ? ['base_multipliers' => ($variant->baseMultipliers ?? $variant->multipliers)->weights()] : []),
         ];
     }
 
@@ -97,6 +111,7 @@ final class SlotVerifier implements FairnessVerifier
         return [
             'mode' => ['required', 'in:'.implode(',', SlotEngine::MODES)],
             'variant' => ['nullable', 'string', 'max:32'],
+            'max_win_x' => ['nullable', 'numeric', 'min:1'],
         ];
     }
 
@@ -108,14 +123,20 @@ final class SlotVerifier implements FairnessVerifier
         if (! isset($model->variants[$variant])) {
             throw ValidationException::withMessages(['variant' => "Model [{$model->code}] has no variant [{$variant}]."]);
         }
+        // The outcome shows it as "5000.00".
+        $maxWinX = isset($params['max_win_x']) && $params['max_win_x'] !== '' ? (int) floor((float) $params['max_win_x']) : $config['max_win_x'];
+        if (! isset($model->maxWinChoices($model->variants[$variant])[$maxWinX * 100])) {
+            throw ValidationException::withMessages(['max_win_x' => "Variant [{$variant}] was never played with a max win of {$maxWinX}×."]);
+        }
 
-        $result = SlotEngine::resolve($model->code, $variant, (string) $params['mode'], (new RandomStream($serverSeed, $clientSeed, $nonce))->nextInt(...));
+        $result = SlotEngine::resolve($model->code, $variant, (string) $params['mode'], (new RandomStream($serverSeed, $clientSeed, $nonce))->nextInt(...), $maxWinX);
 
         return [
             'algorithm' => self::ALGORITHM,
             'server_seed_hash' => hash('sha256', $serverSeed),
             'model' => $model->code,
             'variant' => $variant,
+            'max_win_x' => $maxWinX,
             'mode' => (string) $params['mode'],
             'total_win_x' => $result->outcome['total_win_x'],
             'free_spins' => $result->outcome['free_spins'],

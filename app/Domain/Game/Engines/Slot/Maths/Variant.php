@@ -22,6 +22,8 @@ final readonly class Variant
      * @param  list<WeightTable>  $free  symbols per column in free spins (with multipliers)
      * @param  WeightTable  $multipliers  a multiplier symbol's value
      * @param  WeightTable  $buyScatters  how many scatters a bought trigger spin places
+     * @param  WeightTable|null  $baseMultipliers  a multiplier's value outside free spins (default: $multipliers)
+     * @param  array<int, string>  $rtpByCap  other caps a game may pick (hundredths of the bet) => the RTP measured with it
      */
     public function __construct(
         public string $id,
@@ -32,6 +34,8 @@ final readonly class Variant
         public array $free,
         public WeightTable $multipliers,
         public WeightTable $buyScatters,
+        public ?WeightTable $baseMultipliers = null,
+        public array $rtpByCap = [],
     ) {
         foreach (['base' => $base, 'ante' => $ante, 'buy' => $buy, 'free' => $free] as $name => $columns) {
             if ($columns === []) {

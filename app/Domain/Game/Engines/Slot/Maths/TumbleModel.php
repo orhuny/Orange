@@ -13,11 +13,22 @@ use InvalidArgumentException;
  * Symbols are indices into $symbols: the pay symbols first (0 … payCount − 1), then the
  * scatter, then the multiplier. A model's paytable and rules never change once live;
  * a change is a new model code. Its weight tables live in its variants.
+ *
+ * Multipliers: with $baseMultipliers they land in the base game too, and multiply the line
+ * win of the spin they end on. In free spins, SPIN multiplies a winning spin by its own sum;
+ * TIDE adds the sum of every winning spin to a running total that multiplies each winning
+ * spin from then on.
  */
 final readonly class TumbleModel
 {
     /** Mode => what the stake buys, in hundredths of the base bet. */
     public const COSTS = ['base' => 100, 'ante' => 125, 'buy' => 10_000];
+
+    /** Free spins: each winning spin is multiplied by the sum on its own grid. */
+    public const SPIN = 'spin';
+
+    /** Free spins: each winning spin's sum joins a running total that multiplies it and every later winning spin. */
+    public const TIDE = 'tide';
 
     public int $cells;
 
@@ -32,6 +43,9 @@ final readonly class TumbleModel
      * @param  list<list<int>>  $pays  per pay symbol, its pay for each tier
      * @param  array<int, int>  $scatterPays  scatter count => pay (the highest count <= the scatters on screen applies)
      * @param  array<string, Variant>  $variants  id => variant
+     * @param  int  $maxWin  the default cap on a bet's total win; a game may pick another its variant has measured (Variant::$rtpByCap)
+     * @param  bool  $baseMultipliers  whether multipliers land outside free spins
+     * @param  string  $freeSpinMultiplier  SPIN or TIDE
      */
     public function __construct(
         public string $code,
@@ -53,6 +67,8 @@ final readonly class TumbleModel
         public int $maxWin,
         public array $variants,
         public string $defaultVariant,
+        public bool $baseMultipliers = false,
+        public string $freeSpinMultiplier = self::SPIN,
     ) {
         $this->cells = $cols * $rows;
         $this->payCount = count($pays);
@@ -69,6 +85,41 @@ final readonly class TumbleModel
         if (! isset($variants[$defaultVariant])) {
             throw new InvalidArgumentException("Model [{$code}]: the default variant [{$defaultVariant}] doesn't exist.");
         }
+        if (! in_array($freeSpinMultiplier, [self::SPIN, self::TIDE], true)) {
+            throw new InvalidArgumentException("Model [{$code}]: free-spin multipliers are SPIN or TIDE, not [{$freeSpinMultiplier}].");
+        }
+        foreach ($variants as $id => $variant) {
+            foreach (['base', 'ante', 'buy'] as $set) {
+                foreach ($variant->set($set) as $table) {
+                    if (! $baseMultipliers && in_array($multiplier, $table->values, true)) {
+                        throw new InvalidArgumentException("Model [{$code}] variant [{$id}]: multipliers only land in free spins, but [{$set}] has one.");
+                    }
+                }
+            }
+            if (isset($variant->rtpByCap[$maxWin])) {
+                throw new InvalidArgumentException("Model [{$code}] variant [{$id}]: the default cap's RTP is the variant's own; don't list it again.");
+            }
+        }
+    }
+
+    /**
+     * The caps a game may pick with this variant, each with the RTP measured at it.
+     *
+     * @return array<int, string> cap (hundredths of the bet) => rtp, ascending
+     */
+    public function maxWinChoices(Variant $variant): array
+    {
+        $choices = [$this->maxWin => $variant->rtp] + $variant->rtpByCap;
+        ksort($choices);
+
+        return $choices;
+    }
+
+    /** The RTP of a variant played with a cap. */
+    public function rtp(Variant $variant, int $maxWin): string
+    {
+        return $this->maxWinChoices($variant)[$maxWin]
+            ?? throw new InvalidArgumentException("Model [{$this->code}] variant [{$variant->id}] has no measured RTP for a max win of ".self::x($maxWin).'×.');
     }
 
     /** What $count of pay symbol $symbol pays (0 below the first tier). */

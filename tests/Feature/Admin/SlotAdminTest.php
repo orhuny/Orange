@@ -24,7 +24,7 @@ it('offers slot as a game type, and picking an RTP variant sets the RTP target a
         ->assertHasNoFormErrors();
 
     expect(Game::query()->where('code', 'orchard-95')->sole()->config)->toBe([
-        'model' => 'sugar-orchard', 'variant' => 'v1-9550', 'theme' => 'sugar-orchard',
+        'model' => 'sugar-orchard', 'variant' => 'v1-9550', 'max_win_x' => 5000, 'theme' => 'sugar-orchard',
         'ante' => true, 'buy' => false, 'autoplay' => true, 'bet_steps' => ['0.50', '2.00'],
     ]);
 });

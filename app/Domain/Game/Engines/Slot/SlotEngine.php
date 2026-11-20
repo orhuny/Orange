@@ -47,8 +47,9 @@ final class SlotEngine implements InstantEngine
     }
 
     /**
-     * Config: model, variant (its RTP must be the game's rtp_target), theme, whether the ante
-     * bet, the bonus buy and autoplay are offered, and the bet steps the page offers.
+     * Config: model, variant and max win (together they set the RTP, which must be the game's
+     * rtp_target), theme, whether the ante bet, the bonus buy and autoplay are offered, and
+     * the bet steps the page offers.
      */
     public function validateConfig(Game $game, array $config): array
     {
@@ -62,9 +63,20 @@ final class SlotEngine implements InstantEngine
         if (! isset($model->variants[$variantId])) {
             throw new InvalidGameConfig("Model [{$code}] has no RTP variant [{$variantId}]. Known: ".implode(', ', array_keys($model->variants)).'.');
         }
-        $rtp = $model->variants[$variantId]->rtp;
+
+        // The cap changes the RTP (a lower one cuts off the biggest wins), so a game may only
+        // pick a cap its variant was measured with.
+        $maxWinX = $config['max_win_x'] ?? null;
+        $maxWinX = $maxWinX === null || $maxWinX === '' ? intdiv($model->maxWin, 100) : $maxWinX;
+        $choices = $model->maxWinChoices($model->variants[$variantId]);
+        if (! is_numeric($maxWinX) || (string) (int) $maxWinX !== (string) $maxWinX || ! isset($choices[(int) $maxWinX * 100])) {
+            throw new InvalidGameConfig("Variant {$variantId}'s max win can be ".implode(', ', array_map(fn (int $cap): string => number_format($cap / 100).'×', array_keys($choices))).'.');
+        }
+        $maxWinX = (int) $maxWinX;
+
+        $rtp = $choices[$maxWinX * 100];
         if (abs((float) $game->rtp_target - (float) $rtp) > 0.00005) {
-            throw new InvalidGameConfig("Variant {$variantId} pays an RTP of {$rtp}: set the game's RTP target to {$rtp} (and its house edge to ".bcsub('1', $rtp, 4).').');
+            throw new InvalidGameConfig("Variant {$variantId} with a max win of ".number_format($maxWinX)."× pays an RTP of {$rtp}: set the game's RTP target to {$rtp} (and its house edge to ".bcsub('1', $rtp, 4).').');
         }
 
         $themes = array_keys((array) config('slots.themes', []));
@@ -94,6 +106,7 @@ final class SlotEngine implements InstantEngine
         return [
             'model' => $code,
             'variant' => $variantId,
+            'max_win_x' => $maxWinX,
             'theme' => $theme,
             'ante' => (bool) ($config['ante'] ?? true),
             'buy' => (bool) ($config['buy'] ?? true),
@@ -104,9 +117,7 @@ final class SlotEngine implements InstantEngine
 
     public function maxMultiplier(Game $game): string
     {
-        $model = SlotModels::get($this->validateConfig($game, (array) $game->config)['model']);
-
-        return bcdiv((string) $model->maxWin, '100', 4);
+        return bcadd((string) $this->validateConfig($game, (array) $game->config)['max_win_x'], '0', 4);
     }
 
     public function verifier(): FairnessVerifier
@@ -114,7 +125,7 @@ final class SlotEngine implements InstantEngine
         return $this->verifier;
     }
 
-    /** Params: mode = base (default), ante or buy. The model, variant and price are pinned to the bet. */
+    /** Params: mode = base (default), ante or buy. The model, variant, max win and price are pinned to the bet. */
     public function validateParams(Game $game, array $params): array
     {
         $mode = $params['mode'] ?? 'base';
@@ -132,51 +143,61 @@ final class SlotEngine implements InstantEngine
 
         // Pinned when the bet is placed: a later change to the game can neither alter a
         // pending payout nor stop the bet from verifying.
+        $model = SlotModels::get($config['model']);
+
         return [
             'mode' => $mode,
             'model' => $config['model'],
             'variant' => $config['variant'],
+            'max_win_x' => $config['max_win_x'],
             'cost' => self::cost($mode),
-            'rtp' => SlotModels::get($config['model'])->variant($config['variant'])->rtp,
+            'rtp' => $model->rtp($model->variant($config['variant']), $config['max_win_x'] * 100),
         ];
     }
 
     public function play(Game $game, array $params, RandomStream $rng): InstantResult
     {
-        $config = isset($params['model'], $params['variant']) ? [] : $this->validateConfig($game, (array) $game->config);
+        if (isset($params['model'], $params['variant'])) {
+            // Pinned at placement. Bets from before the max win was a setting played the model's.
+            $model = (string) $params['model'];
+            $variant = (string) $params['variant'];
+            $maxWinX = isset($params['max_win_x']) ? (int) $params['max_win_x'] : null;
+        } else {
+            $config = $this->validateConfig($game, (array) $game->config);
+            [$model, $variant, $maxWinX] = [$config['model'], $config['variant'], $config['max_win_x']];
+        }
 
-        return self::resolve(
-            (string) ($params['model'] ?? $config['model']),
-            (string) ($params['variant'] ?? $config['variant']),
-            (string) ($params['mode'] ?? 'base'),
-            $rng->nextInt(...),
-        );
+        return self::resolve($model, $variant, (string) ($params['mode'] ?? 'base'), $rng->nextInt(...), $maxWinX);
     }
 
     /**
      * One bet's result from a stream of integers; shared by play() and the verifier.
      *
      * @param  Closure(int): int  $nextInt
+     * @param  int|null  $maxWinX  the cap in multiples of the bet (default: the model's)
      */
-    public static function resolve(string $modelCode, string $variantId, string $mode, Closure $nextInt): InstantResult
+    public static function resolve(string $modelCode, string $variantId, string $mode, Closure $nextInt, ?int $maxWinX = null): InstantResult
     {
         if (! SlotModels::has($modelCode)) {
             throw new InvalidArgumentException("Unknown slot model [{$modelCode}].");
         }
         $model = SlotModels::get($modelCode);
         $variant = $model->variant($variantId);
+        $cap = $maxWinX === null ? $model->maxWin : $maxWinX * 100;
+        $rtp = $model->rtp($variant, $cap);
 
-        $result = SpinResolver::resolve($model, $variant, $mode, $nextInt);
+        $result = SpinResolver::resolve($model, $variant, $mode, $nextInt, true, $cap);
         $won = $result->win > 0;
         // Wins are hundredths of the bet; the cost is hundredths too (125 = 1.25× with the ante).
         $multiplier = bcdiv((string) $result->win, (string) TumbleModel::COSTS[$mode], 4);
 
         return new InstantResult(
             outcome: (array) $result->outcome + [
+                'max_win_x' => TumbleModel::x($cap),
                 'cost' => self::cost($mode),
                 'win' => $won,
                 'payout_multiplier' => $multiplier,
-                'rtp' => $variant->rtp,
+                'rtp' => $rtp,
             ],
             won: $won,
             multiplier: $won ? $multiplier : '0',

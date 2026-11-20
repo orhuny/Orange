@@ -6,6 +6,7 @@ namespace App\Domain\Game\Engines\Slot;
 
 use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
 use App\Domain\Game\Engines\Slot\Models\SugarOrchard;
+use App\Domain\Game\Engines\Slot\Models\TridentOfPoseidon;
 use InvalidArgumentException;
 
 /** The slot maths models, by code (games.config.model). A new slot's maths is one line here. */
@@ -14,6 +15,7 @@ final class SlotModels
     /** @var array<string, class-string> code => class with a static model(): TumbleModel */
     private const MODELS = [
         SugarOrchard::CODE => SugarOrchard::class,
+        TridentOfPoseidon::CODE => TridentOfPoseidon::class,
     ];
 
     /** @return list<string> */
