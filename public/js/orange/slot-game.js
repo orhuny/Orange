@@ -237,6 +237,8 @@ export function startSlot(cfg) {
     /**
      * Adds a particle: img at (x, y), w × h px, moving (vx, vy) px/s under gravity g, turning
      * vr rad/s, scaling s0 → s1 (eased) and fading a0 → a1 from `fade` of its life, for `life` s.
+     * Or move(p) places it each frame instead (x, y, rot, and depth, which dims it: a flame
+     * swirling behind a sweet). img is an image, or a canvas the page painted (flameArt).
      */
     function emit(p) {
         if (!p.img) return;
@@ -264,14 +266,18 @@ export function startSlot(cfg) {
                 particles.splice(i, 1);
                 continue;
             }
-            p.vy += p.g * dt;
-            p.x += p.vx * dt;
-            p.y += p.vy * dt;
-            p.rot += p.vr * dt;
-            if (!p.img.complete || !p.img.naturalWidth) continue;
+            if (p.move) {
+                p.move(p);
+            } else {
+                p.vy += p.g * dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.rot += p.vr * dt;
+            }
+            if (p.img.complete === false || p.img.naturalWidth === 0) continue; // an image still loading (a canvas is always ready)
             const s = p.s0 + (p.s1 - p.s0) * p.ease(t);
             const f = t <= p.fade ? 0 : (t - p.fade) / (1 - p.fade);
-            ctx.globalAlpha = Math.max(0, Math.min(1, p.a0 + (p.a1 - p.a0) * f));
+            ctx.globalAlpha = Math.max(0, Math.min(1, p.a0 + (p.a1 - p.a0) * f)) * (p.depth ?? 1);
             ctx.globalCompositeOperation = p.light ? 'lighter' : 'source-over';
             const cos = Math.cos(p.rot) * s;
             const sin = Math.sin(p.rot) * s;
@@ -309,6 +315,118 @@ export function startSlot(cfg) {
         img.alt = '';
         el.append(img);
         animate(img, [{ opacity: 0, transform: 'scale(1.2)' }, { opacity: 1, transform: 'scale(1)' }], 170);
+    }
+
+    // ---- Caramel flames: a good win catches fire ----------------------------------------------
+    // A tumble that pays GOOD_WIN or more (hundredths of the bet): golden caramel flames swirl
+    // up around each winning sweet until it bursts, then flare out with it; from HOT_WIN they
+    // burn bigger and thicker. Each flame is a particle that orbits the sweet's base on a tilted
+    // ring (dimmer behind it), rising and closing in as it burns out, its tip trailing; two arms
+    // of them chase each other round, so the fire swirls. The flames are painted here, once.
+
+    const GOOD_WIN = 200;
+    const HOT_WIN = 1000;
+    const FLAME_CELLS = 12; // at most, spread over the winners
+    const flameArt = {};
+
+    /** A painted flame sprite: 'tongue' (a flame, tip up), 'ember' (a spark) or 'glow' (warm light). */
+    function flameSprite(kind) {
+        if (flameArt[kind]) return flameArt[kind];
+        const c = document.createElement('canvas');
+        const g = c.getContext('2d');
+        if (!g) return null;
+        if (kind === 'tongue') {
+            c.width = 64;
+            c.height = 128;
+            if ('filter' in g) g.filter = 'blur(1.6px)';
+            // A small white-hot core, a golden body, deep orange-red edges: fire, even over
+            // golden fruit.
+            const fill = g.createRadialGradient(32, 98, 1, 32, 84, 64);
+            fill.addColorStop(0, 'rgba(255, 250, 222, 1)');
+            fill.addColorStop(0.16, 'rgba(255, 214, 92, .95)');
+            fill.addColorStop(0.42, 'rgba(255, 138, 28, .9)');
+            fill.addColorStop(0.72, 'rgba(232, 66, 8, .55)');
+            fill.addColorStop(1, 'rgba(170, 26, 0, 0)');
+            g.fillStyle = fill;
+            // Slim, round at the foot, with a tip that curls a little.
+            g.beginPath();
+            g.moveTo(30, 3);
+            g.bezierCurveTo(40, 30, 54, 54, 53, 90);
+            g.bezierCurveTo(52, 116, 12, 116, 11, 90);
+            g.bezierCurveTo(10, 66, 22, 50, 25, 34);
+            g.bezierCurveTo(27, 22, 25, 12, 30, 3);
+            g.fill();
+        } else {
+            c.width = c.height = 64;
+            const fill = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+            const stops = kind === 'ember'
+                ? [[0, 'rgba(255, 246, 210, 1)'], [0.35, 'rgba(255, 170, 50, .85)'], [1, 'rgba(255, 90, 0, 0)']]
+                : [[0, 'rgba(255, 200, 96, .9)'], [0.5, 'rgba(255, 120, 24, .35)'], [1, 'rgba(255, 80, 0, 0)']];
+            stops.forEach(([at, colour]) => fill.addColorStop(at, colour));
+            g.fillStyle = fill;
+            g.fillRect(0, 0, 64, 64);
+        }
+        return (flameArt[kind] = c);
+    }
+
+    /**
+     * Flames swirl up around the sweets in `cells` for ms (game time), hotter with heat (1, or
+     * more for a bigger win). Returns flare(), which bursts them outward with the sweets.
+     */
+    function flames(cells, ms, heat) {
+        const tongue = flameSprite('tongue');
+        if (state.quick || reducedMotion || !tongue) return () => {};
+        const [ember, glow] = [flameSprite('ember'), flameSprite('glow')];
+        const secs = ms / 1000;
+        const swirl = 11; // rad/s: the arms go round almost twice a second
+        const lit = spread(cells, FLAME_CELLS).map((cell) => {
+            const { x, y, size } = cellBox(cell);
+            const big = Math.sqrt(heat);
+            emit({ img: glow, x, y, w: size * 1.7, h: size * 1.7, s0: 0.7, s1: 1.05, a0: Math.min(0.6, 0.32 * heat), fade: 0.75, life: secs + 0.2, light: true });
+            const n = Math.round(secs * 56 * heat);
+            const phase = rand(0, Math.PI * 2);
+            for (let i = 0; i < n; i++) {
+                const delay = (i / n) * secs * 0.94;
+                const a0 = phase + (i % 2) * Math.PI + swirl * delay + rand(-0.15, 0.15);
+                const r0 = size * rand(0.46, 0.5);
+                const r1 = size * rand(0.58, 0.66);
+                const lick = size * rand(0.12, 0.25); // flames lick upward a little
+                emit({
+                    img: tongue, x, y, w: size * 0.22 * big, h: size * 0.6 * big, s0: 1, s1: 0.3, a0: 0.9, fade: 0.25,
+                    life: rand(0.36, 0.5), delay, light: true, ease: linear,
+                    move(p) {
+                        // Round the sweet's outline, a little slower than the arm that left it, so
+                        // each of the two arms trails a short arc and they chase each other round;
+                        // its tip points out and back, the way a flame streams.
+                        const ang = a0 + swirl * 0.62 * p.age;
+                        const r = r0 + (r1 - r0) * (p.age / p.life);
+                        p.x = x + Math.cos(ang) * r;
+                        p.y = y + Math.sin(ang) * r - lick * p.age;
+                        p.rot = ang - 0.65 + Math.PI / 2;
+                    },
+                });
+            }
+            for (let i = 0; i < 6 * heat; i++) {
+                emit({
+                    img: ember, x: x + rand(-0.4, 0.4) * size, y: y + rand(-0.1, 0.3) * size, w: size * 0.09, h: size * 0.09,
+                    vx: rand(-0.3, 0.3) * size, vy: -size * rand(1.2, 2), life: rand(0.5, 0.9), delay: rand(0, secs), fade: 0.4, s1: 0.4, light: true,
+                });
+            }
+            return { x, y, size, big };
+        });
+        return () => {
+            for (const { x, y, size, big } of lit) {
+                emit({ img: glow, x, y, w: size * 2, h: size * 2, s0: 0.4, s1: 1.5, a0: 0.9, fade: 0.1, life: 0.38, light: true });
+                for (let k = 0; k < 10; k++) {
+                    const ang = (k / 10) * Math.PI * 2 + rand(-0.2, 0.2);
+                    const v = size * rand(2.6, 3.6);
+                    emit({
+                        img: tongue, x, y, w: size * 0.3 * big, h: size * 0.55 * big, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - size * 0.8,
+                        rot: ang + Math.PI / 2, s0: 0.8, s1: 0.2, fade: 0.2, life: rand(0.32, 0.42), light: true,
+                    });
+                }
+            }
+        };
     }
 
     /** A winning symbol bursts: a frost flash and shockwave, its own pieces flying, crystals, a twinkle. */
@@ -378,13 +496,18 @@ export function startSlot(cfg) {
             floatText(shown(amount), winners);
             hostReact('win');
         }
+        // A good win catches fire: flames swirl around the winners until they burst.
+        const heat = step.pays >= HOT_WIN ? 1.6 : step.pays >= GOOD_WIN ? 1 : 0;
+        const flare = heat ? flames(winners, pace.hold + pace.frost, heat) : null;
+        if (flare) sfx('flame');
         await wait(pace.hold);
 
         // Frost creeps over the winners, then they burst into pieces, with a little shake.
         winners.forEach((c) => frostOver(state.els[c]));
         await wait(pace.frost);
         sfx('pop');
-        shake(Math.min(7, 2.5 + winners.length * 0.25));
+        shake(Math.min(7, 2.5 + winners.length * 0.25) + heat * 2);
+        flare?.();
         if (bees) {
             floatText(shown(amount), winners);
             hostReact('win');

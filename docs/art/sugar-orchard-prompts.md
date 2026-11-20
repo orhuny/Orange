@@ -431,7 +431,8 @@ The hand stays near her face on purpose: an outstretched arm would reach into th
 - **Celebrations:**
   - fireworks and banners for big wins;
   - golden rays and the basket's pulse for scatters;
-  - her bees (round 5) or comets carrying the multipliers to the win.
+  - her bees (round 5) or comets carrying the multipliers to the win;
+  - caramel flames swirling around the winning sweets of a tumble that pays 2× the bet or more, bigger from 10× (drawn by code, no art).
 - **Backgrounds:** layered and alive, with swaying branches and lanterns, drifting petals by day and fireflies by night.
 - **Thumbnail:** I compose the lobby thumbnail from `key-thumbnail` and the logo.
 - **Stays in code:** the grid cells, the bet bar, numbers and counters stay crisp and readable.
