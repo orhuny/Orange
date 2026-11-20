@@ -156,8 +156,10 @@
         .tide[data-level="1"] { --hue: 0deg; --glow: 1; }
         .tide[data-level="2"] { --hue: -150deg; --glow: 1.15; }
         .tide[data-level="3"] { --hue: 60deg; --glow: 1.3; }
+        /* Portrait: --bh is the landscape grid's height, tiny on a phone. The meter takes its own
+           from the board's width (--bw, a 6:5 grid), so its ring and digits follow the board. */
         @media (orientation: portrait) {
-            .tide { right: 2%; top: auto; bottom: calc(100% + 1vh); width: calc(var(--bh) * .2); }
+            .tide { --bh: calc(var(--bw) * 5 / 6); right: 0; top: calc(var(--bh) * -.21); width: calc(var(--bh) * .28); }
         }
         @media (prefers-reduced-motion: reduce) {
             .tides-rays, .branch img, .lantern, .tide .pool { animation: none; }
