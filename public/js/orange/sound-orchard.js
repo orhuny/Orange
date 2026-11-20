@@ -200,6 +200,20 @@
             hiss({ at, bus, gain: gain * 0.25, dur: 0.03, type: 'bandpass', freq: 900, q: 1.5, wet: 0 });
         }
 
+        /** A soft, bubbly bloop: a round tone gliding up from f0 to f1, no click, nothing sharp. */
+        function bloop(f0, f1, { at, bus, gain = 0.06, dur = 0.16 }) {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(f0, at);
+            o.frequency.exponentialRampToValueAtTime(f1, at + dur * 0.6);
+            env(g, at, gain, 0.008, dur);
+            o.connect(g);
+            out(g, bus, 0.18);
+            o.start(at);
+            o.stop(at + dur + 0.05);
+        }
+
         /** A juicy pop: a sine that jumps upward with a wet click. */
         function pop({ at, bus, gain = 0.08 }) {
             const o = ctx.createOscillator();
@@ -345,10 +359,16 @@
             const bus = effectsBus();
             const opts = arg && typeof arg === 'object' ? arg : {}; // 'win' and 'pop' take { chain, x, lead }
             switch (name) {
-                case 'spin': // a bell chime: two bright bells a fifth apart, the second just after
-                    bell(midi(88), { at: t, bus, gain: 0.07 });
-                    bell(midi(95), { at: t + 0.09, bus, gain: 0.08 });
+                case 'spin': { // sweet and soft, never tiring: candies shuffling, two bubbly bloops
+                    // rising, a faint sugary twinkle; a touch higher or lower each time
+                    const k = Math.pow(2, (Math.random() - 0.5) / 12);
+                    whoosh({ at: t, bus, gain: 0.03, dur: 0.24, from: 1800, to: 700 });
+                    bloop(300 * k, 520 * k, { at: t + 0.02, bus, gain: 0.06 });
+                    bloop(450 * k, 780 * k, { at: t + 0.1, bus, gain: 0.055 });
+                    glock(midi(96) * k, { at: t + 0.14, bus, gain: 0.018, dur: 0.4 });
+                    glock(midi(100) * k, { at: t + 0.19, bus, gain: 0.014, dur: 0.35 });
                     break;
+                }
                 case 'flame': { // a good win catches fire: a roaring whoosh, and burning sugar crackling
                     whoosh({ at: t, bus, gain: 0.09, dur: 0.6, from: 300, to: 1400 });
                     hiss({ at: t, bus, gain: 0.05, dur: 1.1, type: 'lowpass', freq: 900, wet: 0.1 });
