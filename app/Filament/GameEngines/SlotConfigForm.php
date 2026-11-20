@@ -25,9 +25,17 @@ final class SlotConfigForm implements EngineConfigForm
             Grid::make(2)->schema([
                 Select::make('config.model')->label('Maths model')->live()
                     ->options(fn (): array => array_combine(SlotModels::codes(), SlotModels::codes()))
-                    ->placeholder(SlotModels::codes()[0]),
+                    ->placeholder(SlotModels::codes()[0])
+                    ->afterStateUpdated(function (Set $set, Get $get): void {
+                        // Another model: its own themes, and a variant and max win it has.
+                        $set('config.theme', null);
+                        if (! array_key_exists((string) $get('config.variant'), self::variants(self::modelCode($get)))) {
+                            $set('config.variant', null);
+                        }
+                        self::fillRtp($set, $get);
+                    }),
                 Select::make('config.variant')->label('RTP variant')->live()
-                    ->options(fn (Get $get): array => self::variants((string) ($get('config.model') ?: SlotModels::codes()[0])))
+                    ->options(fn (Get $get): array => self::variants(self::modelCode($get)))
                     ->helperText('Sets the RTP target and house edge.')
                     ->afterStateUpdated(fn (Set $set, Get $get) => self::fillRtp($set, $get)),
                 Select::make('config.max_win_x')->label('Max win (× bet)')->live()
@@ -36,8 +44,8 @@ final class SlotConfigForm implements EngineConfigForm
                     ->helperText('The most one spin, with its free spins, can win. Each choice has its own measured RTP. The max win in the currency limits still applies.')
                     ->afterStateUpdated(fn (Set $set, Get $get) => self::fillRtp($set, $get)),
                 Select::make('config.theme')->label('Theme')
-                    ->options(fn (): array => array_map(fn (array $theme): string => (string) $theme['label'], (array) config('slots.themes', [])))
-                    ->placeholder((string) array_key_first((array) config('slots.themes', []))),
+                    ->options(fn (Get $get): array => self::themes(self::modelCode($get)))
+                    ->placeholder(fn (Get $get): string => (string) (array_values(self::themes(self::modelCode($get)))[0] ?? '')),
             ]),
             Grid::make(3)->schema([
                 Toggle::make('config.ante')->label('Ante bet (+25%)')->default(true),
@@ -57,8 +65,12 @@ final class SlotConfigForm implements EngineConfigForm
      */
     private static function fillRtp(Set $set, Get $get): void
     {
-        $model = SlotModels::get((string) ($get('config.model') ?: SlotModels::codes()[0]));
-        $variant = $model->variants[(string) $get('config.variant')] ?? null;
+        $code = self::modelCode($get);
+        if (! SlotModels::has($code)) {
+            return;
+        }
+        $model = SlotModels::get($code);
+        $variant = $model->variants[(string) ($get('config.variant') ?: $model->defaultVariant)] ?? null;
         if ($variant === null) {
             return;
         }
@@ -76,7 +88,7 @@ final class SlotConfigForm implements EngineConfigForm
     /** @return array<string, string> max win (× bet) => label with its RTP */
     private static function maxWins(Get $get): array
     {
-        $code = (string) ($get('config.model') ?: SlotModels::codes()[0]);
+        $code = self::modelCode($get);
         if (! SlotModels::has($code)) {
             return [];
         }
@@ -96,9 +108,23 @@ final class SlotConfigForm implements EngineConfigForm
 
     private static function defaultMaxWin(Get $get): string
     {
-        $code = (string) ($get('config.model') ?: SlotModels::codes()[0]);
+        $code = self::modelCode($get);
 
         return SlotModels::has($code) ? number_format(intdiv(SlotModels::get($code)->maxWin, 100)).'× (default)' : '';
+    }
+
+    /** The picked maths model, or the first (the placeholder) when none is. */
+    private static function modelCode(Get $get): string
+    {
+        return (string) ($get('config.model') ?: SlotModels::codes()[0]);
+    }
+
+    /** @return array<string, string> the model's themes: key => label */
+    private static function themes(string $model): array
+    {
+        $themes = array_filter((array) config('slots.themes', []), fn (mixed $theme): bool => is_array($theme) && ($theme['model'] ?? null) === $model);
+
+        return array_map(fn (array $theme): string => (string) ($theme['label'] ?? ''), $themes);
     }
 
     /** @return array<string, string> variant id => label */

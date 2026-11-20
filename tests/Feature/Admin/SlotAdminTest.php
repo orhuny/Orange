@@ -29,6 +29,31 @@ it('offers slot as a game type, and picking an RTP variant sets the RTP target a
     ]);
 });
 
+it('picks Trident of Poseidon\'s max win, which sets the RTP, and gives it its own theme', function (): void {
+    actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create());
+
+    Livewire::test(CreateGame::class)
+        ->fillForm(['type' => 'slot', 'code' => 'trident-1k', 'slug' => 'trident-1k', 'name' => 'Trident 1k', 'status' => 'draft', 'access' => 'listed'])
+        ->fillForm(['config.model' => 'trident-of-poseidon'])
+        ->fillForm(['config.variant' => 'v1-9650'])
+        ->fillForm(['config.max_win_x' => '1000'])
+        ->assertFormSet(['rtp_target' => '0.9169', 'house_edge' => '0.0831'])
+        // Sugar Orchard has no 1,000× cap: switching to it resets the cap, the RTP and the theme.
+        ->fillForm(['config.model' => 'sugar-orchard'])
+        ->assertFormSet(['config.max_win_x' => null, 'config.theme' => null, 'rtp_target' => '0.9650'])
+        ->fillForm(['config.model' => 'trident-of-poseidon'])
+        ->fillForm(['config.max_win_x' => '10000'])
+        ->assertFormSet(['rtp_target' => '0.9656', 'house_edge' => '0.0344'])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    // Bet steps left empty, as the form says: the defaults.
+    expect(Game::query()->where('code', 'trident-1k')->sole()->config)->toMatchArray([
+        'model' => 'trident-of-poseidon', 'variant' => 'v1-9650', 'max_win_x' => 10000, 'theme' => 'trident-of-poseidon',
+        'bet_steps' => ['0.20', '0.40', '0.60', '0.80', '1.00', '2.00', '3.00', '4.00', '5.00', '10.00', '20.00', '50.00', '100.00'],
+    ]);
+});
+
 it('refuses a slot whose RTP target does not match its variant', function (): void {
     actingAs(User::factory()->withRole(AccessControl::SUPER_ADMIN)->create());
 

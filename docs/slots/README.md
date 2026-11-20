@@ -12,12 +12,13 @@ A slot is two independent pieces, picked in the admin panel:
 | Piece | Setting | What it is | Where |
 |---|---|---|---|
 | **Maths model** | `config.model` | Paytable, rules and RTP variants (weight tables) | `app/Domain/Game/Engines/Slot/Models/*`, registered in `SlotModels` |
-| **Theme** | `config.theme` | Art, sound and colours for one model's symbols | `config/slots.php`, `resources/views/games/slot/themes/{theme}/theme.php`, `public/images/{theme}/` |
+| **Theme** | `config.theme` | Art, sound and colours for one model's symbols. The panel lists only the model's own themes, and none picked means the model's first. | `config/slots.php`, `resources/views/games/slot/themes/{theme}/theme.php`, `public/images/{theme}/` |
 
 The admin panel also sets:
 - `config.variant`: the RTP variant. It sets the game's RTP target and house edge.
 - `config.ante`, `config.buy`, `config.autoplay`: switch those features off where a jurisdiction requires it.
-- `config.bet_steps`: what the page's − / + buttons step through.
+- `config.max_win_x`: the max win, from the variant's measured choices (below). It also sets the RTP target.
+- `config.bet_steps`: what the page's − / + buttons step through. Left empty, the defaults (0.20 up to 100.00).
 
 ## The maths (`Maths/`)
 

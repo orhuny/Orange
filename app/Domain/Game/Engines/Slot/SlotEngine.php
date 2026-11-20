@@ -79,16 +79,21 @@ final class SlotEngine implements InstantEngine
             throw new InvalidGameConfig("Variant {$variantId} with a max win of ".number_format($maxWinX)."× pays an RTP of {$rtp}: set the game's RTP target to {$rtp} (and its house edge to ".bcsub('1', $rtp, 4).').');
         }
 
-        $themes = array_keys((array) config('slots.themes', []));
-        $theme = (string) ($config['theme'] ?? $themes[0] ?? '');
+        // No theme picked: the model's first.
+        $ownThemes = array_filter((array) config('slots.themes', []), fn (mixed $theme): bool => is_array($theme) && ($theme['model'] ?? null) === $code);
+        $theme = (string) ($config['theme'] ?? array_key_first($ownThemes) ?? '');
         $themeModel = config("slots.themes.{$theme}.model");
         if ($themeModel !== $code) {
             throw new InvalidGameConfig("Theme [{$theme}] doesn't exist or doesn't draw model [{$code}]'s symbols.");
         }
 
-        $steps = $config['bet_steps'] ?? self::DEFAULT_BET_STEPS;
+        // None listed (the admin form sends an empty list): the defaults.
+        $steps = $config['bet_steps'] ?? [];
         if (is_string($steps)) {
-            $steps = array_map('trim', explode(',', $steps));
+            $steps = trim($steps) === '' ? [] : array_map('trim', explode(',', $steps));
+        }
+        if ($steps === []) {
+            $steps = self::DEFAULT_BET_STEPS;
         }
         $normalised = [];
         foreach ((array) $steps as $step) {
@@ -99,9 +104,6 @@ final class SlotEngine implements InstantEngine
         }
         $normalised = array_values(array_unique($normalised));
         usort($normalised, fn (string $a, string $b): int => bccomp($a, $b, 2));
-        if ($normalised === []) {
-            throw new InvalidGameConfig('List at least one bet step.');
-        }
 
         return [
             'model' => $code,
