@@ -8,13 +8,15 @@
     $rules = $described ? array_intersect_key($described, array_flip(['rtp', 'grid', 'paytable', 'scatter_pays', 'free_spins', 'max_win', 'costs', 'features'])) : null;
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
-    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host', 'hostWing']));
+    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host', 'hostWing', 'hostBee']));
     // The host (the Queen Bee) starts in her idle pose; slot-game.js swaps the pose and its variables.
     $hostPoses = (array) ($theme['host'] ?? []);
     $host = $hostPoses['idle'] ?? null;
     $hostWing = $theme['hostWing'] ?? null;
     $hostStyle = static fn (array $p): string => sprintf('--cx: %s; --ar: %s; --k: %s; --wx: %s; --wy: %s; --wh: %s', $p['cx'], $p['ar'], $p['k'] ?? 1,
         $p['wing']['x'] ?? 0, $p['wing']['y'] ?? 0, $p['wing']['h'] ?? 0).($hostWing ? "; --rx: {$hostWing['rx']}; --war: {$hostWing['ar']}" : '');
+    // Her worker bees fly only beside her (they leave her palm).
+    $hostBee = $host ? ($theme['hostBee'] ?? null) : null;
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
     // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
@@ -159,6 +161,33 @@
         @keyframes host-sway { 0%, 100% { rotate: -.7deg; } 50% { rotate: .7deg; scale: 1.012; } }
         @keyframes host-hover { 50% { translate: 0 -.8vmin; } }
         @keyframes wing-flutter { from { rotate: var(--wr); scale: 1 1; } to { rotate: calc(var(--wr) - 9deg); scale: .8 1; } }
+
+        /* ---- Her worker bees (slot-game.js, "Her bees") ----
+           They fly over the whole page on their own layer, which lets every click through, so a
+           bee can leave her palm beside the grid, land on a sweet and loop around a banner. The
+           page moves each .bee (its place, tilt and the way it faces); its body and wings are
+           art (scripts/art/process-sugar-orchard.py), set on the layer:
+           - --bar: the body's width / height;
+           - --bwx/--bwy/--bwh: where its wings meet its back, and their height, of the body;
+           - --brx/--bwar: the wing's own root (along its bottom edge) and shape.
+           Its wings buzz from their root: one behind the body, one glassy in front. A bee may
+           carry a load (a piece of a sweet, a multiplier star) under its feet. */
+        .bees { position: fixed; inset: 0; z-index: 22; pointer-events: none; overflow: hidden; }
+        .bee { position: absolute; left: 0; top: 0; aspect-ratio: var(--bar); }
+        .bee > * { position: absolute; display: block; pointer-events: none; }
+        .bee > .body { z-index: 1; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 3px 3px rgba(40, 14, 0, .45)); }
+        .bee > .wing { z-index: 0; left: calc(var(--bwx) * 100%); top: calc(var(--bwy) * 100%); height: calc(var(--bwh) * 100%); aspect-ratio: var(--bwar);
+                       translate: calc(var(--brx) * -100%) -100%; transform-origin: calc(var(--brx) * 100%) 100%;
+                       rotate: var(--wr); animation: bee-buzz .07s linear infinite alternate; }
+        .bee > .wing.near { z-index: 2; --wr: 6deg; opacity: .72; }
+        .bee > .wing.far { --wr: -16deg; height: calc(var(--bwh) * 88%); filter: brightness(.82); animation-delay: -.035s; }
+        .bee > .load { z-index: 1; left: 50%; top: 70%; width: 58%; translate: -50% 0; filter: drop-shadow(0 2px 2px rgba(40, 14, 0, .5)); }
+        .bee > .load.star { width: 86%; top: 56%; aspect-ratio: 1; display: grid; place-items: center; container-type: size;
+                            filter: drop-shadow(0 0 6px rgba(255, 220, 120, .9)); }
+        .bee > .load.star img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+        .bee > .load.star b { position: relative; margin-top: 6%; font: 900 32cqmin/1 var(--round); color: #fff; -webkit-text-stroke: .14em #3d1600;
+                              paint-order: stroke fill; }
+        @keyframes bee-buzz { from { rotate: var(--wr); scale: 1 1; } to { rotate: calc(var(--wr) - 34deg); scale: .9 .7; } }
 
         /* ---- Buy free spins and the ante bet: chocolate glass in a gold rim ---- */
         .feature { position: relative; border-radius: 16px; padding: 10px; border: 2px solid transparent;
@@ -585,6 +614,7 @@
         @media (prefers-reduced-motion: reduce) {
             .branch img, .lantern, .fireflies i, .overlay > .rays, .dialog.plaque .banner, .dialog.celebrate .banner, .perch img, .spin:not(.busy), .host, .host-body, .host-body .wing { animation: none; }
             .host-fig { transform: none; }
+            .bees { display: none; }
         }
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
@@ -692,6 +722,10 @@
 </main>
 
 <div id="overlay" class="overlay" hidden></div>
+@if ($hostBee)
+    <div id="bees" class="bees" aria-hidden="true" style="{{ sprintf('--bar: %s; --bwx: %s; --bwy: %s; --bwh: %s; --brx: %s; --bwar: %s',
+        $hostBee['ar'], $hostBee['wing']['x'], $hostBee['wing']['y'], $hostBee['wing']['h'], $hostBee['wing']['rx'], $hostBee['wing']['ar']) }}"></div>
+@endif
 <div id="toast" class="toast" hidden></div>
 <div id="status" class="status">{{ $game ? 'Waiting for the casino…' : 'No slot game is published yet.' }}</div>
 

@@ -5,7 +5,7 @@
  * All synthesised, same shape as the crash packs:
  *
  *   const pack = window.OrangeSound.orchard(ctx, master);
- *   pack.sfx('pop');                    // spin | land | win | pop | scatter | star | stars |
+ *   pack.sfx('pop');                    // spin | land | win | buzz | pop | scatter | star | stars |
  *                                       // retrigger | fsStart | fsEnd | big | tick | click | intro
  *   pack.sfx('scatter', 3);             // the third scatter: each one rings higher
  *   const bg = pack.ambience();         // continuous background, until bg.stop()
@@ -223,6 +223,32 @@
             hiss({ at, bus, gain, dur, type: 'bandpass', freq: from, to, q: 1.2, wet: 0.2 });
         }
 
+        /** A bee flying past: a reedy hum that trembles with its wings and bends as it goes by. */
+        function buzz({ at, bus, gain = 0.03, dur = 0.55, freq = 220 }) {
+            const o = ctx.createOscillator();
+            const lfo = ctx.createOscillator();
+            const depth = ctx.createGain();
+            const f = ctx.createBiquadFilter();
+            const g = ctx.createGain();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(freq * 0.9, at);
+            o.frequency.exponentialRampToValueAtTime(freq * 1.12, at + dur * 0.45);
+            o.frequency.exponentialRampToValueAtTime(freq * 0.86, at + dur);
+            lfo.frequency.value = 24 + Math.random() * 10;
+            depth.gain.value = freq * 0.05;
+            lfo.connect(depth).connect(o.frequency);
+            f.type = 'bandpass';
+            f.frequency.value = 1100;
+            f.Q.value = 1.4;
+            env(g, at, gain, dur * 0.3, dur);
+            o.connect(f).connect(g);
+            out(g, bus, 0.12);
+            o.start(at);
+            lfo.start(at);
+            o.stop(at + dur + 0.05);
+            lfo.stop(at + dur + 0.05);
+        }
+
         // ---- Effects ----
 
         function effectsBus() {
@@ -259,6 +285,11 @@
                     const base = 72 + Math.min(7, Number(arg || 0)) * 2;
                     [0, 4, 7, 12].forEach((d, i) => marimba(midi(base + d), { at: t + i * 0.05, bus, gain: 0.1, dur: 0.35 }));
                     glock(midi(base + 24), { at: t + 0.2, bus, gain: 0.05 });
+                    break;
+                }
+                case 'buzz': { // the Queen Bee's bees fly out: a little swarm, a voice for every few bees
+                    const n = Math.max(1, Math.min(3, Number(arg || 1)));
+                    for (let i = 0; i < n; i++) buzz({ at: t + i * 0.07, bus, freq: 190 + i * 41 + Math.random() * 20 });
                     break;
                 }
                 case 'pop': // the winners burst

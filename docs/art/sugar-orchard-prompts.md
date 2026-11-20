@@ -333,7 +333,8 @@ Hero key art for the game's lobby tile: the golden scatter basket from the first
   - **Portrait:** her head and shoulders peek over the frame's top-left corner.
 - **How she moves:**
   - she sways gently, and hops at every win;
-  - `cheer` on a win;
+  - `kiss` as a win starts: she blows her bees out (round 5);
+  - `cheer` on a win, as the sweets burst;
   - `wow` with the big-win banners;
   - `honey` for free spins;
   - `waiting` after a minute without a spin, until the next spin.
@@ -379,6 +380,46 @@ The same Queen Bee character as in the first attached image, identical face, hai
 
 ---
 
+## Round 5: her worker bees (cutout, transparent)
+
+**Status (2026-11-20): delivered and in the game.**
+- **In** `storage/app/art/sugar-orchard/round4/` (beside her poses): `char-bee-worker`, `char-bee-wing` and `char-queen-kiss`.
+- **Variants kept, not used:** `char-bee-worker-courier` (the bee in a postman's cap with a satchel) and `char-queen-kiss-alt`.
+- **Build:** `--only-host` builds them with her. Measured by eye in the build script:
+  - `HOST_PALMS`: the palm the bees leave from, per pose (kiss and idle);
+  - `BEE_WING_ROOT` and `BEE_WING_LENGTH`: where the wings meet the bee's back, and their size.
+
+**The idea:** she sends her bees to the sweets, so she takes part in every win instead of only reacting to it.
+
+**How the game uses them** (all code; the outcome is already decided, and no spin waits for a bee):
+- **A win:** she blows a kiss off her palm (`kiss`), and one bee per winning sweet flies out (up to 9).
+  - Each bee lands on its sweet as the frost creeps over it.
+  - When the sweet bursts, the bee zips off with a piece of it, and she cheers.
+- **Free spins:** bees carry the multiplier stars, with their values, to the middle of the grid. Without bees, the comets do it.
+- **A big win:** a ribbon of bees loops around the banner (6 to 12, by tier).
+- **Idle:** every 18–34 s, a bee leaves her open hand, nibbles a sweet (it wobbles) and flies home.
+- **None:** on a skipped spin, with reduced motion, or in a theme without the bee art.
+
+**How to generate:** the same as round 4. Draw the bee without wings: the game buzzes a separate wing, root at the lower left like hers.
+
+### char-bee-worker.png · 1:1 · attach char-queen-idle and sym-a
+```text
+A tiny royal worker bee, a courier of the Queen Bee in the first attached image: a small, round, chubby bee with a glossy body striped in honey-gold and chocolate-brown like her gown, big friendly dark eyes with a bright catchlight, a cheerful determined smile, two short curling antennae each tipped with a tiny glowing amber gem like her tiara, and a tiny chocolate-brown satin bow tie. Seen from the side in flight, heading toward the right of the image, body tilted slightly forward, tiny legs tucked in. A bold, simple silhouette that still reads when shown very small. Match the finish of the second attached image. Fills about 75% of the frame. Premium AAA slot game art, stylised 3D render, glossy surfaces, rich saturated colours, crisp specular highlights, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw it WITHOUT wings: they are a separate image that the game animates. No text, no outline, no cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole bee is in frame with a clear margin.
+```
+
+### char-bee-wing.png · 1:1 · attach char-bee-worker
+```text
+A single wing for the little bee in the attached image, seen flat from the side: a short, rounded teardrop, clear and glassy like spun sugar, with a soft gold-and-champagne iridescent sheen and a few fine gold veins. Its narrow root sits at the lower-left corner of the image and the wing sweeps up toward the upper right, so it can turn around its root. Fills about 80% of the frame. Premium AAA slot game art, stylised 3D render, crisp specular highlights, soft glow, tack-sharp focus. Only the one wing: no bee, no second wing, no text, no outline, no cast shadow. On a transparent background, exported as a PNG with transparency.
+```
+
+### char-queen-kiss.png · 2:3 · on a win, sending her bees · attach char-queen-idle and sym-a
+```text
+The same Queen Bee character as in the first attached image, identical face, hair, make-up, tiara, gown and proportions: a confident adult woman with glossy chocolate-brown waves and honey-gold highlights, amber eyes, warm red lips, a jewelled antenna tiara with amber gems, a white orange blossom in her hair, a fitted honey-gold satin evening gown with three wide chocolate-brown bands, long chocolate-brown opera gloves and a gold honeycomb belt. Classy, alluring and fully clothed. Her back is smooth: no wings. Pose: blowing a kiss toward the right of the image to send her bees out: one gloved hand raised just in front of her lips, palm up and open, as if blowing the kiss off her palm; lips softly pursed, one eye closed in a playful wink, the other hand resting on her hip, chin slightly raised. Keep the raised hand close to her face, not stretched out. Full-length figure, three-quarter view, turned toward the right of the image. Match the finish of the second attached image. Fills about 85% of the frame height. Premium AAA slot game art, stylised 3D character render with feature-animation glamour, silky satin and polished gold jewellery, rich saturated colours, crisp specular highlights, soft subsurface glow on the skin, warm key light from the upper left, cool rim light from the right, tack-sharp focus, high detail. Draw her WITHOUT wings: they are a separate image that the game animates. No text, no outline, no cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole figure is in frame with a clear margin.
+```
+The hand stays near her face on purpose: an outstretched arm would reach into the grid on wide screens.
+
+---
+
 ## What I do when the art arrives
 
 - **Key and cut:**
@@ -389,7 +430,7 @@ The same Queen Bee character as in the first attached image, identical face, hai
 - **Celebrations:**
   - fireworks and banners for big wins;
   - golden rays and the basket's pulse for scatters;
-  - comets carrying the multipliers to the win.
+  - her bees (round 5) or comets carrying the multipliers to the win.
 - **Backgrounds:** layered and alive, with swaying branches and lanterns, drifting petals by day and fireflies by night.
 - **Thumbnail:** I compose the lobby thumbnail from `key-thumbnail` and the logo.
 - **Stays in code:** the grid cells, the bet bar, numbers and counters stay crisp and readable.

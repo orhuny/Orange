@@ -65,9 +65,10 @@ return [
         static fn (array $pieces): array => array_map(static fn (array $p): array => ['src' => $img("frag/{$p['src']}")] + $p, $pieces),
         (array) ($art['fragments'] ?? []),
     ),
-    // The host, the Queen Bee: { pose: { src, cx, ar, k, wing } } for idle, waiting, cheer, wow
-    // and honey. cx: her body's centre (of the width); ar: width / height; k: its height next to
-    // idle's at the same scale; wing: her wings' root (x, y) and length (h), of the image's size.
+    // The host, the Queen Bee: { pose: { src, cx, ar, k, wing, palm? } } for idle, waiting, cheer,
+    // wow, honey and kiss. cx: her body's centre (of the width); ar: width / height; k: its height
+    // next to idle's at the same scale; wing: her wings' root (x, y) and length (h); palm: where
+    // her bees leave her hand (x, y), all of the image's size.
     'host' => array_map(
         static fn (array $pose): array => ['src' => $img((string) $pose['src'])] + $pose,
         (array) ($art['host'] ?? []),
@@ -75,6 +76,12 @@ return [
     // Her wing, drawn twice behind her and fluttered by the page: { src, rx, ar }, rx: its root
     // along its bottom edge (of the width).
     'hostWing' => isset($art['host_wing']['src']) ? ['src' => $img((string) $art['host_wing']['src'])] + $art['host_wing'] : null,
+    // Her worker bee, which the page flies around the grid: { src, ar, wing: { src, rx, ar, x, y, h } }.
+    // ar: the body's width / height; wing: its art, its root along its bottom edge (rx, of its
+    // width) and shape (ar), and where it sits on the body (x, y) and its height (h), of the body.
+    'hostBee' => isset($art['host_bee']['src'], $art['host_bee']['wing']['src'])
+        ? ['src' => $img((string) $art['host_bee']['src']), 'wing' => ['src' => $img((string) $art['host_bee']['wing']['src'])] + $art['host_bee']['wing']] + $art['host_bee']
+        : null,
     'fx' => [
         'frostBurst' => $img((string) ($fx['frost-burst'] ?? '')),
         'frostRing' => $img((string) ($fx['frost-ring'] ?? '')),

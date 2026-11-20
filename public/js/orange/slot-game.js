@@ -348,13 +348,19 @@ export function startSlot(cfg) {
         const amount = winAmount(state.bet, step.pays);
         floatText(shown(amount), winners);
         sfx('win', index);
-        hostReact('win');
+        // Her bees fly to the winners, or (none) she cheers at once.
+        const bees = beesToWinners(winners);
+        if (!bees) hostReact('win');
         await wait(650);
 
         // Frost creeps over the winners, then they burst into pieces.
         winners.forEach((c) => frostOver(state.els[c]));
         await wait(180);
         sfx('pop');
+        if (bees) {
+            hostReact('win');
+            bees.burst();
+        }
         winners.forEach((c) => shatter(c, state.cells[c].s));
         await Promise.all(winners.map((c) => animate(state.els[c], [
             { transform: at(c), opacity: 1 },
@@ -396,21 +402,28 @@ export function startSlot(cfg) {
     async function applyMultipliers(spin) {
         const cells = spin.multiplierCells;
         cells.forEach((c) => state.els[c]?.classList.add('win'));
+        const carry = beesToStars(cells);
         sfx('stars');
         await wait(350);
-        // Each star sends a comet to the middle of the grid, where their sum appears.
+        // Her bees carry the stars to the middle of the grid (or each star sends a comet there),
+        // where their sum appears.
         if (!state.quick && !reducedMotion) {
             const target = gridPoint(0.5, 0.5);
-            cells.forEach((c, i) => {
-                const from = cellBox(c);
-                const dx = target.x - from.x;
-                const dy = target.y - from.y;
-                emit({
-                    img: sprite(theme.fx?.comet), x: from.x, y: from.y, w: from.size * 1.9, h: from.size * 0.95, vx: dx / 0.45, vy: dy / 0.45,
-                    rot: Math.atan2(dy, dx), s0: 0.7, a1: 0.2, fade: 0.7, life: 0.45, light: true, ease: linear, delay: i * 0.08,
+            if (carry) {
+                const r = board.getBoundingClientRect();
+                await carry({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+            } else {
+                cells.forEach((c, i) => {
+                    const from = cellBox(c);
+                    const dx = target.x - from.x;
+                    const dy = target.y - from.y;
+                    emit({
+                        img: sprite(theme.fx?.comet), x: from.x, y: from.y, w: from.size * 1.9, h: from.size * 0.95, vx: dx / 0.45, vy: dy / 0.45,
+                        rot: Math.atan2(dy, dx), s0: 0.7, a1: 0.2, fade: 0.7, life: 0.45, light: true, ease: linear, delay: i * 0.08,
+                    });
                 });
-            });
-            await wait(450 + cells.length * 80);
+                await wait(450 + cells.length * 80);
+            }
             emit({ img: sprite(theme.fx?.frostRing), x: target.x, y: target.y, w: target.size * 2.6, h: target.size * 2.6, s0: 0.2, s1: 1.3, fade: 0.2, life: 0.6, light: true });
             for (let i = 0; i < 3; i++) {
                 emit({
@@ -612,6 +625,7 @@ export function startSlot(cfg) {
                 requestAnimationFrame(tick);
                 confetti();
                 fireworks(layer, { big: 4, mega: 6, epic: 8, max: 10 }[tier] ?? 4);
+                beeRibbon(el, { big: 6, mega: 8, epic: 10, max: 12 }[tier] ?? 6);
             },
         });
     }
@@ -730,7 +744,7 @@ export function startSlot(cfg) {
 
     async function spin(mode = state.ante ? 'ante' : 'base') {
         if (state.busy) {
-            state.quick = true;
+            skip();
             return;
         }
         const amount = stake(state.bet, mode);
@@ -786,6 +800,7 @@ export function startSlot(cfg) {
                     // Never leave the game stuck mid-animation: the bet is settled either way.
                     console.error(e);
                     $('overlay').hidden = true;
+                    beesAway();
                     document.body.classList.remove('free');
                     $('fs-hud').hidden = true;
                     render(state.cells);
@@ -817,6 +832,12 @@ export function startSlot(cfg) {
             not_connected: 'Not connected to the casino yet.',
             unknown: 'Something went wrong. Please check your balance and bet history.',
         })[code] ?? `The bet was not placed (${code || 'unknown error'}).`;
+    }
+
+    /** The player hurries the spin along: the rest plays fast, and her bees go at once. */
+    function skip() {
+        state.quick = true;
+        beesAway();
     }
 
     function stopAuto() {
@@ -1050,7 +1071,7 @@ export function startSlot(cfg) {
     $('info-btn').addEventListener('click', rules);
     $('history-btn').addEventListener('click', history);
     $('home-btn').addEventListener('click', () => bridge.send('back_to_lobby'));
-    board.addEventListener('click', () => { if (state.busy) state.quick = true; });
+    board.addEventListener('click', () => { if (state.busy) skip(); });
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && $('overlay').hidden && !$('intro').open && !e.repeat && e.target === document.body) {
             e.preventDefault();
@@ -1190,8 +1211,9 @@ export function startSlot(cfg) {
 
     // ---- The host: the Queen Bee beside the grid --------------------------------------------
     // Every pose is in the page (slot.blade.php, "The host"); `on` marks the one she shows and
-    // the CSS crossfades them, so a switch is smooth and she never blinks out. A win makes her
-    // cheer, with a springy hop and sparkles; she keeps cheering while the wins keep coming
+    // the CSS crossfades them, so a switch is smooth and she never blinks out. A win: she blows
+    // a kiss that sends her bees out (kiss, "Her bees" below), then, as the sweets burst, she
+    // cheers, with a springy hop and sparkles; she keeps cheering while the wins keep coming
     // (each one hops again) and settles back a little after the last. A big win: wow; free
     // spins: honey. A minute without a spin, she waits, tapping her chin, until the next spin.
     // Landscape and portrait each have her (.host, .host-peek).
@@ -1266,22 +1288,340 @@ export function startSlot(cfg) {
             .finished.catch(() => {}).then(() => img.remove());
     }
 
-    /** A spin starts: she stops waiting. */
+    /** A spin starts: she stops waiting, and calls back a bee that is out. */
     function hostSpin() {
         clearTimeout(hostWait);
         if (hostPose === 'waiting') hostShow('idle');
+        beeShoo();
     }
 
-    /** The game is idle again: she waits after a while. */
+    /** The game is idle again: she waits after a while, and now and then sends a bee out. */
     function hostRest() {
         clearTimeout(hostWait);
         if (hostFigs.length) hostWait = setTimeout(() => { if (!state.busy) hostShow('waiting'); }, HOST_WAIT_MS);
+        beeWanderLater();
+    }
+
+    /** A win: she blows a kiss off her palm to send her bees out. The pose they leave from. */
+    function hostKiss() {
+        if (!hostShow('kiss')) return hostPose;
+        clearTimeout(hostBack); // she cheers when the sweets burst (hostReact), and goes back from there
+        return 'kiss';
+    }
+
+    /** Where her bees leave her: the palm of `pose` on screen, or null (it has none, or isn't laid out). */
+    function hostPalm(pose) {
+        const palm = theme.host?.[pose]?.palm;
+        if (!palm) return null;
+        for (const fig of hostFigs) {
+            const r = fig.dataset.pose === pose ? fig.getBoundingClientRect() : null;
+            if (r?.width) return { x: r.left + palm.x * r.width, y: r.top + palm.y * r.height };
+        }
+        return null;
+    }
+
+    // ---- Her bees: the Queen Bee's worker bees ------------------------------------------------
+    // On a win she blows a kiss off her palm (the kiss pose) and her bees fly out, one to each
+    // winning sweet (up to BEE_MAX, spread over them). Each lands on its sweet as the frost creeps
+    // over it, and zips off with a piece of it when it bursts, while she cheers. In free spins
+    // they carry the multiplier stars to the middle of the grid; on a big win a ribbon of them
+    // loops around the banner; and while the game is idle, one now and then wanders out of her
+    // hand, nibbles a sweet and flies home.
+    // They fly on their own layer over the page (#bees, slot.blade.php), moved by the Web
+    // Animations API along paths sampled here, at the game's speed like everything else. A spin
+    // never waits for them: they fly in the pauses the board already has. Skipped spins, reduced
+    // motion and a theme without the bee have none.
+
+    const BEE_MAX = 9;
+    const beeLayer = $('bees');
+    const beeArt = theme.hostBee;
+    const flying = new Set();
+    let beeIdle = 0;
+    let wanderer = null;
+
+    const beesOn = () => Boolean(beeLayer?.animate && beeArt && !reducedMotion && !state.quick);
+    const bezier = (a, b, c, d, t) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * d;
+    const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+    const easeIn = (t) => t * t;
+    const beeAt = (b, x, y, tilt, s, face = b.face) => `translate(${x - b.w / 2}px, ${y - b.h / 2}px) rotate(${tilt}deg) scale(${face * s}, ${s})`;
+
+    /** A cell on screen: its centre and a symbol's size. */
+    function cellOnScreen(cell) {
+        const r = board.getBoundingClientRect();
+        const w = r.width / COLS;
+        const h = r.height / ROWS;
+        return { x: r.left + (Math.floor(cell / ROWS) + 0.5) * w, y: r.top + ((cell % ROWS) + 0.5) * h, size: Math.min(w, h) };
+    }
+
+    /** Up to n of the cells, spread evenly over them. */
+    const spread = (cells, n) => (cells.length <= n ? cells : Array.from({ length: n }, (_, i) => cells[Math.floor(((i + 0.5) * cells.length) / n)]));
+
+    /** A new bee at (x, y), w px wide, facing right, at scale s. */
+    function bee(x, y, w, s = 1) {
+        const el = document.createElement('div');
+        el.className = 'bee';
+        el.style.width = `${w}px`;
+        el.innerHTML = `<img class="wing far" src="${beeArt.wing.src}" alt=""><img class="body" src="${beeArt.src}" alt=""><img class="wing near" src="${beeArt.wing.src}" alt="">`;
+        beeLayer.append(el);
+        const b = { el, x, y, w, h: w / beeArt.ar, s, face: 1, tilt: 0, anim: null };
+        el.style.transform = beeAt(b, x, y, 0, s);
+        el.style.opacity = '0'; // until it sets off
+        flying.add(b);
+        return b;
+    }
+
+    function drop(b) {
+        b.anim?.cancel();
+        b.el.remove();
+        flying.delete(b);
+        if (wanderer === b) wanderer = null;
+    }
+
+    /** A spin is skipped: every bee goes at once. */
+    function beesAway() {
+        for (const b of [...flying]) drop(b);
+    }
+
+    /** A bee carries `src` under its feet: a piece of a sweet, or a star with its value. */
+    function load(b, src, value = null) {
+        if (!src) return;
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        if (value === null) {
+            img.className = 'load';
+            b.el.append(img);
+            return;
+        }
+        const star = document.createElement('div');
+        star.className = 'load star';
+        const label = document.createElement('b');
+        label.textContent = `${value}×`;
+        star.append(img, label);
+        b.el.append(star);
+    }
+
+    /**
+     * Moves a bee along path(t) → { x, y, s } (t 0..1) in ms, turning to face the way it goes
+     * and tilting into it. appear: it fades in as it sets off; fade: out at the end; level: it
+     * arrives level (to hover). Resolves when it is there, also when it was dropped meanwhile.
+     */
+    function follow(b, path, ms, { delay = 0, appear = false, fade = false, level = false, steps = 24 } = {}) {
+        const frames = [];
+        let { face, tilt } = b;
+        let p = path(0);
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const next = i < steps ? path((i + 1) / steps) : null;
+            const dx = next ? next.x - p.x : 0;
+            const dy = next ? next.y - p.y : 0;
+            if (Math.abs(dx) > b.w * 0.03) face = dx < 0 ? -1 : 1;
+            let want = next ? (Math.max(-28, Math.min(28, (Math.atan2(dy, dx * face) * 180) / Math.PI)) * face) : tilt;
+            if (level) want *= Math.min(1, (1 - t) / 0.25);
+            tilt += (want - tilt) * 0.55;
+            const s = p.s ?? b.s;
+            frames.push({ transform: beeAt(b, p.x, p.y, tilt, s, face), opacity: appear && i === 0 ? 0 : fade && t > 0.75 ? (1 - t) / 0.25 : 1 });
+            if (next) p = next;
+        }
+        b.anim?.cancel();
+        const a = b.el.animate(frames, { duration: dur(ms), delay: dur(delay), fill: 'both', easing: 'linear' });
+        b.anim = a;
+        Object.assign(b, { x: p.x, y: p.y, s: p.s ?? b.s, face, tilt: level ? 0 : tilt });
+        return a.finished.then(() => {
+            if (b.anim !== a) return;
+            b.el.style.transform = beeAt(b, b.x, b.y, b.tilt, b.s);
+            b.el.style.opacity = fade ? '0' : '1';
+            a.cancel();
+            b.anim = null;
+        }, () => {});
+    }
+
+    /** Flies a bee on a curve (control points c1, c2) to `to`, growing or shrinking to s, wobbling a little. */
+    function fly(b, c1, c2, to, ms, { s = b.s, ease = easeInOut, wobble = 0, ...opts } = {}) {
+        const from = { x: b.x, y: b.y, s: b.s };
+        return follow(b, (t) => {
+            const e = ease(t);
+            return { x: bezier(from.x, c1.x, c2.x, to.x, e), y: bezier(from.y, c1.y, c2.y, to.y, e) + Math.sin(t * Math.PI * 3) * wobble, s: from.s + (s - from.s) * e };
+        }, ms, opts);
+    }
+
+    /** A bee hovers where it is, bobbing, until it flies again. */
+    function hover(b, amp) {
+        if (!flying.has(b)) return;
+        b.anim?.cancel();
+        b.el.style.transform = beeAt(b, b.x, b.y, 0, b.s);
+        b.anim = b.el.animate([{ transform: beeAt(b, b.x, b.y, 0, b.s) }, { transform: beeAt(b, b.x, b.y - amp, -4 * b.face, b.s) }],
+            { duration: dur(300), iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+    }
+
+    /** A bee sets off from her palm to sit on top of the sweet in `cell`. Resolves when it sits there. */
+    function beeToCell(palm, cell, ms, delay) {
+        const c = cellOnScreen(cell);
+        const b = bee(palm.x, palm.y, c.size * 0.6, 0.3);
+        const seat = { x: c.x + rand(-0.08, 0.08) * c.size, y: c.y - c.size * 0.3 };
+        const c1 = { x: palm.x + (seat.x - palm.x) * 0.2 + rand(-0.3, 0.3) * c.size, y: palm.y - c.size * rand(0.5, 1.2) };
+        const c2 = { x: seat.x + rand(-0.6, 0.6) * c.size, y: seat.y - c.size * rand(1, 1.6) };
+        const there = fly(b, c1, c2, seat, ms, { s: 1, delay, appear: true, level: true }).then(() => hover(b, c.size * 0.05));
+        return { b, c, there };
+    }
+
+    /** A bee leaves up and away, toward her side of the screen, and is gone. */
+    async function beeOff(b, size, ms = rand(650, 800)) {
+        if (!flying.has(b)) return;
+        const to = { x: b.x + size * rand(-2.6, 0.8), y: -b.h * 2 };
+        await fly(b, { x: b.x + rand(-0.3, 0.3) * size, y: b.y - size * 0.6 }, { x: to.x + rand(-1, 1) * size, y: (b.y + to.y) / 2 }, to, ms,
+            { ease: easeIn, s: b.s * 0.85, wobble: size * 0.05 });
+        drop(b);
+    }
+
+    /**
+     * A win: she sends her bees to the winning sweets. Returns the flight, whose burst() sends
+     * them off with a piece of each sweet as they burst; or null when no bee flies.
+     */
+    function beesToWinners(winners) {
+        if (!beesOn() || !winners.length) return null;
+        const palm = hostPalm(hostKiss());
+        if (!palm) return null;
+        const targets = spread(winners, BEE_MAX);
+        sfx('buzz', Math.ceil(targets.length / 3));
+        // They all sit on their sweets by 650 ms, when the frost creeps over (playStep).
+        const crew = targets.map((cell, i) => ({ cell, ...beeToCell(palm, cell, rand(400, 440), 80 + (i * 150) / targets.length) }));
+        return {
+            burst() {
+                for (const { b, c, cell, there } of crew) {
+                    const piece = theme.fragments?.[state.cells[cell]?.s];
+                    there.then(() => {
+                        if (!flying.has(b)) return;
+                        if (piece?.length) load(b, piece[Math.floor(Math.random() * piece.length)].src);
+                        beeOff(b, c.size);
+                    });
+                }
+            },
+        };
+    }
+
+    /**
+     * Free spins: her bees fly to the multiplier stars. Returns deliver(to), which has each carry
+     * its star to `to` (on screen) and resolves when the last is there; or null when no bee flies.
+     */
+    function beesToStars(cells) {
+        if (!beesOn() || !cells.length) return null;
+        const palm = hostPalm(hostKiss());
+        if (!palm) {
+            hostReact('win');
+            return null;
+        }
+        sfx('buzz', 1);
+        const crew = spread(cells, BEE_MAX).map((cell, i) => ({ cell, ...beeToCell(palm, cell, 420, i * 60) }));
+        return async (to) => {
+            hostReact('win');
+            await Promise.all(crew.map(async ({ b, c, cell, there }, i) => {
+                await there;
+                if (!flying.has(b)) return;
+                const v = state.cells[cell]?.v ?? 2;
+                load(b, theme.stars?.[starTier(v)], v);
+                const mid = { x: (b.x + to.x) / 2 + rand(-0.5, 0.5) * c.size, y: Math.min(b.y, to.y) - c.size * 0.8 };
+                const going = fly(b, mid, mid, { x: to.x + rand(-0.15, 0.15) * c.size, y: to.y - c.size * 0.3 }, 450, { delay: i * 80, s: 1.1 });
+                // A bee flying left is mirrored: its star's value isn't.
+                const label = b.el.querySelector('.load.star b');
+                if (label) label.style.scale = b.face < 0 ? '-1 1' : '';
+                await going;
+                b.el.querySelector('.load')?.remove();
+                beeOff(b, c.size, 600);
+            }));
+        };
+    }
+
+    /** A big win: a ribbon of her bees loops around the banner (`el`) while it shows, then flies off. */
+    function beeRibbon(el, count) {
+        if (!beesOn() || !el) return;
+        // Around the banner and the count, clear of both: the dialog is still growing in now, so
+        // the loop is sized by the screen (and at least the dialog), kept on screen across.
+        const r = el.getBoundingClientRect();
+        const centre = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        const rx = Math.min(innerWidth * 0.46, Math.max(r.width * 0.6, innerWidth * 0.38));
+        const ry = Math.min(innerHeight * 0.42, Math.max(r.height * 0.65, innerHeight * 0.32));
+        const size = Math.max(40, Math.min(96, Math.min(innerWidth, innerHeight) * 0.1));
+        const start = hostPalm('kiss') ?? hostPalm('idle') ?? { x: -size * 2, y: centre.y + ry };
+        const at = (th) => ({ x: centre.x + rx * Math.cos(th), y: centre.y + ry * Math.sin(th), s: 1 + 0.22 * Math.sin(th) }); // nearer at the bottom
+        const th0 = Math.PI * 0.85; // they join it at the lower left and loop clockwise
+        const th1 = th0 + Math.PI * 2.3;
+        const [join, leave] = [at(th0), at(th1)];
+        const exit = { x: innerWidth + size * 2, y: -size * 2 };
+        const [A, B] = [0.16, 0.84]; // of the time: joining, looping, leaving
+        const path = (t) => {
+            if (t < A) {
+                const e = easeInOut(t / A);
+                return { x: bezier(start.x, start.x + size * 2, join.x + rx * 0.2, join.x, e), y: bezier(start.y, start.y - size, join.y + ry * 0.5, join.y, e), s: 0.4 + (join.s - 0.4) * e };
+            }
+            if (t < B) return at(th0 + ((t - A) / (B - A)) * (th1 - th0));
+            const e = easeIn((t - B) / (1 - B));
+            return { x: bezier(leave.x, leave.x - rx * 0.1, exit.x - rx, exit.x, e), y: bezier(leave.y, leave.y - ry * 0.6, exit.y + ry, exit.y, e), s: leave.s };
+        };
+        const ribbon = Array.from({ length: count }, (_, i) => {
+            const b = bee(start.x, start.y, size, 0.4);
+            follow(b, path, 3400, { delay: i * 90, appear: true, steps: 80 }).then(() => drop(b));
+            return b;
+        });
+        // Closed early (a tap): they fly off with it.
+        const watch = setInterval(() => {
+            if (el.isConnected && ribbon.some((b) => flying.has(b))) return;
+            clearInterval(watch);
+            for (const b of ribbon) {
+                if (flying.has(b)) b.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).finished.catch(() => {}).then(() => drop(b));
+            }
+        }, 150);
+    }
+
+    /** While the game is idle: a bee wanders out of her hand now and then. */
+    function beeWanderLater() {
+        clearTimeout(beeIdle);
+        if (beeLayer && beeArt) beeIdle = setTimeout(beeWander, rand(18_000, 34_000));
+    }
+
+    const calm = () => !state.busy && !document.hidden && $('overlay').hidden && !$('intro')?.open;
+
+    /** One bee flies to a sweet, nibbles it (the sweet wobbles) and flies back into her palm. */
+    async function beeWander() {
+        const palm = hostPose === 'idle' ? hostPalm('idle') : null;
+        const sweets = state.cells.flatMap((c, i) => (c.s === MULTIPLIER || c.s === SCATTER ? [] : [i]));
+        if (!beesOn() || !palm || wanderer || !calm() || !sweets.length) return beeWanderLater();
+        const cell = sweets[Math.floor(Math.random() * sweets.length)];
+        const c = cellOnScreen(cell);
+        const b = bee(palm.x, palm.y, c.size * 0.6, 0.3);
+        wanderer = b;
+        const seat = { x: c.x, y: c.y - c.size * 0.3 };
+        await fly(b, { x: palm.x + (seat.x - palm.x) * 0.3, y: palm.y - c.size * 1.4 }, { x: seat.x - c.size * 1.2, y: seat.y - c.size * 1.3 }, seat, 1500,
+            { s: 1, appear: true, level: true, wobble: c.size * 0.1 });
+        if (wanderer !== b || !calm()) return beeShoo();
+        // Three little nibbles: the bee dips, and the sweet wobbles under it.
+        const sym = state.els[cell]?.firstElementChild;
+        sym?.animate?.([{ rotate: '0deg' }, { rotate: '-8deg', offset: 0.25 }, { rotate: '7deg', offset: 0.5 }, { rotate: '-5deg', offset: 0.75 }, { rotate: '0deg' }],
+            { duration: 1000, easing: 'ease-in-out' });
+        b.anim = b.el.animate([0, 1, 0, 1, 0, 1, 0].map((d) => ({ transform: beeAt(b, b.x, b.y + d * c.size * 0.08, d * 10 * b.face, b.s) })),
+            { duration: 1000, easing: 'ease-in-out' });
+        await b.anim.finished.catch(() => {});
+        if (wanderer !== b || !calm()) return beeShoo();
+        const home = hostPalm('idle') ?? palm;
+        await fly(b, { x: seat.x + c.size * 0.5, y: seat.y - c.size * 1.6 }, { x: home.x + c.size * 1.2, y: home.y - c.size }, home, 1400,
+            { s: 0.3, fade: true, wobble: c.size * 0.08 });
+        if (wanderer === b) drop(b);
+        beeWanderLater();
+    }
+
+    /** A spin starts (or a dialog opened): the wandering bee zips off at once. */
+    function beeShoo() {
+        clearTimeout(beeIdle);
+        const b = wanderer;
+        wanderer = null;
+        if (b) b.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).finished.catch(() => {}).then(() => drop(b));
+        if (!state.busy) beeWanderLater();
     }
 
     // The effects' art loads after the first paint, so the board shows at once.
     function preload() {
         const art = theme.fx ?? {};
-        [art.frostBurst, art.frostRing, art.frostCrust, art.twinkle, art.comet, ...(art.crystals ?? [])].forEach(sprite);
+        [art.frostBurst, art.frostRing, art.frostCrust, art.twinkle, art.comet, ...(art.crystals ?? []), theme.hostBee?.src, theme.hostBee?.wing?.src].forEach(sprite);
         Object.values(theme.fragments ?? {}).flat().forEach((piece) => sprite(piece.src));
     }
 

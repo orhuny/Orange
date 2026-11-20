@@ -20,9 +20,9 @@ What it builds:
   and banners. The frame also comes in pieces (left, right, a stretchable strip of line),
   so a wide grid keeps its ornaments in shape;
 - thumbnail.jpg: the lobby tile, uploaded in the admin panel.
-- host/: the game's host, the Queen Bee (round 4, from storage/app/art/sugar-orchard/round4):
-  each delivered pose as her upper body, fading out at the bottom. --only-host builds just
-  these, into the existing art.json, in seconds.
+- host/: the game's host, the Queen Bee (rounds 4 and 5, from storage/app/art/sugar-orchard/round4):
+  each delivered pose as her upper body, fading out at the bottom, her wing, and her worker
+  bee with its wing. --only-host builds just these, into the existing art.json, in seconds.
 - art.json:
   - each symbol's pieces, with where each sits in the burst (so the page throws it outward
     from there);
@@ -85,11 +85,24 @@ HOST_POSES = {  # pose -> (source, chin y, wing root (x, y), scale)
     'cheer': ('char-queen-cheer', 357, (555, 540), 1.19),
     'wow': ('char-queen-wow', 436, (505, 545), 1.1),
     'honey': ('char-queen-honey', 380, (430, 505), 1.18),
+    'kiss': ('char-queen-kiss', 308, (385, 490), 1.0),  # she blows her bees off her palm on a win
+}
+# Where her worker bees leave her (round 5): the open palm she holds out, in the pose's own
+# pixels, measured by eye. Bees only fly from a pose that has one.
+HOST_PALMS = {
+    'kiss': (735, 290),
+    'idle': (880, 305),
 }
 HOST_BELOW_CHIN = 584  # px (idle's scale) shown below her chin, down to mid-thigh; the panels hide the rest
 HOST_FADE = 120  # px at the bottom that fade out, so no hard edge can show
 HOST_WING = 'char-queen-wing'  # one wing, root at the lower left; mirrored to sweep up and back
 HOST_WING_LENGTH = 500  # px (idle's scale): the wing's height on her
+# Her worker bee (round 5): a body facing right, and one wing (root at the lower left, mirrored
+# like hers). In the body's pixels: where its wings meet its back, and the wing's height on it.
+BEE = 'char-bee-worker'
+BEE_WING = 'char-bee-wing'
+BEE_WING_ROOT = (560, 450)
+BEE_WING_LENGTH = 400
 SYMBOL_SIZE = 320
 PIECE_SCALE = 0.32  # pieces are cut at full size, then shrunk to this
 WEBP = {'quality': 90, 'method': 6}
@@ -271,17 +284,18 @@ def dusted(im):
     return im
 
 
-def host_pose(im, chin, root, scale):
+def host_pose(im, chin, root, scale, palm=None):
     """One pose of the host, at idle's scale: her upper body, from the top of the figure
     (raised hands included) down to HOST_BELOW_CHIN below her chin, fading out at the bottom.
     Also: where her body's centre is at that line (cx, of the width), so the page stands her
-    over the panels whatever her arms do, and her wings' root (x, y) and length (h), of the
-    image's size."""
+    over the panels whatever her arms do, her wings' root (x, y) and length (h), and the palm
+    her bees leave from (x, y), of the image's size."""
     im = dusted(im)
     x0, y0, x1, y1 = im.getchannel('A').getbbox()
     bottom = min(y1, chin + round(HOST_BELOW_CHIN / scale))
     shown = im.crop((x0, y0, x1, bottom))
     wx, wy = (root[0] - x0) / shown.width, (root[1] - y0) / shown.height
+    hand = {'x': round((palm[0] - x0) / shown.width, 4), 'y': round((palm[1] - y0) / shown.height, 4)} if palm else None
     if scale != 1:
         shown = resized(shown, (round(shown.width * scale), round(shown.height * scale)))
     alpha = shown.getchannel('A')
@@ -301,13 +315,13 @@ def host_pose(im, chin, root, scale):
     shown.putalpha(ImageChops.multiply(alpha, ramp.resize(shown.size)))
     w, h = shown.size
     wing = {'x': round(wx, 4), 'y': round(wy, 4), 'h': round(HOST_WING_LENGTH / h, 4)}
-    return shown, {'cx': round(cx, 4), 'ar': round(w / h, 4), 'wing': wing}
+    return shown, {'cx': round(cx, 4), 'ar': round(w / h, 4), 'wing': wing, **({'palm': hand} if hand else {})}
 
 
-def host_wing():
-    """The wing, mirrored so it sweeps up and back from her shoulders, and where its root is
+def wing_art(source, rel, size):
+    """A wing, mirrored so it sweeps up and back from the shoulders, and where its root is
     along its bottom edge (rx, of the width)."""
-    im = ImageOps.mirror(trimmed(dusted(Image.open(HOST_SRC / f'{HOST_WING}.png'))))
+    im = ImageOps.mirror(trimmed(dusted(Image.open(HOST_SRC / f'{source}.png'))))
     alpha = im.getchannel('A')
     total = weighted = 0
     for y in range(im.height - 12, im.height):  # the narrow root, at the bottom
@@ -316,35 +330,55 @@ def host_wing():
             total += a
             weighted += a * x
     rx = weighted / total / im.width if total else 1.0
-    im = fit(im, 640)
-    return {'src': save(im, 'host/wing.webp'), 'rx': round(rx, 4), 'ar': round(im.width / im.height, 4)}
+    im = fit(im, size)
+    return {'src': save(im, rel), 'rx': round(rx, 4), 'ar': round(im.width / im.height, 4)}
+
+
+def host_bee():
+    """Her worker bee: its body facing right, its wing, the wings' root on the body (x, y)
+    and their height (h), of the body's size."""
+    body = dusted(Image.open(HOST_SRC / f'{BEE}.png'))
+    x0, y0, x1, y1 = body.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+    body = body.crop((x0, y0, x1, y1))
+    wing = {
+        **wing_art(BEE_WING, 'host/bee-wing.webp', 200),
+        'x': round((BEE_WING_ROOT[0] - x0) / body.width, 4),
+        'y': round((BEE_WING_ROOT[1] - y0) / body.height, 4),
+        'h': round(BEE_WING_LENGTH / body.height, 4),
+    }
+    ar = body.width / body.height
+    return {'src': save(fit(body, 240), 'host/bee.webp'), 'ar': round(ar, 4), 'wing': wing}
 
 
 def build_host():
-    """host/: the host's poses and her wing. art.json:
-    - host: { pose: { src, cx, ar, k, wing: { x, y, h } } }. ar: width / height; k: its height
-      next to idle's, at the same scale (raised hands make it taller); wing: of its size.
-    - host_wing: { src, rx, ar }, or nothing before the wing is delivered."""
+    """host/: the host's poses, her wing and her worker bee. art.json:
+    - host: { pose: { src, cx, ar, k, wing: { x, y, h }, palm?: { x, y } } }. ar: width / height;
+      k: its height next to idle's, at the same scale (raised hands make it taller); wing and
+      palm: of its size.
+    - host_wing: { src, rx, ar }, or nothing before the wing is delivered.
+    - host_bee: { src, ar, wing: { src, rx, ar, x, y, h } }, or nothing before the bee and its
+      wing are delivered."""
     if (OUT / 'host').exists():
         shutil.rmtree(OUT / 'host')
     host = {}
     for pose, (source, chin, root, scale) in HOST_POSES.items():
         path = HOST_SRC / f'{source}.png'
         if path.exists():
-            im, meta = host_pose(Image.open(path), chin, root, scale)
+            im, meta = host_pose(Image.open(path), chin, root, scale, HOST_PALMS.get(pose))
             host[pose] = {'src': save(im, f'host/queen-{pose}.webp'), **meta, 'h': im.height}
     base = host['idle']['h'] if 'idle' in host else 1
     for meta in host.values():
         meta['k'] = round(meta.pop('h') / base, 4)
-    wing = host_wing() if (HOST_SRC / f'{HOST_WING}.png').exists() else None
-    print('host', ', '.join(f"{pose} (cx {p['cx']}, k {p['k']})" for pose, p in host.items()), '· wing' if wing else '')
-    return host, wing
+    wing = wing_art(HOST_WING, 'host/wing.webp', 640) if (HOST_SRC / f'{HOST_WING}.png').exists() else None
+    bee = host_bee() if all((HOST_SRC / f'{n}.png').exists() for n in (BEE, BEE_WING)) else None
+    print('host', ', '.join(f"{pose} (cx {p['cx']}, k {p['k']})" for pose, p in host.items()), '· wing' if wing else '', '· bee' if bee else '')
+    return host, wing, bee
 
 
 def main():
     if '--only-host' in sys.argv:  # quick: the host alone, into the existing art.json
         art = json.loads((OUT / 'art.json').read_text())
-        art['host'], art['host_wing'] = build_host()
+        art['host'], art['host_wing'], art['host_bee'] = build_host()
         (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
         return
 
@@ -389,7 +423,7 @@ def main():
     for name in BANNERS:
         art['banners'][name] = save(fit(trimmed(load(f'txt-{name}')), 1000), f'banners/{name}.webp')
     save(load('key-thumbnail').convert('RGB').resize((1200, 900), Image.LANCZOS), 'thumbnail.jpg')
-    art['host'], art['host_wing'] = build_host()
+    art['host'], art['host_wing'], art['host_bee'] = build_host()
 
     (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
     print('frame window', art['frame']['window'])
