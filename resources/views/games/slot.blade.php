@@ -112,16 +112,17 @@
            - a slim bar below, with the spin button under the grid's right corner, overlapping it.
            --bh is the grid's height; everything else follows from it. Portrait: see the media
            query at the end. */
-        .stage { position: relative; height: 100%; display: flex; flex-direction: column; padding: max(8px, env(safe-area-inset-top)) 12px 0;
-                 --ar: 1.45; --side: clamp(172px, 12vw, 220px); --gap: clamp(12px, 1.6vw, 28px); --spin: clamp(84px, 15vh, 140px);
-                 --topk: max(var(--et), .17);
+        .stage { position: relative; height: 100%; display: flex; flex-direction: column; padding: max(4px, env(safe-area-inset-top)) 12px 0;
+                 --ar: 1.45; --side: clamp(172px, 12vw, 220px); --gap: clamp(12px, 1.6vw, 28px); --spin: clamp(80px, 12.5vh, 124px);
+                 --reach: .28; /* how far up over the grid the spin button reaches, of its size (the bar) */
+                 --topk: max(var(--et), .12);
                  --fwk: calc(var(--ar) + var(--el) + var(--er));
-                 --bh: min(calc((100dvh - var(--spin) * .62 - 30px) / (1 + var(--topk))), calc((100vw - var(--side) - var(--gap) - 24px) / var(--fwk)), 900px);
+                 --bh: min(calc((100dvh - var(--spin) * (1 - var(--reach)) - 22px) / (1 + var(--topk))), calc((100vw - var(--side) - var(--gap) - 24px) / var(--fwk)), 900px);
                  --group: calc(var(--side) + var(--gap) + var(--bh) * var(--fwk)); }
         .top { position: absolute; left: 0; right: 0; top: max(8px, env(safe-area-inset-top)); z-index: 8; display: flex; justify-content: center; pointer-events: none; }
         .top .logo { display: none; }
         .logo { filter: drop-shadow(0 6px 8px rgba(40, 15, 0, .5)); }
-        .logo-frame { position: absolute; left: 50%; bottom: calc(100% - var(--bh) * .03); height: calc(var(--bh) * .2); translate: -50% 0; z-index: 7; pointer-events: none; }
+        .logo-frame { position: absolute; left: 50%; bottom: calc(100% - var(--bh) * .03); height: calc(var(--bh) * .15); translate: -50% 0; z-index: 7; pointer-events: none; }
         body.free .logo-frame { display: none; }
         .play { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: var(--gap); }
 
@@ -230,12 +231,12 @@
            - the right piece, on the grid's right edge;
            - a strip of plain line stretched between them (under the logo).
            The ornaments get their room above and at the sides; below, they tuck behind the bar. */
-        .frame { flex: none; padding: calc(var(--bh) * var(--topk)) calc(var(--bh) * var(--er)) calc(var(--bh) * .02) calc(var(--bh) * var(--el)); }
+        .frame { flex: none; padding: calc(var(--bh) * var(--topk)) calc(var(--bh) * var(--er)) calc(var(--bh) * .01) calc(var(--bh) * var(--el)); }
         .board-wrap { position: relative; width: calc(var(--bh) * var(--ar)); height: var(--bh); }
         /* Whole pixels: the grid's height a multiple of 5 and its width of 6, so every cell
            starts on a pixel and the symbols are never resampled between pixels. */
         @supports (width: round(down, 10.5px, 1px)) {
-            .stage { --bh: round(down, min(calc((100dvh - var(--spin) * .62 - 30px) / (1 + var(--topk))), calc((100vw - var(--side) - var(--gap) - 24px) / var(--fwk)), 900px), 5px); }
+            .stage { --bh: round(down, min(calc((100dvh - var(--spin) * (1 - var(--reach)) - 22px) / (1 + var(--topk))), calc((100vw - var(--side) - var(--gap) - 24px) / var(--fwk)), 900px), 5px); }
             .board-wrap { width: round(down, calc(var(--bh) * var(--ar)), 6px); }
         }
         .fp { position: absolute; top: calc(var(--bh) * var(--et) * -1); height: calc(var(--bh) * var(--ph)); z-index: 3; pointer-events: none;
@@ -287,7 +288,9 @@
         /* ---- The bar ----
            Landscape: one slim row, its ends lined up with the panel-and-grid group: the tools on
            the left; the win in the middle; on the right BALANCE − SPIN + BET, the balance right
-           beside the spin button, the spin button reaching up over the grid. */
+           beside the spin button. The spin button reaches up over the grid (--reach of its size),
+           and everything else rises half as far, so they all share its centre line; the three
+           meters are one height (--mh: the win's). Portrait has no reach. */
         .bar { position: relative; z-index: 5; flex: none; display: grid; align-items: center;
                grid-template-columns: auto 1fr auto auto auto auto auto; grid-template-areas: "tools win bal minus spin plus betm";
                column-gap: clamp(10px, 1.4vw, 22px); margin: 0 -12px;
@@ -300,14 +303,17 @@
         .meter small { font: 800 10px/1 var(--num); letter-spacing: .16em; color: var(--gold); text-shadow: 0 1px 0 #3a1400; }
         .meter span, .meter > b { font: 800 clamp(16px, 1.6vw, 23px)/1.1 var(--num); color: #fff; letter-spacing: -.01em; font-variant-numeric: tabular-nums;
                                   text-shadow: 0 2px 0 rgba(30, 10, 0, .55); white-space: nowrap; }
+        .bar { --mh: calc(24px + clamp(20px, 2.1vw, 30px) * 1.05); }
+        .bar .meter { min-height: var(--mh); align-content: center; }
+        .tools, .winm, .bal, .bet > * { translate: 0 calc(var(--spin) * var(--reach) / -2); }
         .bal { grid-area: bal; justify-self: start; }
         .bet { display: contents; }
         .bet .meter { grid-area: betm; }
         #bet-minus { grid-area: minus; } #bet-plus { grid-area: plus; }
         /* The win: big golden figures, with fruit perched on top that bob, and cheer at a win. */
-        .winm { grid-area: win; justify-self: center; min-width: clamp(150px, 15vw, 230px); padding: 6px 24px 8px; overflow: visible;
+        .winm { grid-area: win; justify-self: center; min-width: clamp(150px, 15vw, 230px); padding: 4px 22px 5px; overflow: visible;
                 background: linear-gradient(180deg, rgba(92, 44, 14, .92), rgba(34, 12, 2, .94)) padding-box, linear-gradient(180deg, #fff1c4, #e3a23e 45%, #8a4d12) border-box; }
-        .winm #win { font-size: clamp(22px, 2.4vw, 34px); line-height: 1.05; color: transparent; text-shadow: none;
+        .winm #win { font-size: clamp(20px, 2.1vw, 30px); line-height: 1.05; color: transparent; text-shadow: none;
                      background: linear-gradient(180deg, #fffbe0, #ffd34d 52%, #f08a00); -webkit-background-clip: text; background-clip: text;
                      filter: drop-shadow(0 2px 0 #4a1e00) drop-shadow(0 0 10px rgba(255, 190, 60, .3)); display: inline-block; }
         .winm.lit { box-shadow: 0 6px 14px rgba(0, 0, 0, .42), 0 0 22px rgba(255, 196, 70, .55), inset 0 1px 0 rgba(255, 230, 180, .3); }
@@ -330,7 +336,7 @@
         .tool { width: clamp(38px, 2.9vw, 46px); }
         :is(.round, .tool):not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.12); }
         :is(.round, .tool):not(:disabled):active { transform: translateY(1px); }
-        .spin { grid-area: spin; width: var(--spin); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%; margin-top: calc(var(--spin) * -.38);
+        .spin { grid-area: spin; width: var(--spin); aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%; margin-top: calc(var(--spin) * var(--reach) * -1);
                 background: var(--spin-art) center / contain no-repeat; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)); transition: transform .12s ease; }
         .spin:not(:disabled):not(.busy) { animation: breathe 2.8s ease-in-out infinite; }
         @keyframes breathe { 50% { scale: 1.035; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)) drop-shadow(0 0 14px rgba(255, 170, 60, .55)); } }
@@ -520,7 +526,8 @@
 
         @media (orientation: portrait) {
             :root { --top: clamp(36px, 7vh, 68px); }
-            .stage { --spin: clamp(64px, 19vw, 88px); }
+            .stage { --spin: clamp(64px, 19vw, 88px); --reach: 0; }
+            .bar .meter { min-height: 0; }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
             .intro-bg { background-image: radial-gradient(ellipse at center, rgba(26, 27, 8, .18), rgba(23, 12, 4, .8)), var(--day-p); }
             .intro-host { --ih: min(38vh, 92vw / var(--ar)); left: calc(50% - var(--ih) * var(--ar) * var(--cx)); }
