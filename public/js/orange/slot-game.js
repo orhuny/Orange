@@ -1043,6 +1043,8 @@ export function startSlot(cfg) {
         $("bet").textContent = shown(stake(state.bet, mode));
         $('bet-minus').disabled = state.busy || i <= 0;
         $('bet-plus').disabled = state.busy || i >= state.steps.length - 1;
+        $('bet-pick').disabled = state.busy || state.steps.length < 2;
+        if (state.busy) closeBets();
         $('spin-btn').disabled = !connected || (state.busy && state.quick);
         $('spin-btn').classList.toggle('busy', state.busy);
         $('spin-btn').setAttribute('aria-label', state.busy ? 'Skip' : 'Spin');
@@ -1071,6 +1073,73 @@ export function startSlot(cfg) {
         state.bet = state.steps[j];
         sfx('click');
         controls();
+    }
+
+    // ---- The bet list: tap the BET meter to see every bet and pick one ---------------------------
+    // The amounts are what the meter shows (with the ante's +25% while it is on). The list closes on
+    // a pick, Escape, a tap anywhere else, a resize, or a spin starting.
+
+    const betList = $('bet-list');
+    let betsByKey = false; // opened from the keyboard: hand focus back to the meter on close
+
+    function openBets(e) {
+        if (!betList.hidden) return closeBets(betsByKey);
+        if (state.busy || state.steps.length < 2) return;
+        betsByKey = e?.detail === 0;
+        const mode = state.ante ? 'ante' : 'base';
+        const n = state.steps.length;
+        betList.style.setProperty('--cols', String(n <= 4 ? n : n <= 9 ? 3 : n <= 20 ? 4 : 5));
+        betList.querySelector('.bet-chips').replaceChildren(...state.steps.map((step) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = shown(stake(step, mode));
+            b.setAttribute('aria-pressed', String(step === state.bet));
+            b.addEventListener('click', () => pickBet(step));
+            return b;
+        }));
+        betList.hidden = false;
+        placeBets();
+        $('bet-pick').setAttribute('aria-expanded', 'true');
+        sfx('click');
+        const chips = betList.querySelector('.bet-chips');
+        const current = chips.querySelector('[aria-pressed=true]');
+        if (current && chips.scrollHeight > chips.clientHeight) chips.scrollTop = current.offsetTop - chips.clientHeight / 2;
+        // From the keyboard, focus goes to the current bet; a tap leaves nothing focused, so Space still spins.
+        if (betsByKey) current?.focus();
+        else $('bet-pick').blur();
+        if (!reducedMotion && betList.animate) {
+            betList.animate([{ opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1 }], { duration: 160, easing: 'cubic-bezier(.2,1.3,.4,1)' });
+        }
+    }
+
+    function closeBets(refocus = false) {
+        if (betList.hidden) return;
+        betList.hidden = true;
+        $('bet-pick').setAttribute('aria-expanded', 'false');
+        if (refocus) $('bet-pick').focus();
+        else if (betList.contains(document.activeElement)) document.activeElement.blur();
+    }
+
+    function pickBet(step) {
+        state.bet = step;
+        sfx('click');
+        closeBets(betsByKey);
+        controls();
+    }
+
+    /** Over the meter (below it if there is no room above), kept on screen, the tail at the meter. */
+    function placeBets() {
+        const r = $('bet-pick').getBoundingClientRect();
+        const w = betList.offsetWidth;
+        const h = betList.offsetHeight;
+        const m = 8;
+        const left = Math.max(m, Math.min(innerWidth - w - m, r.left + r.width / 2 - w / 2));
+        const below = r.top - h - 12 < m;
+        const top = below ? Math.min(innerHeight - h - m, r.bottom + 12) : r.top - h - 12;
+        betList.classList.toggle('below', below);
+        betList.style.left = `${Math.round(left)}px`;
+        betList.style.top = `${Math.round(top)}px`;
+        betList.style.setProperty('--tx', `${Math.round(Math.max(18, Math.min(w - 18, r.left + r.width / 2 - left)))}px`);
     }
 
     async function buy() {
@@ -1239,6 +1308,14 @@ export function startSlot(cfg) {
     $('spin-btn').addEventListener('click', () => spin());
     $('bet-minus').addEventListener('click', () => stepBet(-1));
     $('bet-plus').addEventListener('click', () => stepBet(1));
+    $('bet-pick').addEventListener('click', openBets);
+    document.addEventListener('pointerdown', (e) => {
+        if (!betList.hidden && !betList.contains(e.target) && !$('bet-pick').contains(e.target)) closeBets();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !betList.hidden) closeBets(true);
+    });
+    addEventListener('resize', () => closeBets());
     $('ante-btn').addEventListener('click', () => {
         state.ante = !state.ante;
         sfx('click');

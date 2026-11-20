@@ -365,6 +365,33 @@
         .tool .count { position: absolute; top: -7px; right: -7px; min-width: 20px; padding: 2px 5px; border-radius: 999px; font: 800 11px/1.2 var(--num);
                        background: linear-gradient(180deg, #ffb340, #e2600a); border: 1.5px solid #fff1c4; }
         .tool .count:empty { display: none; }
+        /* The BET meter is a button: tap it for every bet at once (slot-game.js, "The bet list"). */
+        .bet-pick { font: inherit; color: inherit; transition: filter .15s ease; }
+        .bet-pick small::after { content: ''; display: inline-block; margin-left: .45em; vertical-align: .12em; border: .36em solid transparent; border-bottom: .42em solid currentColor; border-top: 0; }
+        .bet-pick:not(:disabled):hover, .bet-pick[aria-expanded=true] { filter: brightness(1.15); }
+        .bet-pick:disabled { opacity: 1; cursor: default; }
+        .bet-pick:disabled small::after { opacity: .35; }
+        .bet-list { position: fixed; z-index: 25; left: 0; top: 0; --cols: 4; width: max-content; max-width: calc(100vw - 16px); padding: 10px 10px 12px; border-radius: 16px;
+                    border: 1.5px solid transparent; transform-origin: var(--tx, 50%) 100%;
+                    background: linear-gradient(180deg, rgba(86, 41, 13, .97), rgba(34, 12, 2, .98)) padding-box, linear-gradient(180deg, #ffe7a3, #b8741f) border-box;
+                    box-shadow: 0 14px 32px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 230, 180, .25); }
+        .bet-list[hidden] { display: none; }
+        .bet-list.below { transform-origin: var(--tx, 50%) 0; }
+        /* The tail points at the meter. */
+        .bet-list::after { content: ''; position: absolute; left: var(--tx, 50%); bottom: -7px; width: 12px; height: 12px; translate: -50% 0; rotate: 45deg;
+                           background: rgb(34, 12, 2); border: solid #b8741f; border-width: 0 1.5px 1.5px 0; }
+        .bet-list.below::after { bottom: auto; top: -7px; background: rgb(86, 41, 13); border-color: #ffe7a3; border-width: 1.5px 0 0 1.5px; }
+        .bet-list-title { margin: 0 4px 8px; font: 800 10px/1 var(--num); letter-spacing: .16em; color: var(--gold); text-shadow: 0 1px 0 #3a1400; text-align: center; }
+        .bet-list-title span:not(:empty)::before { content: '('; } .bet-list-title span:not(:empty)::after { content: ')'; }
+        .bet-chips { position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(64px, auto)); gap: 6px; max-height: min(52vh, 320px); overflow: auto; overscroll-behavior: contain; }
+        .bet-chips button { padding: 8px 10px; border-radius: 999px; border: 1px solid rgba(255, 220, 150, .28); background: rgba(255, 232, 190, .08);
+                            font: 800 15px/1 var(--num); color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 1px 0 rgba(30, 10, 0, .6);
+                            transition: background .12s ease, transform .12s ease; }
+        .bet-chips button:hover { background: rgba(255, 232, 190, .2); }
+        .bet-chips button:active { transform: scale(.95); }
+        .bet-chips button[aria-pressed=true] { background: linear-gradient(180deg, #fff1c4, #f1b443 55%, #c97a1c); border-color: #fff4d0; color: #3a1400; text-shadow: 0 1px 0 rgba(255, 245, 210, .6);
+                                               box-shadow: 0 0 12px rgba(255, 190, 70, .45); }
+        .bet-chips button:focus-visible { outline: 2px solid #fff4d0; outline-offset: 2px; }
 
         /* ---- Dialogs: plain, on the plaque, and the celebration ---- */
         .overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(20, 8, 0, .55); padding: 16px; overflow: hidden; }
@@ -710,7 +737,8 @@
         <div class="meter bal"><small>BALANCE</small><span><span id="balance">—</span> <span data-currency></span></span></div>
         <div class="bet">
             <button id="bet-minus" class="round" aria-label="Lower bet">−</button>
-            <div class="meter"><small>BET</small><b id="bet">—</b></div>
+            <button id="bet-pick" type="button" class="meter bet-pick" aria-haspopup="dialog" aria-expanded="false" aria-controls="bet-list"
+                    title="Choose your bet"><small>BET</small><b id="bet">—</b></button>
             <button id="bet-plus" class="round" aria-label="Raise bet">+</button>
         </div>
         <button id="spin-btn" class="spin" aria-label="Spin" disabled></button>
@@ -745,6 +773,10 @@
 </main>
 
 <div id="overlay" class="overlay" hidden></div>
+<div id="bet-list" class="bet-list" role="dialog" aria-label="Choose your bet" hidden>
+    <div class="bet-list-title">CHOOSE YOUR BET <span data-currency></span></div>
+    <div class="bet-chips"></div>
+</div>
 @if ($hostBee)
     <div id="bees" class="bees" aria-hidden="true" style="{{ sprintf('--bar: %s; --bwx: %s; --bwy: %s; --bwh: %s; --brx: %s; --bwar: %s',
         $hostBee['ar'], $hostBee['wing']['x'], $hostBee['wing']['y'], $hostBee['wing']['h'], $hostBee['wing']['rx'], $hostBee['wing']['ar']) }}"></div>
