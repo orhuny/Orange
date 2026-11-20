@@ -92,9 +92,12 @@ export function startSlot(cfg) {
     const dur = (ms) => Math.max(1, Math.round(ms * speed()));
     const wait = (ms) => new Promise((r) => setTimeout(r, dur(ms)));
 
+    // fill 'both': during a delay the element already shows the first frame. Otherwise a new
+    // element (a flying pearl, a jet, confetti) sits where its CSS puts it, often the top-left
+    // corner, until its delay ends.
     function animate(el, frames, ms, opts = {}) {
         if (!el.animate) return Promise.resolve();
-        const a = el.animate(frames, { duration: dur(ms), easing: 'ease-out', fill: 'forwards', ...opts, delay: dur(opts.delay ?? 0) });
+        const a = el.animate(frames, { duration: dur(ms), easing: 'ease-out', fill: 'both', ...opts, delay: dur(opts.delay ?? 0) });
         return a.finished.catch(() => {}).then(() => a);
     }
 
