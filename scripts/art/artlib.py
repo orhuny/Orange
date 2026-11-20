@@ -158,11 +158,16 @@ def frame_window(im):
     return {'x0': round(left / w, 4), 'y0': round(top / h, 4), 'x1': round(right / w, 4), 'y1': round(bottom / h, 4)}
 
 
-def frame_pieces(out, frame, width):
+def frame_pieces(out, frame, width, aspect=None, keep_centre=70):
     """The frame cut so it fits a grid of any width without stretching its ornaments: a left
-    piece, a right piece, and a plain strip the page stretches between them. The cuts fall
-    where the top and bottom edges hold nothing but the frame's plain band. Measurements are
-    in the frame's own pixels."""
+    piece, a right piece, and a middle the page stretches between them. The cuts fall where
+    the top and bottom edges hold nothing but the frame's plain band. Measurements are in the
+    frame's own pixels.
+
+    The middle is a plain 8-pixel strip, unless `aspect` gives the grid's width / height on
+    the page. Then it is the frame's own middle, widened to that grid (see widened_band) so
+    the page barely stretches it. keep_centre: how far either side of the centre (a crest)
+    is never widened."""
     a = frame.getchannel('A')
     w, h = frame.size
     win = frame_window(frame)
@@ -188,12 +193,106 @@ def frame_pieces(out, frame, width):
     k = width / w
     size = lambda im: (max(4, round(im.width * k)), round(im.height * k))  # noqa: E731
     left, right, fill = frame.crop((0, 0, cut_l, h)), frame.crop((cut_r, 0, w, h)), frame.crop((cut_l, 0, cut_l + 8, h))
+    extra = round(aspect * (y1 - y0)) - (x1 - x0) if aspect else 0
+    if extra > 0:
+        # Each band (above and below the window) widened on both sides of the centre, half
+        # each, so the crest stays in the middle. The window between them stays transparent.
+        fill = Image.new('RGBA', (cut_r - cut_l + extra, h), (0, 0, 0, 0))
+        mid = w // 2
+        for r0, r1 in ((0, y0), (y1, h)):
+            cost = band_cost(frame.crop((0, r0, w, r1)))
+            for row in cost:
+                for x in range(mid - keep_centre, mid + keep_centre):
+                    row[x] += 10_000
+            halves = [
+                widened_band(frame.crop((cut_l, r0, mid, r1)), (extra + 1) // 2, [row[cut_l:mid] for row in cost]),
+                widened_band(frame.crop((mid, r0, cut_r, r1)), extra // 2, [row[mid:cut_r] for row in cost]),
+            ]
+            fill.paste(halves[0], (0, r0))
+            fill.paste(halves[1], (halves[0].width, r0))
     return {
         'left': out.save(resized(left, size(left)), 'frame-left.webp', quality=88),
         'right': out.save(resized(right, size(right)), 'frame-right.webp', quality=88),
         'fill': out.save(resized(fill, size(fill)), 'frame-fill.webp', quality=88),
         'px': {'w': w, 'h': h, 'x0': x0, 'x1': x1, 'y0': y0, 'y1': y1, 'cut_l': cut_l, 'cut_r': cut_r},
     }
+
+
+def band_cost(im):
+    """How much widening each pixel of a frame band would show, per row: the change across x,
+    next door and 3, 6 and 12 pixels out on each side. Low along a straight horizontal stroke
+    and in plain patina, high in the middle of anything round, and highest on a pearl (bright,
+    with almost no colour), which must stay round."""
+    w, h = im.size
+    lum = im.convert('L').filter(ImageFilter.GaussianBlur(1)).load()
+    rgb = im.convert('RGB').load()
+
+    def at(x, y):
+        return lum[min(max(x, 0), w - 1), y]
+
+    def pearl(x, y):
+        r, g, b = rgb[x, y]
+        return 150 if min(r, g, b) > 185 and max(r, g, b) - min(r, g, b) < 45 else 0
+
+    return [[abs(at(x + 1, y) - at(x - 1, y)) + pearl(x, y)
+             + sum(abs(at(x + r, y) - at(x, y)) + abs(at(x, y) - at(x - r, y)) for r in (3, 6, 12)) / 3
+             for x in range(w)] for y in range(h)]
+
+
+def widened_band(im, extra, cost, spread=6.0):
+    """im with `extra` more columns, added by seam insertion: each seam runs top to bottom, one
+    pixel a row and at most one column sideways, along the lowest total cost (band_cost of
+    the same pixels). Each pixel on a seam gains a copy, the average of it and its right-hand
+    neighbour. A seam taken makes its neighbours a little dearer (spread), so the seams share
+    out the plain stretches instead of piling into one."""
+    w, h = im.size
+    cost = [row[:] for row in cost]
+    index = [list(range(w)) for _ in range(h)]
+    seams = []
+    for _ in range(extra):
+        n = len(index[0])
+        total, back = cost[0][:], []
+        for y in range(1, h):
+            row, step, here = [0.0] * n, [0] * n, cost[y]
+            for x in range(n):
+                k = x
+                if x > 0 and total[x - 1] < total[k]:
+                    k = x - 1
+                if x < n - 1 and total[x + 1] < total[k]:
+                    k = x + 1
+                row[x], step[x] = here[x] + total[k], k
+            total = row
+            back.append(step)
+        x = min(range(n), key=total.__getitem__)
+        seam = [0] * h
+        for y in range(h - 1, -1, -1):
+            seam[y] = index[y][x]
+            del index[y][x]
+            del cost[y][x]
+            for d in (-2, -1, 0, 1):
+                if 0 <= x + d < n - 1:
+                    cost[y][x + d] += spread / (1 + abs(d + 0.5))
+            if y > 0:
+                x = back[y - 1][x]
+        seams.append(seam)
+
+    src = im.load()
+    out = Image.new('RGBA', (w + extra, h))
+    dst = out.load()
+    for y in range(h):
+        copies = {}
+        for seam in seams:
+            copies[seam[y]] = copies.get(seam[y], 0) + 1
+        to = 0
+        for x in range(w):
+            p = src[x, y]
+            dst[to, y] = p
+            to += 1
+            for _ in range(copies.get(x, 0)):
+                q = src[min(x + 1, w - 1), y]
+                dst[to, y] = tuple((a + b) // 2 for a, b in zip(p, q))
+                to += 1
+    return out
 
 
 def fade_bottom(im, rows):

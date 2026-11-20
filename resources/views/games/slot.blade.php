@@ -111,7 +111,8 @@
         /* ---- Layout ----
            Landscape:
            - a wide grid (--ar, cells about 1.2× wider than tall), about three quarters of the
-             screen's height;
+             screen's height. Trident of Poseidon's frame middle is built at this width
+             (GRID_ASPECT in its art script): change both together, and rebuild its art;
            - the logo straddles the frame's top edge;
            - the feature panels sit beside the grid, and the two are centred together;
            - a slim bar below, with the spin button under the grid's right corner, overlapping it.
@@ -234,7 +235,9 @@
            their shape at any width:
            - the left piece, its left edge on the grid's;
            - the right piece, on the grid's right edge;
-           - a strip of plain line stretched between them (under the logo).
+           - the middle, stretched between them: a plain strip under the logo (Sugar Orchard),
+             or the frame's own middle built at the grid's width, which barely stretches
+             (Trident of Poseidon).
            The ornaments get their room above and at the sides; below, they tuck behind the bar. */
         .frame { flex: none; padding: calc(var(--bh) * var(--topk)) calc(var(--bh) * var(--er)) calc(var(--bh) * .01) calc(var(--bh) * var(--el)); }
         .board-wrap { position: relative; width: calc(var(--bh) * var(--ar)); height: var(--bh); }

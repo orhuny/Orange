@@ -38,6 +38,9 @@ GLOWS = {  # source -> (served name, size of the longer side)
 BANNERS = ['big-win', 'mega-win', 'epic-win', 'max-win', 'free-spins', 'total-win']
 # The first logo was drawn before the rename and says PEARLS OF POSEIDON: never serve it.
 SUPERSEDED_LOGOS = {'e657358e0210748cddce3c840ff2a002e854586b1ef6b8cfda735069d7703ca6'}
+# The landscape grid's width / height on the page (--ar in resources/views/games/slot.blade.php).
+# The frame's middle is built at that width, so the page barely stretches it.
+GRID_ASPECT = 1.45
 
 # Poseidon's poses: (source, eye line y, the trident's tip (x, y), scale). Measured by eye on
 # the 1024×1536 deliveries. Every pose is cut HOST_BELOW_EYES below its eyes (at idle's scale),
@@ -156,7 +159,7 @@ def main():
     art['dolphin'] = {'src': out.save(fit(dolphin, 560), 'dolphin.webp'), 'ar': round(dolphin.width / dolphin.height, 4)}
 
     frame = trimmed(unmagenta(load('ui-frame')))
-    art['frame'] = {'src': out.save(fit(frame, 1300), 'frame.webp', quality=88), 'window': frame_window(frame), 'pieces': frame_pieces(out, frame, 1300)}
+    art['frame'] = {'src': out.save(fit(frame, 1300), 'frame.webp', quality=88), 'window': frame_window(frame), 'pieces': frame_pieces(out, frame, 1300, aspect=GRID_ASPECT)}
     art['spin'] = out.save(square(dusted(load('ui-spin')), 256, pad=1.0), 'spin.webp')
     art['plaque'] = out.save(fit(trimmed(dusted(load('ui-plaque'))), 1000), 'plaque.webp')
     art['tide_ring'] = out.save(square(dusted(load('ui-tide-ring')), 360, pad=1.0), 'tide-ring.webp')
