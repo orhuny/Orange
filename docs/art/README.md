@@ -27,6 +27,7 @@ Audience: anyone adding or changing a game's art. How a game uses its art: [addi
 | Deep Dive | crash, scene `dive`; skins Jackpot Reef and Gothic Nightmare | `public/images/deep-dive/` | none: made before the pipeline | none |
 | Lucky Duck | crash, scene `marsh` | `public/images/lucky-duck/` | `process-lucky-duck.py` (Pillow and numpy) | [lucky-duck-prompts.md](lucky-duck-prompts.md) |
 | Sugar Orchard | slot, theme `sugar-orchard` | `public/images/sugar-orchard/` (symbols in `symbols/`) | `process-sugar-orchard.py` (Pillow) | [sugar-orchard-prompts.md](sugar-orchard-prompts.md) |
+| Trident of Poseidon | slot, theme `trident-of-poseidon` | `public/images/trident-of-poseidon/` (symbols in `symbols/`, Poseidon in `host/`) | `process-trident-of-poseidon.py` (Pillow, helpers in `artlib.py`) | [trident-of-poseidon-prompts.md](trident-of-poseidon-prompts.md) |
 
 Deep Dive's thumbnail is only in the admin panel. If you have its source, save it as `public/images/deep-dive/thumbnail.jpg`.
 
@@ -46,6 +47,7 @@ Deep Dive's thumbnail is only in the admin panel. If you have its source, save i
 - **Raw deliveries:**
   - Cut-outs come on flat magenta `#FF00FF`.
   - Sugar Orchard's light effects come on black and are blended as light.
-  - Name the files as the prompts doc does, in `storage/app/art/{game}/`. Sugar Orchard's round 3 goes in `round3/`.
+  - Trident of Poseidon's cut-outs come as transparent PNGs (water, pearls and foam are partly see-through); only its frame comes on magenta.
+  - Name the files as the prompts doc does, in `storage/app/art/{game}/`. Sugar Orchard's round 3 goes in `round3/`, Trident of Poseidon's round 1 in `round1/`.
 - **Every served file is used by its game.** Remove what nothing references, unless its build script makes it.
 - **Referencing art:** use `asset('images/{game}/…')`, with `?v=` and the file's `filemtime` where the file may change. Then players get a new file without clearing their cache.

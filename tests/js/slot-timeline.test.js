@@ -63,6 +63,27 @@ describe('plan', () => {
         expect(p.spins[1]).toMatchObject({ free: true, lineWin: 65, multiplier: 7, win: 455, runningTotal: 705 });
         expect(p.spins[1].steps[0].pays).toBe(65);
         expect(p.spins[1].multiplierCells).toEqual(cellsOf(p.spins[1].end, 'M'));
+        expect(p.spins[1].tide).toBeNull();
+    });
+
+    it('carries a base spin\'s multiplier and each free spin\'s tide (Trident of Poseidon)', () => {
+        const p = plan({
+            mode: 'base',
+            spins: [
+                {
+                    grid: 'IIIIM' + 'IIIIM' + 'SSSSA' + 'BCDEF' + 'GHABC' + 'DEFGH', mults: [5, 3],
+                    tumbles: [{ wins: [{ symbol: 'I', count: 8, win_x: '0.35' }], fill: ['ABCD', 'EFGH', '', '', '', ''], fill_mults: [] }],
+                    multiplier: 8, scatter_win_x: '4.00', win_x: '6.80', free_spins_awarded: 15,
+                },
+                { grid: 'ABCDEFGHI'.repeat(4).slice(0, 30), mults: [], tumbles: [], multiplier: 0, tide: 5, win_x: '0.00', retrigger: 0 },
+            ],
+            total_win_x: '6.80',
+            free_spins: 1,
+            max_win_reached: false,
+        });
+
+        expect(p.spins[0]).toMatchObject({ free: false, lineWin: 35, multiplier: 8, tide: null, win: 680 });
+        expect(p.spins[1]).toMatchObject({ free: true, multiplier: 0, tide: 5 });
     });
 });
 
@@ -101,7 +122,10 @@ describe('money', () => {
 
 describe('celebrations', () => {
     it('picks the win tier and the star colour', () => {
-        expect([1499, 1500, 4000, 10_000, 500_000].map(winTier)).toEqual(['none', 'big', 'mega', 'epic', 'max']);
-        expect([2, 8, 20, 100].map(starTier)).toEqual(['sky', 'emerald', 'gold', 'ruby']);
+        // MAX WIN comes from the outcome's max_win_reached, never from the amount: the cap is per game.
+        expect([1499, 1500, 4000, 10_000, 500_000].map((t) => winTier(t))).toEqual(['none', 'big', 'mega', 'epic', 'epic']);
+        expect([2, 8, 20, 100].map((v) => starTier(v))).toEqual(['sky', 'emerald', 'gold', 'ruby']);
+        const pearls = [[100, 'abyss'], [20, 'gold'], [6, 'aqua'], [0, 'moon']];
+        expect([2, 5, 6, 15, 20, 50, 100, 500].map((v) => starTier(v, pearls))).toEqual(['moon', 'moon', 'aqua', 'aqua', 'gold', 'gold', 'abyss', 'abyss']);
     });
 });

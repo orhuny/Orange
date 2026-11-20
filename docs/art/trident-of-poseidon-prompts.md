@@ -4,7 +4,7 @@ Audience: whoever generates Trident of Poseidon's art. Every prompt below is com
 
 **Name:** Trident of Poseidon (code `trident-of-poseidon`), picked by the user on 2026-11-20. It was "Pearls of Poseidon" before; the art doesn't change, only `txt-logo` carries the name.
 
-**Status (2026-11-20):** generation has started.
+**Status (2026-11-20):** all 52 delivered and copied to `storage/app/art/trident-of-poseidon/round1/`. The first `txt-logo` still said PEARLS OF POSEIDON; it was replaced by the TRIDENT OF POSEIDON one, and the build script refuses the old one by its hash.
 
 ## The look in one paragraph
 
@@ -42,7 +42,7 @@ The game is set **underwater, in Poseidon's own sea**. Base game: sunlit turquoi
    - **Scene:** a full picture.
 4. **Size and format:** the largest size the tool offers, as PNG. Backgrounds at least 2560×1440 (or 1440×2560); upscale if needed.
 5. **Text:** only the `txt-*` assets contain text. Check every letter, and regenerate until the spelling is exact.
-6. **Delivery:** use the file names below, in `C:\Git\Orange\storage\app\art\trident-of-poseidon\round1\`. The earlier folder, `storage\app\art\pearls-of-poseidon\round1\`, works too: the build script reads both.
+6. **Delivery:** use the file names below, in `C:\Git\Orange\storage\app\art\trident-of-poseidon\round1\`, the folder the build script reads.
    - Send 2–3 variants when unsure (`-a`, `-b`, `-c`); I pick and key the best one.
    - Batches are fine. Symbols, Poseidon and the backgrounds first already change the whole look.
 7. **Tools:**

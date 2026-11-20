@@ -46,6 +46,17 @@ export function startSlot(cfg) {
     };
     state.bet = state.steps.includes('1.00') ? '1.00' : state.steps[Math.min(4, state.steps.length - 1)];
 
+    /**
+     * A theme's own effects (cfg.kit, e.g. slot-kit-tides.js), on top of the shared ones. It
+     * gets the page's helpers (kitApi) and may answer any of these, all optional:
+     * - scenery(), preload(): at start-up;
+     * - winStart(cells, step, pace), charge(cells, ms), burst(cell, symbol, step): a winning tumble;
+     * - multipliers(spin): plays a spin's multipliers (or tide) instead of the comets;
+     * - freeSpins(on): free spins start (true) or end (false);
+     * - celebrate(tier, dialog, layer): a big win, with the shared celebration.
+     */
+    let kit = null;
+
     // ---- Sound -------------------------------------------------------------------------------
 
     // Sound effects only, while a spin plays (spin, landing, wins, free spins…). There is no
@@ -96,7 +107,7 @@ export function startSlot(cfg) {
         el.className = 'sym';
         el.dataset.s = cell.s;
         if (cell.s === MULTIPLIER) {
-            el.innerHTML = `<div class="star" aria-label="${cell.v}× multiplier"><img src="${theme.stars?.[starTier(cell.v)] ?? ''}" alt="" draggable="false"><b>${cell.v}×</b></div>`;
+            el.innerHTML = `<div class="star" aria-label="${cell.v}× multiplier"><img src="${theme.stars?.[starTier(cell.v, theme.tiers ?? undefined)] ?? ''}" alt="" draggable="false"><b>${cell.v}×</b></div>`;
         } else if (cell.s === SCATTER) {
             // The basket says what it is, like the stars show their value; the word is text, so it stays crisp at any size.
             const box = document.createElement('div');
@@ -257,7 +268,7 @@ export function startSlot(cfg) {
      * swirling behind a sweet). img is an image, or a canvas the page painted (flameArt).
      */
     function emit(p) {
-        if (!p.img) return;
+        if (!p.img && !p.draw) return;
         particles.push({ vx: 0, vy: 0, g: 0, rot: 0, vr: 0, s0: 1, s1: 1, a0: 1, a1: 0, fade: 0, delay: 0, age: 0, light: false, ease: easeOut, ...p });
         if (!frameId) {
             lastTick = performance.now();
@@ -290,11 +301,16 @@ export function startSlot(cfg) {
                 p.y += p.vy * dt;
                 p.rot += p.vr * dt;
             }
-            if (p.img.complete === false || p.img.naturalWidth === 0) continue; // an image still loading (a canvas is always ready)
+            if (!p.draw && (p.img.complete === false || p.img.naturalWidth === 0)) continue; // an image still loading (a canvas is always ready)
             const s = p.s0 + (p.s1 - p.s0) * p.ease(t);
             const f = t <= p.fade ? 0 : (t - p.fade) / (1 - p.fade);
             ctx.globalAlpha = Math.max(0, Math.min(1, p.a0 + (p.a1 - p.a0) * f)) * (p.depth ?? 1);
             ctx.globalCompositeOperation = p.light ? 'lighter' : 'source-over';
+            if (p.draw) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                p.draw(ctx, p, s, t);
+                continue;
+            }
             const cos = Math.cos(p.rot) * s;
             const sin = Math.sin(p.rot) * s;
             ctx.setTransform(cos, sin, -sin, cos, p.x, p.y);
@@ -496,7 +512,7 @@ export function startSlot(cfg) {
     // (hold), the frost creeping over them (frost), and from the burst to the refill (after).
     // When her bees fly it takes its time: they cross to their sweets unhurried, sit a moment,
     // and are seen lifting off with the pieces before the new sweets fall in.
-    const PACE = { hold: 650, frost: 180, after: 170 };
+    const PACE = { hold: 650, frost: 180, after: 170, ...theme.pace };
     const BEE_PACE = { hold: 1150, frost: 260, after: 380 };
 
     async function playStep(step, index) {
@@ -515,13 +531,15 @@ export function startSlot(cfg) {
             hostReact('win');
         }
         // A good win catches fire: flames swirl around the winners until they burst.
-        const heat = step.pays >= HOT_WIN ? 1.6 : step.pays >= GOOD_WIN ? 1 : 0;
+        const heat = theme.effects?.flames === false ? 0 : step.pays >= HOT_WIN ? 1.6 : step.pays >= GOOD_WIN ? 1 : 0;
+        kit?.winStart?.(winners, step, pace);
         const flare = heat ? flames(winners, pace.hold + pace.frost, heat) : null;
         if (flare) sfx('flame');
         await wait(pace.hold);
 
         // Frost creeps over the winners, then they burst into pieces, with a little shake.
-        winners.forEach((c) => frostOver(state.els[c]));
+        if (kit?.charge) kit.charge(winners, pace.frost);
+        else winners.forEach((c) => frostOver(state.els[c]));
         await wait(pace.frost);
         sfx('pop', loud);
         shake(Math.min(7, 2.5 + winners.length * 0.25) + heat * 2);
@@ -531,7 +549,10 @@ export function startSlot(cfg) {
             hostReact('win');
             bees.burst();
         }
-        winners.forEach((c) => shatter(c, state.cells[c].s));
+        winners.forEach((c) => {
+            shatter(c, state.cells[c].s);
+            kit?.burst?.(c, state.cells[c].s, step);
+        });
         await Promise.all(winners.map((c) => animate(state.els[c], [
             { transform: at(c), opacity: 1 },
             { transform: `${at(c)} scale(1.15)`, opacity: 0 },
@@ -570,6 +591,7 @@ export function startSlot(cfg) {
     }
 
     async function applyMultipliers(spin) {
+        if (kit?.multipliers) return kit.multipliers(spin);
         const cells = spin.multiplierCells;
         cells.forEach((c) => state.els[c]?.classList.add('win'));
         const carry = beesToStars(cells);
@@ -713,7 +735,8 @@ export function startSlot(cfg) {
             line += step.pays;
             if (!spin.free) showWin(winAmount(state.bet, line));
         }
-        if (spin.free && spin.multiplier > 0 && spin.lineWin > 0) await applyMultipliers(spin);
+        // A spin's line win is multiplied by its multipliers' sum, or with a tide by the tide.
+        if ((spin.tide ?? spin.multiplier) > 0 && spin.lineWin > 0) await applyMultipliers(spin);
         if (spin.scatterWin > 0) floatText(shown(winAmount(state.bet, spin.scatterWin)), spin.scatters, 'scatter-win');
         const triggers = spin.free ? spin.retrigger > 0 : spin.awarded > 0;
         if (triggers) {
@@ -732,10 +755,11 @@ export function startSlot(cfg) {
             sfx('fsStart');
             hostReact('free');
             await dialog(plaque('free-spins', `<div class="huge">${base.awarded}</div>
-                <p class="note">Sugar stars land in free spins and multiply every winning spin.</p>`), {
+                <p class="note">${theme.text?.freeSpins ?? 'Sugar stars land in free spins and multiply every winning spin.'}</p>`), {
                 button: 'Start', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0,
             });
             document.body.classList.add('free');
+            await kit?.freeSpins?.(true);
             let awarded = base.awarded;
             let fsWin = 0n;
             hud(0, awarded, 0n);
@@ -756,6 +780,7 @@ export function startSlot(cfg) {
                 { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
             document.body.classList.remove('free');
             $('fs-hud').hidden = true;
+            await kit?.freeSpins?.(false);
         }
 
         // Celebrated against what the player paid: a bought feature returning 94× its 100× price is no big win.
@@ -810,6 +835,7 @@ export function startSlot(cfg) {
                 shake({ big: 8, mega: 10, epic: 12, max: 14 }[tier] ?? 8, 520, [el]);
                 fireworks(layer, { big: 4, mega: 6, epic: 8, max: 10 }[tier] ?? 4);
                 beeRibbon(el, { big: 6, mega: 8, epic: 10, max: 12 }[tier] ?? 6);
+                kit?.celebrate?.(tier, el, layer);
             },
         });
     }
@@ -1188,7 +1214,7 @@ export function startSlot(cfg) {
             <ul><li>8 or more of a symbol anywhere on the ${r.grid?.columns}×${r.grid?.rows} grid win.</li>
             <li>Winning symbols burst, the rest fall, and new ones drop in; this repeats while there are wins.</li>
             <li>In free spins, sugar stars (2× to 100×) land on the grid. When a free spin's tumbles end with a win, the stars' values add up and multiply it.</li>
-            ${features.ante ? '<li>Ante bet: your stake is 1.25× the bet and free spins come about 1.75× as often.</li>' : ''}
+            ${features.ante ? `<li>Ante bet: your stake is 1.25× the bet and free spins come ${theme.text?.anteOften ?? 'about 1.75× as often'}.</li>` : ''}
             ${features.buy ? '<li>Buy free spins: 100× the bet starts the feature at once.</li>' : ''}
             <li>Maximum win: ${Number(r.max_win).toLocaleString()}× the bet; the round ends when it is reached.</li>
             <li>Return to player: ${(Number(r.rtp) * 100).toFixed(2)}%.</li>
@@ -1483,6 +1509,7 @@ export function startSlot(cfg) {
         win: ['cheer', 2600, 3],
         big: ['wow', 4400, 6],
         free: ['honey', 3200, 4],
+        ...theme.hostReactions,
     };
     const HOST_WAIT_MS = 60_000;
     const HOST_HOP = [ // a little crouch, a springy hop, a soft landing
@@ -1568,6 +1595,26 @@ export function startSlot(cfg) {
         if (!hostShow('kiss')) return hostPose;
         clearTimeout(hostBack); // she cheers when the sweets burst (hostReact), and goes back from there
         return 'kiss';
+    }
+
+    /** The tip of the host's trident (theme.host[pose].tip) on screen, or null. */
+    function hostTip(pose) {
+        const tip = theme.host?.[pose]?.tip;
+        if (!tip) return null;
+        for (const fig of hostFigs) {
+            const r = fig.dataset.pose === pose ? fig.getBoundingClientRect() : null;
+            if (r?.width) return { x: r.left + tip.x * r.width, y: r.top + tip.y * r.height };
+        }
+        return null;
+    }
+
+    /** What a theme's kit gets (see `kit`). */
+    function kitApi() {
+        return {
+            state, theme, cfg, $, board, fx, stage, canvas, reducedMotion, COLS, ROWS, MULTIPLIER, SCATTER,
+            rand, easeOut, linear, dur, wait, animate, sfx, emit, sprite, gridPoint, cellBox, cellOnScreen, centre, shake, floatText,
+            hostShow, hostReact, hostTip, shown, winAmount, starTier: (v) => starTier(v, theme.tiers ?? undefined),
+        };
     }
 
     /** Where her bees leave her: the palm of `pose` on screen, or null (it has none, or isn't laid out). */
@@ -1795,7 +1842,7 @@ export function startSlot(cfg) {
                 await there;
                 if (!flying.has(b)) return;
                 const v = state.cells[cell]?.v ?? 2;
-                load(b, theme.stars?.[starTier(v)], v);
+                load(b, theme.stars?.[starTier(v, theme.tiers ?? undefined)], v);
                 const mid = { x: (b.x + to.x) / 2 + rand(-0.5, 0.5) * c.size, y: Math.min(b.y, to.y) - c.size * 0.8 };
                 const going = fly(b, mid, mid, { x: to.x + rand(-0.15, 0.15) * c.size, y: to.y - c.size * 0.3 }, 600, { delay: i * 90, s: 1.1 });
                 // A bee flying left is mirrored: its star's value isn't.
@@ -1914,14 +1961,19 @@ export function startSlot(cfg) {
 
     state.turbo = readPref('turbo', false);
     $('sound-btn').setAttribute('aria-pressed', String(sound.on));
+    kit = cfg.kit?.(kitApi()) ?? null;
     fitCanvas();
     scenery();
-    setTimeout(preload, 400);
+    kit?.scenery?.();
+    setTimeout(() => {
+        preload();
+        kit?.preload?.();
+    }, 400);
     render(state.cells);
     balance();
     controls();
     hostRest();
-    setTimeout(dewLoop, 2500);
+    if (theme.effects?.dew !== false) setTimeout(dewLoop, 2500);
 
     if (!cfg.embedded) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;

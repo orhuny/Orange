@@ -1,0 +1,281 @@
+{
+ "symbols": {
+  "A": "symbols/hippocampus.webp",
+  "B": "symbols/helmet.webp",
+  "C": "symbols/conch.webp",
+  "D": "symbols/amphora.webp",
+  "E": "symbols/crab.webp",
+  "F": "symbols/pufferfish.webp",
+  "G": "symbols/turtle.webp",
+  "H": "symbols/starfish.webp",
+  "I": "symbols/nautilus.webp",
+  "S": "symbols/trident.webp"
+ },
+ "pearls": {
+  "moon": "symbols/pearl-moon.webp",
+  "aqua": "symbols/pearl-aqua.webp",
+  "gold": "symbols/pearl-gold.webp",
+  "abyss": "symbols/pearl-abyss.webp"
+ },
+ "fx": {
+  "splash-burst": "fx/splash-burst.webp",
+  "splash-ring": "fx/splash-ring.webp",
+  "whirlpool": "fx/whirlpool.webp",
+  "rays": "fx/rays.webp",
+  "sunrays": "fx/sunrays.webp",
+  "water-jet": "fx/water-jet.webp",
+  "twinkle": "fx/twinkle.webp",
+  "bubbles": [
+   "fx/bubble-1.webp",
+   "fx/bubble-2.webp",
+   "fx/bubble-3.webp",
+   "fx/bubble-4.webp",
+   "fx/bubble-5.webp",
+   "fx/bubble-6.webp",
+   "fx/bubble-7.webp",
+   "fx/bubble-8.webp",
+   "fx/bubble-9.webp",
+   "fx/bubble-10.webp",
+   "fx/bubble-11.webp",
+   "fx/bubble-12.webp",
+   "fx/bubble-13.webp",
+   "fx/bubble-14.webp",
+   "fx/bubble-15.webp",
+   "fx/bubble-16.webp",
+   "fx/bubble-17.webp",
+   "fx/bubble-18.webp",
+   "fx/bubble-19.webp",
+   "fx/bubble-20.webp",
+   "fx/bubble-21.webp",
+   "fx/bubble-22.webp",
+   "fx/bubble-23.webp",
+   "fx/bubble-24.webp",
+   "fx/bubble-25.webp",
+   "fx/bubble-26.webp",
+   "fx/bubble-27.webp",
+   "fx/bubble-28.webp",
+   "fx/bubble-29.webp",
+   "fx/bubble-30.webp",
+   "fx/bubble-31.webp",
+   "fx/bubble-32.webp",
+   "fx/bubble-33.webp",
+   "fx/bubble-34.webp",
+   "fx/bubble-35.webp",
+   "fx/bubble-36.webp",
+   "fx/bubble-37.webp"
+  ],
+  "droplets": [
+   "fx/droplet-1.webp",
+   "fx/droplet-2.webp",
+   "fx/droplet-3.webp",
+   "fx/droplet-4.webp",
+   "fx/droplet-5.webp",
+   "fx/droplet-6.webp",
+   "fx/droplet-7.webp",
+   "fx/droplet-8.webp",
+   "fx/droplet-9.webp",
+   "fx/droplet-10.webp",
+   "fx/droplet-11.webp",
+   "fx/droplet-12.webp",
+   "fx/droplet-13.webp",
+   "fx/droplet-14.webp",
+   "fx/droplet-15.webp",
+   "fx/droplet-16.webp",
+   "fx/droplet-17.webp",
+   "fx/droplet-18.webp",
+   "fx/droplet-19.webp",
+   "fx/droplet-20.webp",
+   "fx/droplet-21.webp",
+   "fx/droplet-22.webp",
+   "fx/droplet-23.webp",
+   "fx/droplet-24.webp",
+   "fx/droplet-25.webp",
+   "fx/droplet-26.webp",
+   "fx/droplet-27.webp",
+   "fx/droplet-28.webp",
+   "fx/droplet-29.webp",
+   "fx/droplet-30.webp",
+   "fx/droplet-31.webp",
+   "fx/droplet-32.webp",
+   "fx/droplet-33.webp",
+   "fx/droplet-34.webp",
+   "fx/droplet-35.webp",
+   "fx/droplet-36.webp",
+   "fx/droplet-37.webp",
+   "fx/droplet-38.webp",
+   "fx/droplet-39.webp",
+   "fx/droplet-40.webp",
+   "fx/droplet-41.webp"
+  ],
+  "fish": [
+   "fx/fish-1.webp",
+   "fx/fish-2.webp",
+   "fx/fish-3.webp",
+   "fx/fish-4.webp",
+   "fx/fish-5.webp",
+   "fx/fish-6.webp",
+   "fx/fish-7.webp",
+   "fx/fish-8.webp",
+   "fx/fish-9.webp",
+   "fx/fish-10.webp",
+   "fx/fish-11.webp",
+   "fx/fish-12.webp"
+  ],
+  "treasure": [
+   "fx/treasure-1.webp",
+   "fx/treasure-2.webp",
+   "fx/treasure-3.webp",
+   "fx/treasure-4.webp",
+   "fx/treasure-5.webp",
+   "fx/treasure-6.webp",
+   "fx/treasure-7.webp",
+   "fx/treasure-8.webp",
+   "fx/treasure-9.webp",
+   "fx/treasure-10.webp",
+   "fx/treasure-11.webp",
+   "fx/treasure-12.webp",
+   "fx/treasure-13.webp",
+   "fx/treasure-14.webp",
+   "fx/treasure-15.webp",
+   "fx/treasure-16.webp",
+   "fx/treasure-17.webp",
+   "fx/treasure-18.webp",
+   "fx/treasure-19.webp",
+   "fx/treasure-20.webp",
+   "fx/treasure-21.webp",
+   "fx/treasure-22.webp",
+   "fx/treasure-23.webp",
+   "fx/treasure-24.webp",
+   "fx/treasure-25.webp",
+   "fx/treasure-26.webp",
+   "fx/treasure-27.webp",
+   "fx/treasure-28.webp",
+   "fx/treasure-29.webp",
+   "fx/treasure-30.webp",
+   "fx/treasure-31.webp",
+   "fx/treasure-32.webp",
+   "fx/treasure-33.webp",
+   "fx/treasure-34.webp",
+   "fx/treasure-35.webp",
+   "fx/treasure-36.webp",
+   "fx/treasure-37.webp",
+   "fx/treasure-38.webp",
+   "fx/treasure-39.webp",
+   "fx/treasure-40.webp",
+   "fx/treasure-41.webp",
+   "fx/treasure-42.webp",
+   "fx/treasure-43.webp",
+   "fx/treasure-44.webp",
+   "fx/treasure-45.webp",
+   "fx/treasure-46.webp"
+  ],
+  "surge": "fx/surge.webp"
+ },
+ "scenery": {
+  "kelp": "fg-kelp.webp",
+  "reef": "fg-reef.webp",
+  "jelly": "fg-jelly.webp"
+ },
+ "banners": {
+  "big-win": "banners/big-win.webp",
+  "mega-win": "banners/mega-win.webp",
+  "epic-win": "banners/epic-win.webp",
+  "max-win": "banners/max-win.webp",
+  "free-spins": "banners/free-spins.webp",
+  "total-win": "banners/total-win.webp"
+ },
+ "dolphin": {
+  "src": "dolphin.webp",
+  "ar": 1.7494
+ },
+ "frame": {
+  "src": "frame.webp",
+  "window": {
+   "x0": 0.1289,
+   "y0": 0.1124,
+   "x1": 0.8704,
+   "y1": 0.8996
+  },
+  "pieces": {
+   "left": "frame-left.webp",
+   "right": "frame-right.webp",
+   "fill": "frame-fill.webp",
+   "px": {
+    "w": 1265,
+    "h": 996,
+    "x0": 163,
+    "x1": 1101,
+    "y0": 112,
+    "y1": 896,
+    "cut_l": 330,
+    "cut_r": 935
+   }
+  }
+ },
+ "spin": "spin.webp",
+ "plaque": "plaque.webp",
+ "tide_ring": "tide-ring.webp",
+ "logo": "logo.webp",
+ "host": {
+  "idle": {
+   "src": "host/poseidon-idle.webp",
+   "cx": 0.5247,
+   "ar": 1.0056,
+   "tip": {
+    "x": 0.1271,
+    "y": 0.019
+   },
+   "k": 1.0
+  },
+  "point": {
+   "src": "host/poseidon-point.webp",
+   "cx": 0.5137,
+   "ar": 1.0022,
+   "tip": {
+    "x": 0.0958,
+    "y": 0.02
+   },
+   "k": 0.999
+  },
+  "strike": {
+   "src": "host/poseidon-strike.webp",
+   "cx": 0.4794,
+   "ar": 0.9211,
+   "tip": {
+    "x": 0.9829,
+    "y": 0.8424
+   },
+   "k": 1.0779
+  },
+  "roar": {
+   "src": "host/poseidon-roar.webp",
+   "cx": 0.5454,
+   "ar": 0.7711,
+   "tip": {
+    "x": 0.4907,
+    "y": 0.0152
+   },
+   "k": 1.2517
+  },
+  "summon": {
+   "src": "host/poseidon-summon.webp",
+   "cx": 0.554,
+   "ar": 0.9944,
+   "tip": {
+    "x": 0.1161,
+    "y": 0.0117
+   },
+   "k": 1.021
+  },
+  "waiting": {
+   "src": "host/poseidon-waiting.webp",
+   "cx": 0.5471,
+   "ar": 0.9,
+   "tip": {
+    "x": 0.1751,
+    "y": 0.1339
+   },
+   "k": 1.0519
+  }
+ }
+}

@@ -107,7 +107,10 @@ export function plan(outcome) {
             lineWin: spinLine,
             scatters: cellsOf(cells, SCATTER),
             scatterWin: hundredths(spin.scatter_win_x ?? '0'),
-            multiplier: free ? (spin.multiplier ?? 0) : 0,
+            // What multiplied the spin's line win: its multiplier sum (free spins, or the base game of a
+            // model with base multipliers); with a tide, the tide after this spin (null without one).
+            multiplier: spin.multiplier ?? 0,
+            tide: spin.tide ?? null,
             multiplierCells: cellsOf(cells, MULTIPLIER),
             win,
             runningTotal: running,
@@ -127,7 +130,7 @@ export function plan(outcome) {
 
 /** How a total win (hundredths of the bet) is celebrated. */
 export function winTier(total) {
-    if (total >= 500_000) return 'max';
+    // MAX WIN is only for a bet that hit its cap (plan().maxWin): the cap is per game.
     if (total >= 10_000) return 'epic';
     if (total >= 4_000) return 'mega';
     if (total >= 1_500) return 'big';
@@ -192,10 +195,10 @@ export function affordable(bet, mode, limits = {}) {
     return max === null || toUnits(stake(bet, mode)) <= max;
 }
 
-/** The multiplier star's colour tier for a value. */
-export function starTier(value) {
-    if (value >= 100) return 'ruby';
-    if (value >= 20) return 'gold';
-    if (value >= 8) return 'emerald';
-    return 'sky';
+/** Sugar Orchard's star colours: [from value, tier], highest first. */
+export const STAR_TIERS = Object.freeze([[100, 'ruby'], [20, 'gold'], [8, 'emerald'], [0, 'sky']]);
+
+/** A multiplier's colour tier for its value; a theme may give its own tiers (theme.tiers). */
+export function starTier(value, tiers = STAR_TIERS) {
+    return (tiers.find(([from]) => value >= from) ?? tiers[tiers.length - 1])[1];
 }

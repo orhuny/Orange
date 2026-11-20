@@ -8,7 +8,12 @@
     $rules = $described ? array_intersect_key($described, array_flip(['rtp', 'grid', 'paytable', 'scatter_pays', 'free_spins', 'max_win', 'costs', 'features'])) : null;
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
-    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'fragments', 'fx', 'banners', 'host', 'hostWing', 'hostBee']));
+    $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'tiers', 'fragments', 'fx', 'banners', 'host', 'hostWing', 'hostBee',
+        'hostReactions', 'effects', 'pace', 'text', 'kitArt']));
+    // How much more often the ante brings free spins: measured per model (docs/slots/*-maths.md).
+    $anteOften = (string) ($theme['text']['anteOften'] ?? 'about 1.75× as often');
+    // The intro's two medallions beside the logo: the gold multiplier and the rarest one.
+    $introStars = [$theme['stars']['gold'] ?? '', $theme['stars'] === [] ? '' : (string) end($theme['stars'])];
     // The host (the Queen Bee) starts in her idle pose; slot-game.js swaps the pose and its variables.
     $hostPoses = (array) ($theme['host'] ?? []);
     $host = $hostPoses['idle'] ?? null;
@@ -666,6 +671,7 @@
             .host-fig { transform: none; }
             .bees { display: none; }
         }
+        @includeIf("games.slot.themes.{$themeKey}.style")
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
 </head>
@@ -708,10 +714,10 @@
             <div id="ante-box" class="feature ante" hidden>
                 <div>
                     <span class="feature-title">Ante bet</span>
-                    <span class="ante-desc">Free spins about 1.75× as often</span>
+                    <span class="ante-desc">Free spins {{ $anteOften }}</span>
                     <span class="ante-desc">Stake +25%</span>
                 </div>
-                <button id="ante-btn" class="toggle" aria-pressed="false" aria-label="Ante bet: free spins about 1.75× as often, for a 25% higher stake"><i></i></button>
+                <button id="ante-btn" class="toggle" aria-pressed="false" aria-label="Ante bet: free spins {{ $anteOften }}, for a 25% higher stake"><i></i></button>
             </div>
         </aside>
 
@@ -806,8 +812,8 @@
                 <img class="intro-flash" src="{{ $theme['fx']['frostBurst'] }}" alt="">
                 <img class="intro-ring" src="{{ $theme['fx']['frostRing'] }}" alt="">
                 <div class="intro-logo" style="--logo: url('{{ $theme['logo'] }}')"><img class="logo" src="{{ $theme['logo'] }}" alt=""></div>
-                <img class="intro-star l" src="{{ $theme['stars']['gold'] ?? '' }}" alt="">
-                <img class="intro-star r" src="{{ $theme['stars']['ruby'] ?? '' }}" alt="">
+                <img class="intro-star l" src="{{ $introStars[0] }}" alt="">
+                <img class="intro-star r" src="{{ $introStars[1] }}" alt="">
             </div>
             <div class="intro-fruit">
                 {{-- --i: the order they pop up in (centre first); --s: size. --}}
@@ -821,6 +827,9 @@
 </dialog>
 <script type="module">
     import { startSlot } from @json($v('js/orange/slot-game.js'));
+    @if (! empty($theme['kit']))
+    import { createKit } from @json($v("js/orange/slot-kit-{$theme['kit']}.js"));
+    @endif
 
     startSlot({
         // Operators embed this page directly (relay play); Orange's host pages do from our own origin.
@@ -831,6 +840,7 @@
         theme: @json($pageTheme),
         config: @json($config),
         rules: @json($rules),
+        kit: {{ empty($theme['kit']) ? 'null' : 'createKit' }},
     });
 </script>
 @endif
