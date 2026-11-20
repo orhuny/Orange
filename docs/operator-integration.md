@@ -289,6 +289,7 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `back_to_lobby` | `{}` | (new, informational) The player left a game for the lobby, or asked to leave it (the game menu's Home) |
 | `bet_history` | `{}` | (new, optional) The player opened My bets. Sent only if your `player_info` said `bet_history: true` |
 | `session_expired` | `{ reason }` | (new, direct play only, informational) Orange's host page ended the play session: `reason` is `"idle"` after the idle timeout, `"expired"` when the session is no longer accepted. The page shows a notice. Close the game or launch it again |
+| `refresh_balance` | `{}` | (new, recommended) The game saw a win whose payment it has no balance for: a crash cash-out (yours or its auto cash-out), or an instant bet whose result had no `player_balance`. Once your wallet has the win, answer with `balance_update` carrying the new balance. Without an answer, the game keeps showing the balance from before the win until your next message |
 
 #### Messages **parent → iframe**
 
@@ -300,6 +301,7 @@ The iframe carries a slim **operator HUD** at the bottom (stake input, Place Bet
 | `cashout_result` | `{ success, bet_id, multiplier?, payout?, is_auto?, player_balance, error?, error_message? }` | Echo of your `/v1/bets/{id}/cashout` response. A `409 already_settled` with `bet_status: "won"` carries the cash-out in `cashout`: send that as a success (`is_auto: true` when its auto cash-out did it). The HUD also learns of the player's own cash-outs from the round's live bet list, so an auto cash-out shows even if you send nothing |
 | `auto_cashout_fired` | `{ multiplier, threshold }` | Tell the iframe HUD that auto-cashout has been triggered server-side |
 | `fullscreen_state` | `{ active: bool }` | Sync the iframe's fullscreen icon state |
+| `balance_update` | `{ balance }` | The player's balance changed outside a bet answer: a win paid in (the answer to `refresh_balance`), a deposit, a withdrawal. A decimal string, as your wallet holds it. A slot shows it once the spin on screen has finished |
 | `bet_history_result` | `{ success, bets?, error? }` | (new, optional) Answer to `bet_history`: the player's latest bets on this game, newest first, each `{ bet_id, placed_at, amount, currency, status, multiplier, payout_amount, round_id, round_uuid, crash_point }`. `multiplier` is the cash-out multiplier (won bets only). `crash_point` is `null` until the round is over. Optional on any game:<br>• `game_type`<br>• `details`: for slots, `{ mode, bet, win_x, free_spins, max_win }`; the slot's History shows them<br>• `fairness`: `{ server_seed_hash, client_seed, nonce }` for instant games<br>In direct play Orange's host page sends all of these |
 
 **Two bets a round (optional).** Like Aviator, the HUD can hold a second bet, with its own stake,
@@ -603,7 +605,9 @@ What you need:
   - **No answer:** Orange waits at most 10 seconds in all. Then the game gets
     `503 wallet_unavailable` and the stake is rolled back (`rollback:{bet_id}`).
 
-  Wins and refunds come as usual through `/wallet/credit` and `/wallet/rollback`.
+  Wins and refunds come as usual through `/wallet/credit` and `/wallet/rollback`. A dice or
+  slot win's credit is sent before the bet is answered: **answer it within 5 seconds** too (see
+  "The player's balance" below).
 - **Optional:** answer the page's `embed_ready` with any message (for example
   `fullscreen_state`), so the page can forward `enter_fullscreen` / `exit_fullscreen` and
   `back_to_lobby` to you.
@@ -624,6 +628,26 @@ your site ends sessions itself.
 
 The game page has a **My bets** list (the player's latest bets on that game). Orange's host
 page serves it from the player API, so you don't need to do anything for it.
+
+**The player's balance.** Your wallet is the system of record for the balance. Orange never
+works a balance out itself, so the games only ever show a figure your wallet reported:
+- **Every 2xx wallet answer must carry `balance_after`:** debits, credits and rollbacks alike.
+  It is the player's balance right after that call. Orange records when each answer arrived,
+  and the newest one is the balance the games show. An answer without a decimal
+  `balance_after` gives the game no balance to show.
+- **At launch,** the game shows the newest balance your wallet reported. If no wallet call has
+  happened since the launch (for example, the player deposited in between), it shows your page's
+  `player_info.balance` instead.
+- **Dice and slots:** while the outcome plays, the game shows the `balance_after` of the stake's
+  debit. The win's credit is sent before the bet is answered. Once the outcome has played, the
+  game shows the credit's `balance_after`.
+- **Crash:** a cash-out is paid from the queue. Orange's host page then asks the player API
+  (`GET /play-api/balance`) until your wallet has answered for the win, usually within a
+  second. The game then shows that answer's `balance_after`.
+- **If your wallet doesn't answer a win in time,** the game keeps showing your last reported
+  balance, without the win. The credit is retried from the queue, and the game shows the new
+  balance once your wallet answers it (the page asks for about 12 seconds after each win; after
+  that, the next bet brings it).
 
 ### The lobby: `/lobby`
 
@@ -672,7 +696,12 @@ Money flow:
 1. The stake is debited **synchronously** (`tx_id = bet:{Idempotency-Key}`), and the roll
    happens only after your wallet accepts. If you took the stake yourself first, answer the
    same `tx_id` idempotently, as afq already does for crash.
-2. A win is credited with `tx_id = payout:{bet_id}`, capped at the max win.
+2. A win is credited with `tx_id = payout:{bet_id}`, capped at the max win. The credit is
+   sent **before Orange answers the bet** (within 5 seconds), so by the time your
+   `/v1/games/{code}/bets` call returns, your wallet already has the win, and the
+   `player_balance` you pass to the game can be your final balance. If your wallet doesn't
+   answer the credit in time, Orange still answers the bet, and the credit is retried from the
+   queue like any other.
 3. A 4xx from your wallet means `402 wallet_rejected`, with your error code in `reason`; no
    roll. No answer means `503 wallet_unavailable`; the stake is rolled back with
    `rollback:{bet_id}`.
@@ -699,7 +728,8 @@ The algorithm is spelled out at `GET /v1/fairness/dice`.
 `place_bet` with `{ amount, params: { target, direction } }`. Call
 `POST /v1/games/dice/bets`, then answer `bet_placed_result` with `success: true` plus the
 response's `status`, `outcome`, `multiplier`, `payout_amount`, `fairness` and the player's new
-balance (`player_balance`). With direct play (`/play/dice`), Orange does all of this for you.
+balance (`player_balance`), as your wallet holds it after the bet's credit (see "The player's
+balance"). With direct play (`/play/dice`), Orange does all of this for you.
 
 ### Slots (`type: slot`, instant; e.g. `code: sugar-orchard`)
 
@@ -753,7 +783,7 @@ Wins are multiples of the **bet**, so `payout_multiplier = total_win_x ÷ cost` 
 2. The page posts `place_bet` with `{ amount, params: { mode } }`.
 3. Call `POST /v1/games/{code}/bets` and answer `bet_placed_result` exactly as for dice.
 
-The page plays the whole outcome back before it shows the new balance. Send the game's limits in `player_info` (`limits: { min_bet, max_bet, max_win }`): the page then offers only the bet steps inside them and disables a buy that would exceed `max_bet`.
+The page plays the whole outcome back before it shows the new balance. It never works a balance out itself: if your `bet_placed_result` has no `player_balance`, the balance shows as "—" and the page sends `refresh_balance`, which you answer with `balance_update`. Optionally add `balance_after_stake` (your balance right after the stake) to `bet_placed_result`; the page shows it while the outcome plays. Send the game's limits in `player_info` (`limits: { min_bet, max_bet, max_win }`): the page then offers only the bet steps inside them and disables a buy that would exceed `max_bet`.
 
 ### Max win
 

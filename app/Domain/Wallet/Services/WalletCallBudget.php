@@ -34,6 +34,22 @@ final readonly class WalletCallBudget
         );
     }
 
+    /**
+     * An instant game's win (WalletService::creditNow): the player waits for the result, so it
+     * has a deadline. Unanswered by then, it goes on to the queue with callback()'s budget.
+     */
+    public static function payout(): self
+    {
+        return new self(
+            maxAttempts: 2,
+            timeoutSeconds: (float) config('wallet.payout.timeout_seconds', 4),
+            connectTimeoutSeconds: (float) config('wallet.callback.connect_timeout_seconds', 2),
+            backoffMs: (int) config('wallet.payout.retry_backoff_ms', 100),
+            deadlineSeconds: (float) config('wallet.payout.deadline_seconds', 5),
+            minRetrySeconds: (float) config('wallet.payout.min_retry_seconds', 2),
+        );
+    }
+
     /** Direct play's stake debit: a player waits on it, so it has a deadline. */
     public static function debit(): self
     {

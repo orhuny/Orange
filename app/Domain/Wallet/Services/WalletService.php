@@ -11,6 +11,7 @@ use App\Domain\Wallet\Enums\WalletTransactionType;
 use App\Domain\Wallet\Exceptions\WalletCallbackFailed;
 use App\Domain\Wallet\Jobs\DispatchWalletCallbackJob;
 use App\Domain\Wallet\Models\WalletTransaction;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class WalletService
@@ -83,7 +84,7 @@ class WalletService
                 reference: $payload['reference'],
                 budget: WalletCallBudget::debit(),
             );
-            $tx->forceFill(['operator_callback_status' => WalletCallbackStatus::Completed, 'operator_response' => $result])->save();
+            $this->answered($tx, $result);
         } catch (WalletCallbackFailed $e) {
             $tx->forceFill([
                 'operator_callback_status' => WalletCallbackStatus::Failed,
@@ -147,6 +148,33 @@ class WalletService
     }
 
     /**
+     * An instant game's win, which the player is waiting on. Recorded like any credit, in the
+     * caller's transaction, but sent from this process the moment that transaction commits
+     * (within wallet.payout's deadline), so the bet's answer carries the balance with the win
+     * paid in. A credit that gets no answer in time goes on to the queue like any other:
+     * retried there, then by wallet:reconcile.
+     */
+    public function creditNow(
+        Operator $operator,
+        Player $player,
+        string $amount,
+        string $currency,
+        string $idempotencyKey,
+        ?int $betId = null,
+    ): WalletTransaction {
+        return $this->record(
+            $operator,
+            $player,
+            WalletTransactionType::Credit,
+            $amount,
+            $currency,
+            $idempotencyKey,
+            $betId,
+            inline: true,
+        );
+    }
+
+    /**
      * @param  int  $delaySeconds  wait before sending: a rollback for a debit that got no answer
      *                             must not overtake that debit at the operator
      */
@@ -180,6 +208,7 @@ class WalletService
         string $idempotencyKey,
         ?int $betId,
         int $delaySeconds = 0,
+        bool $inline = false,
     ): WalletTransaction {
         $existing = WalletTransaction::query()
             ->where('operator_id', $operator->id)
@@ -225,6 +254,15 @@ class WalletService
         // Tests run with queue.default=sync, so DispatchWalletCallbackJob
         // executes as soon as the transaction commits (immediately outside one)
         // and the row is updated before fresh() reads it back.
+        //
+        // creditNow() (a player waits on it) is the one exception: sent from this
+        // process instead, after the same commit, and only queued if that fails.
+        if ($inline) {
+            DB::afterCommit(fn () => $this->sendNow($tx, $operator, $payload));
+
+            return $tx->fresh() ?? $tx;
+        }
+
         $dispatch = DispatchWalletCallbackJob::dispatch($payload)->afterCommit();
         if ($delaySeconds > 0) {
             $dispatch->delay(now()->addSeconds($delaySeconds));
@@ -339,10 +377,7 @@ class WalletService
                 reference: $payload['reference'],
             );
 
-            $tx->forceFill([
-                'operator_callback_status' => WalletCallbackStatus::Completed,
-                'operator_response' => $result,
-            ])->save();
+            $this->answered($tx, $result);
         } catch (WalletCallbackFailed $e) {
             $tx->forceFill([
                 'operator_callback_status' => WalletCallbackStatus::Failed,
@@ -357,5 +392,53 @@ class WalletService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * creditNow()'s send, right after its transaction committed. Without an answer in time
+     * (or with a refusal) the row stays pending and the queue takes over, exactly as for a
+     * credit that was queued from the start; wallet:reconcile backs that up.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function sendNow(WalletTransaction $tx, Operator $operator, array $payload): void
+    {
+        try {
+            $result = $this->client->dispatch(
+                $operator,
+                $payload['type'],
+                $payload['amount'],
+                $payload['currency'],
+                playerExternalId: $payload['player_external_id'],
+                idempotencyKey: $payload['idempotency_key'],
+                reference: $payload['reference'],
+                budget: WalletCallBudget::payout(),
+            );
+            $this->answered($tx, $result);
+        } catch (WalletCallbackFailed $e) {
+            Log::channel('operator')->warning('wallet.payout.queued', [
+                'operator_id' => $operator->id,
+                'tx_id' => $tx->id,
+                'attempts' => $e->attempts,
+                'error' => $e->getMessage(),
+            ]);
+            DispatchWalletCallbackJob::dispatch($payload);
+        }
+    }
+
+    /**
+     * The operator's wallet said yes. Its answer carries the player's balance right after this
+     * call (balance_after); answered_at, to the microsecond, says which answer is the newest.
+     *
+     * @param  array<string, mixed>  $result
+     */
+    private function answered(WalletTransaction $tx, array $result): void
+    {
+        $tx->forceFill([
+            'operator_callback_status' => WalletCallbackStatus::Completed,
+            'operator_response' => $result,
+            // A string, not a datetime cast: Eloquent's cast would drop the microseconds.
+            'answered_at' => now()->format('Y-m-d H:i:s.u'),
+        ])->save();
     }
 }

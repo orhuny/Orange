@@ -23,6 +23,16 @@ return [
         'retry_backoff_ms' => (int) env('WALLET_DEBIT_RETRY_BACKOFF_MS', 100),
     ],
 
+    // An instant game's win (dice, slots): credited while the player waits for the result,
+    // so the result can carry the balance with the win paid in. Not answered within the
+    // deadline, it goes on to the queue like any other credit (and to wallet:reconcile).
+    'payout' => [
+        'timeout_seconds' => (float) env('WALLET_PAYOUT_TIMEOUT_SECONDS', 4),
+        'deadline_seconds' => (float) env('WALLET_PAYOUT_DEADLINE_SECONDS', 5),
+        'min_retry_seconds' => (float) env('WALLET_PAYOUT_MIN_RETRY_SECONDS', 2),
+        'retry_backoff_ms' => (int) env('WALLET_PAYOUT_RETRY_BACKOFF_MS', 100),
+    ],
+
     // A stake debit that got no answer is rolled back, but only after this long: a slow
     // operator may still be applying that debit, and the refund must not overtake it.
     'unanswered_debit_rollback_delay_seconds' => 60,

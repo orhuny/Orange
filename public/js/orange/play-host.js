@@ -4,6 +4,11 @@
  * the play session; the answers go back to the game as the usual bridge messages, so a
  * game page works the same whether an operator or Orange hosts it. Fullscreen and
  * navigation messages pass through to the operator page around us.
+ *
+ * The balance: the operator's wallet owns it, so the game is only ever shown a figure that
+ * wallet reported (balance_after of its newest answer), never one worked out here. After a
+ * win whose payment is still on its way, the page asks GET /balance until the wallet has
+ * answered for it, and sends the game each new figure as balance_update.
  */
 import { createGameBridge, createHostBridge, FROM_GAME } from './bridge.js';
 
@@ -13,7 +18,7 @@ function decimal(value) {
         return null;
     }
     const s = String(value).trim();
-    return /^\d+(\.\d+)?$/.test(s) ? s : null;
+    return /^-?\d+(\.\d+)?$/.test(s) ? s : null;
 }
 
 /**
@@ -22,9 +27,12 @@ function decimal(value) {
  *           onExpired: (reason?: 'idle' | 'expired') => void, onBackToLobby?: () => void,
  *           onFullscreen?: (active: boolean) => void,
  *           onBalance?: (balance: string) => void,
+ *           balancePollMs?: number[],
  *           onGameReady?: (payload: { home?: boolean }) => void }} config
  *        onGameReady: the game announced itself and the host sent player_info.
- *        onBalance: the operator page reported the balance after session() had answered.
+ *        onBalance: the balance changed after session() had answered (a bet, a win paid in,
+ *        the operator page's own figure).
+ *        balancePollMs: the waits between GET /balance calls while a win is still pending.
  *        onExpired: the session is over, 'idle' when the player was away for the idle time.
  *        gameCode/frameUrl null: a lobby, which opens games with open(code, url).
  */
@@ -149,17 +157,73 @@ export function startPlayHost(config) {
     let walletSinceLaunch = null; // null until /session answers; true once a bet went through here
     let gameShown = false; // the open game has had its player_info
 
+    /** What Orange says the wallet reported (/session, /balance) → the figure to show. */
+    function fromWallet(reported, beforeLaunch) {
+        walletSinceLaunch = walletSinceLaunch === true || beforeLaunch !== true;
+        return !walletSinceLaunch && operatorBalance !== null ? operatorBalance : (decimal(reported) ?? null);
+    }
+
+    /** A newer figure: the open game and the lobby show it. */
+    function show(next) {
+        if (next === null || next === balance) {
+            return;
+        }
+        balance = next;
+        if (gameShown) {
+            inner.send('balance_update', { balance });
+        }
+        config.onBalance?.(balance);
+    }
+
     /** GET /session; `balance` is then the newest figure (the operator's or Orange's). */
     async function session() {
         const r = await api('/session');
         if (r.ok) {
-            walletSinceLaunch = walletSinceLaunch === true || r.data.balance_before_launch !== true;
-            balance = !walletSinceLaunch && operatorBalance !== null ? operatorBalance : (r.data.balance ?? null);
+            balance = fromWallet(r.data.balance, r.data.balance_before_launch);
             const idle = Number(r.data.idle_timeout_seconds);
             idleMs = idle > 0 ? idle * 1000 : null;
             armIdle();
+            if (r.data.balance_pending === true) {
+                refreshBalance();
+            }
         }
         return r;
+    }
+
+    // ---- Balance after a win --------------------------------------------------------------
+    // A win the wallet hasn't answered for yet (a crash cash-out is paid from the queue) isn't
+    // in its balance yet: ask GET /balance, at growing intervals, until it is. One loop at a
+    // time; a request during a loop runs it once more after, so no win is missed.
+    const pollMs = config.balancePollMs ?? [0, 400, 800, 1600, 3200, 6400];
+    let polling = false;
+    let pollAgain = false;
+
+    async function refreshBalance() {
+        if (polling) {
+            pollAgain = true;
+            return;
+        }
+        polling = true;
+        try {
+            do {
+                pollAgain = false;
+                for (const wait of pollMs) {
+                    if (wait > 0) {
+                        await new Promise((resolve) => setTimeout(resolve, wait));
+                    }
+                    const r = await api('/balance');
+                    if (!r.ok) {
+                        return;
+                    }
+                    show(fromWallet(r.data.balance, r.data.before_launch));
+                    if (r.data.pending !== true) {
+                        break;
+                    }
+                }
+            } while (pollAgain && !ended);
+        } finally {
+            polling = false;
+        }
     }
 
     const outer = createGameBridge({
@@ -255,16 +319,26 @@ export function startPlayHost(config) {
                         },
                     });
                     if (r.ok) {
-                        balance = r.data.player_balance ?? balance;
                         // A wallet call in this session: Orange's figure is the newer one now.
                         walletSinceLaunch = true;
+                        // The game shows it with the result (an instant game once the outcome
+                        // has played), so it's not pushed as a balance_update as well.
+                        balance = decimal(r.data.player_balance) ?? balance;
+                        config.onBalance?.(balance);
+                        const pending = r.data.balance_pending === true;
                         inner.send('bet_placed_result', {
                             success: true,
                             bet_id: r.data.bet_id,
                             round_uuid: r.data.round_uuid ?? null,
                             amount: r.data.amount,
                             auto_cashout_at: r.data.auto_cashout_at ?? null,
+                            // The wallet's balance after this bet: an instant game's win is in
+                            // it, unless balance_pending (then a balance_update follows).
                             player_balance: balance,
+                            balance_pending: pending,
+                            // Instant games: the wallet's balance right after the stake, which
+                            // they show while the outcome plays.
+                            ...(r.data.balance_after_stake ? { balance_after_stake: r.data.balance_after_stake } : {}),
                             // Instant games resolve at once: their result comes with the bet.
                             status: r.data.status,
                             outcome: r.data.outcome ?? null,
@@ -273,6 +347,9 @@ export function startPlayHost(config) {
                             fairness: r.data.fairness ?? null,
                             ...slot,
                         });
+                        if (pending) {
+                            refreshBalance();
+                        }
                     } else {
                         inner.send('bet_placed_result', {
                             success: false,
@@ -296,6 +373,8 @@ export function startPlayHost(config) {
                             payout: cashout.payout_amount,
                             is_auto: !!cashout.is_auto,
                         });
+                        // The win is paid from the queue: its balance follows as balance_update.
+                        refreshBalance();
                     } else {
                         inner.send('cashout_result', {
                             success: false,
@@ -306,6 +385,10 @@ export function startPlayHost(config) {
                     }
                     break;
                 }
+                case 'refresh_balance':
+                    // The game saw a win it has no balance for (a crash auto cash-out).
+                    refreshBalance();
+                    break;
                 case 'back_to_lobby':
                     // In a lobby we go back ourselves; the operator page is told either way.
                     config.onBackToLobby?.();
@@ -331,6 +414,8 @@ export function startPlayHost(config) {
         api,
         /** GET /session, which also brings `balance` up to date. */
         session,
+        /** Ask GET /balance until no win is pending; changes reach the game and onBalance. */
+        refreshBalance,
         /** The newest balance this page knows, or null (the lobby shows it). */
         get balance() {
             return balance;

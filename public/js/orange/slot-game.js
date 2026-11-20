@@ -751,7 +751,8 @@ export function startSlot(cfg) {
         audio();
         controls();
         showWin(0n);
-        if (state.balance !== null) $("balance").textContent = shown(toUnits(state.balance) - toUnits(amount));
+        // The meter shows only what the casino's wallet reported, never a figure worked out
+        // here: it changes when the wallet has taken the stake (balance_after_stake, below).
 
         try {
             const clearing = dropOut();
@@ -766,11 +767,18 @@ export function startSlot(cfg) {
                 state.result = result;
                 state.fairness = result.fairness ?? null;
                 const payout = toUnits(result.payout_amount ?? '0') ?? 0n;
+                // While the outcome plays: the balance right after the stake. Once it has played
+                // (balance() below): the balance after the bet, with any win paid in.
+                if (result.balance_after_stake) $('balance').textContent = shown(result.balance_after_stake);
                 if (result.player_balance) {
                     state.balance = result.player_balance;
-                } else if (state.balance !== null) {
-                    // A relay operator that doesn't report the balance: work it out.
-                    state.balance = money(toUnits(state.balance) - toUnits(amount) + payout);
+                } else {
+                    // A casino page that didn't report it: ask for it (balance_update), and
+                    // show none meanwhile rather than a guess.
+                    state.balance = null;
+                    try {
+                        bridge.send('refresh_balance');
+                    } catch (_) { /* an old cached bridge.js that doesn't know it yet */ }
                 }
                 try {
                     await playOutcome(plan(result.outcome), true);
@@ -1011,6 +1019,8 @@ export function startSlot(cfg) {
                 balance();
                 controls();
             } else if (type === 'balance_update') {
+                // A win paid in after its result came (or a deposit): shown once the spin has
+                // played, so the meter never runs ahead of the reels.
                 state.balance = payload.balance ?? state.balance;
                 if (!state.busy) balance();
             } else if (type === 'bet_placed_result') {

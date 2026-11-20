@@ -16,6 +16,9 @@ export const FROM_GAME = Object.freeze([
     'launch_game',
     'back_to_lobby',
     'bet_history',
+    // The game saw a win whose payment it has no balance for (a crash auto cash-out): the
+    // page answers with balance_update once the wallet has reported the new balance.
+    'refresh_balance',
     // From Orange's host pages only: the play session ended ({ reason: 'idle' | 'expired' }).
     'session_expired',
 ]);

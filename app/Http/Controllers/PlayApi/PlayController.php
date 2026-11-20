@@ -29,8 +29,8 @@ use App\Domain\Game\Services\LobbyService;
 use App\Domain\Launch\Models\PlaySession;
 use App\Domain\ProvablyFair\Exceptions\SeedInUse;
 use App\Domain\ProvablyFair\Services\PlayerSeedService;
-use App\Domain\Wallet\Enums\WalletCallbackStatus;
-use App\Domain\Wallet\Models\WalletTransaction;
+use App\Domain\Wallet\Services\ReportedBalance;
+use App\Domain\Wallet\Services\WalletBalances;
 use App\Http\Controllers\Api\OperatorApi\GameErrors;
 use App\Http\Controllers\Api\OperatorApi\InstantBetResponse;
 use App\Http\Controllers\Api\OperatorApi\SeedResponse;
@@ -56,6 +56,7 @@ class PlayController
         private readonly PlayerSeedService $seeds,
         private readonly LobbyService $lobbies,
         private readonly GameLimits $limits,
+        private readonly WalletBalances $balances,
     ) {}
 
     /** GET /play-api/lobby — the lobby's tiles, categories, recent and popular games, and theme. */
@@ -73,7 +74,7 @@ class PlayController
     public function session(Request $request): JsonResponse
     {
         $session = $this->playSession($request);
-        $known = $this->lastKnownBalance($session);
+        $known = $this->reportedBalance($session);
 
         return response()->json([
             'player' => [
@@ -86,12 +87,35 @@ class PlayController
             'lobby' => $session->lobby,
             'language' => $session->language,
             'return_url' => $session->return_url,
-            'balance' => $known['balance'],
+            'balance' => $known->balance,
             // No wallet call since this launch: the operator page's own figure is newer.
-            'balance_before_launch' => $known['before_launch'],
+            'balance_before_launch' => $this->beforeLaunch($known, $session),
+            // A win or refund of this session is still on its way to the wallet.
+            'balance_pending' => $known->pending,
             // The session ends after this long without a request (null: never); the page
             // counts it down itself, so it can end a session the player walked away from.
             'idle_timeout_seconds' => $session->operator->sessionIdleSeconds(),
+        ]);
+    }
+
+    /**
+     * GET /play-api/balance — the player's balance as the operator's wallet last reported it.
+     * The page asks after a win whose payment it can't see (a crash cash-out, paid from the
+     * queue) and again while `pending`, until the wallet has answered for it.
+     */
+    public function balance(Request $request): JsonResponse
+    {
+        $session = $this->playSession($request);
+        $known = $this->reportedBalance($session);
+
+        return response()->json([
+            'balance' => $known->balance,
+            'currency' => $session->currency,
+            'pending' => $known->pending,
+            'before_launch' => $this->beforeLaunch($known, $session),
+            // Which wallet call reported it, and when: what the figure can be traced back to.
+            'wallet_tx_id' => $known->txId,
+            'reported_at' => $known->reportedAt?->toIso8601ZuluString('microsecond'),
         ]);
     }
 
@@ -135,8 +159,15 @@ class PlayController
                     (array) ($validated['params'] ?? []),
                 );
 
+                $known = $this->reportedBalance($session);
+
                 return response()->json(InstantBetResponse::toArray($bet, $game) + [
-                    'player_balance' => $this->lastKnownBalance($session)['balance'],
+                    // The wallet's own figures, never worked out here: right after the stake
+                    // (shown while the outcome plays), and the newest one, which has any win
+                    // paid in (shown once it has played) unless that win is still pending.
+                    'balance_after_stake' => $this->balances->reportedBy($bet->external_tx_id === null ? null : (int) $bet->external_tx_id),
+                    'player_balance' => $known->balance,
+                    'balance_pending' => $known->pending,
                 ], 201);
             }
 
@@ -162,6 +193,7 @@ class PlayController
         } catch (BettingClosed|GameNotAvailable|CurrencyNotSupported|StakeOutsideLimits|InvalidBetParams|StakeNotTaken $e) {
             return GameErrors::render($e) ?? throw $e;
         }
+        $known = $this->reportedBalance($session);
 
         return response()->json([
             'bet_id' => $bet->id,
@@ -171,7 +203,8 @@ class PlayController
             'amount' => (string) $bet->amount,
             'currency' => $bet->currency,
             'auto_cashout_at' => $bet->auto_cashout_at === null ? null : (string) $bet->auto_cashout_at,
-            'player_balance' => $this->lastKnownBalance($session)['balance'],
+            'player_balance' => $known->balance,
+            'balance_pending' => $known->pending,
         ], 201);
     }
 
@@ -285,11 +318,17 @@ class PlayController
             ], 409);
         }
 
+        // The win is paid from the queue: usually still pending here, so the page asks
+        // GET /balance until the wallet has answered for it.
+        $known = $this->reportedBalance($session);
+
         return response()->json([
             'bet_id' => $bet->id,
             'multiplier' => (float) $cashout->multiplier,
             'payout_amount' => (string) $cashout->payout_amount,
             'is_auto' => $cashout->is_auto,
+            'player_balance' => $known->balance,
+            'balance_pending' => $known->pending,
         ]);
     }
 
@@ -374,29 +413,27 @@ class PlayController
         return $round instanceof GameRound ? $round : throw BettingClosed::for(RoundState::Running);
     }
 
-    /**
-     * The balance the operator last reported for this player in a wallet call, if any, and
-     * whether that call came before this session was launched. Orange learns the balance only
-     * from wallet calls, so a deposit at the casino since then isn't in it: the host page
-     * then shows the balance the operator's page reports instead (play-host.js).
-     *
-     * @return array{balance: ?string, before_launch: bool}
-     */
-    private function lastKnownBalance(PlaySession $session): array
+    /** The balance the operator's wallet last reported for this player (WalletBalances). */
+    private function reportedBalance(PlaySession $session): ReportedBalance
     {
-        $tx = WalletTransaction::query()
-            ->where('operator_id', $session->operator_id)
-            ->where('player_id', $session->player_id)
-            ->where('operator_callback_status', WalletCallbackStatus::Completed->value)
-            ->latest('id')
-            ->first();
-        $balance = data_get($tx?->getAttribute('operator_response'), 'body.balance_after');
-        $reportedAt = $tx?->updated_at;
-        $launchedAt = $session->created_at;
+        $launchedAt = $session->getAttribute('created_at');
 
-        return [
-            'balance' => is_scalar($balance) ? (string) $balance : null,
-            'before_launch' => $reportedAt === null || $launchedAt === null || $reportedAt->lt($launchedAt),
-        ];
+        return $this->balances->latest(
+            (string) $session->operator_id,
+            (string) $session->player_id,
+            $launchedAt instanceof CarbonInterface ? $launchedAt : null,
+        );
+    }
+
+    /**
+     * Whether the balance was reported before this session was launched. Orange learns the
+     * balance only from wallet calls, so a deposit at the casino since then isn't in it: the
+     * host page then shows the balance the operator's page reports instead (play-host.js).
+     */
+    private function beforeLaunch(ReportedBalance $known, PlaySession $session): bool
+    {
+        $launchedAt = $session->getAttribute('created_at');
+
+        return $known->reportedAt === null || ! $launchedAt instanceof CarbonInterface || $known->reportedAt->lt($launchedAt);
     }
 }

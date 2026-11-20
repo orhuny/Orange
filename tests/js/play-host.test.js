@@ -39,7 +39,8 @@ async function intent(type, payload = {}) {
 beforeEach(() => {
     frame = fakeFrame();
     expired = vi.fn();
-    fetchMock = vi.fn();
+    // A call a test didn't set up (e.g. a balance check after a cash-out) gets a plain 404.
+    fetchMock = vi.fn(() => json(404, {}));
     vi.stubGlobal('fetch', fetchMock);
     sessionStorage.clear();
 });
@@ -226,7 +227,7 @@ describe('startPlayHost', () => {
             type: 'bet_placed_result',
             payload: {
                 success: true, bet_id: 9, round_uuid: 'r-1', amount: '2.00000000', auto_cashout_at: '2.00', player_balance: '96.00',
-                status: undefined, outcome: null, multiplier: null, payout_amount: null, fairness: null,
+                balance_pending: false, status: undefined, outcome: null, multiplier: null, payout_amount: null, fairness: null,
             },
         });
     });
@@ -319,6 +320,118 @@ describe('startPlayHost', () => {
         await intent('cashout', { bet_id: 9 });
 
         expect(frame.contentWindow.posted.at(-1).data.payload).toEqual({ success: true, bet_id: 9, multiplier: 2, payout: '4.00000000', is_auto: true });
+    });
+
+    describe('the balance after a win', () => {
+        /** /balance answers these, one per call (the last one repeats); bets and cash-outs as given. */
+        function wallet(balances, other = {}) {
+            const queue = [...balances];
+            fetchMock.mockImplementation((url) => {
+                if (url.endsWith('/balance')) {
+                    return json(200, queue.length > 1 ? queue.shift() : queue[0]);
+                }
+                if (url.endsWith('/session')) {
+                    return json(200, { player: { id: 'p-1', currency: 'EUR' }, balance: '100.00', balance_before_launch: false });
+                }
+                return other[url.split('/play-api')[1]] ?? json(404, {});
+            });
+        }
+
+        function host(extra = {}) {
+            return startPlayHost({
+                gameCode: 'crash', frameUrl: 'https://orange.example/crash', bearer: 'ps_test', storageKey: 'orange.play.crash',
+                outerOrigins: [], playApi: 'https://orange.example/play-api', frame, onExpired: expired, balancePollMs: [0, 1, 1, 1], ...extra,
+            });
+        }
+
+        const updates = () => frame.contentWindow.posted.filter((p) => p.data.type === 'balance_update').map((p) => p.data.payload.balance);
+        const balanceCalls = () => fetchMock.mock.calls.filter(([url]) => url.endsWith('/balance')).length;
+
+        it('asks the wallet\'s balance after a cash-out until the win is paid in, and tells the game', async () => {
+            const onBalance = vi.fn();
+            wallet([
+                { balance: '98.00', pending: true },
+                { balance: '98.00', pending: true },
+                { balance: '101.70', pending: false },
+            ], { '/bets/9/cashout': json(200, { bet_id: 9, multiplier: 1.85, payout_amount: '3.70000000', balance_pending: true }) });
+            host({ onBalance });
+            await intent('embed_ready');
+
+            await intent('cashout', { bet_id: 9 });
+            await vi.waitFor(() => expect(updates()).toEqual(['98.00', '101.70']));
+
+            expect(balanceCalls()).toBe(3);
+            expect(onBalance).toHaveBeenLastCalledWith('101.70');
+        });
+
+        it('asks when the game saw a win it has no balance for (an auto cash-out)', async () => {
+            wallet([{ balance: '104.00', pending: false }]);
+            host();
+            await intent('embed_ready');
+
+            await intent('refresh_balance');
+
+            await vi.waitFor(() => expect(updates()).toEqual(['104.00']));
+            expect(balanceCalls()).toBe(1);
+        });
+
+        it('gives an instant game the wallet\'s figures with its result, and asks again when its win is pending', async () => {
+            wallet([{ balance: '50.98', pending: false }], {
+                '/games/crash/bets': json(201, {
+                    bet_id: 3, status: 'won', payout_amount: '1.98000000', outcome: { win: true },
+                    balance_after_stake: '49.00', player_balance: '49.00', balance_pending: true,
+                }),
+            });
+            host();
+            await intent('embed_ready');
+
+            await intent('place_bet', { amount: '1.00', params: {} });
+
+            const result = await vi.waitFor(() => frame.contentWindow.posted.find((p) => p.data.type === 'bet_placed_result').data.payload);
+            expect(result).toMatchObject({ balance_after_stake: '49.00', player_balance: '49.00', balance_pending: true });
+            await vi.waitFor(() => expect(updates()).toEqual(['50.98']));
+        });
+
+        it('asks only once its win is paid in, and not at all when the bet\'s answer had it', async () => {
+            wallet([{ balance: '50.98', pending: false }], {
+                '/games/crash/bets': json(201, { bet_id: 3, status: 'won', balance_after_stake: '49.00', player_balance: '50.98', balance_pending: false }),
+            });
+            host();
+            await intent('embed_ready');
+
+            await intent('place_bet', { amount: '1.00', params: {} });
+
+            const result = await vi.waitFor(() => frame.contentWindow.posted.find((p) => p.data.type === 'bet_placed_result').data.payload);
+            expect(result).toMatchObject({ player_balance: '50.98', balance_pending: false });
+            await new Promise((r) => setTimeout(r, 10));
+            expect(balanceCalls()).toBe(0);
+            expect(updates()).toEqual([]);
+        });
+
+        it('stops asking after its last try, even if the win is still pending', async () => {
+            // The balance from before the win, which the wallet keeps reporting.
+            wallet([{ balance: '100.00', pending: true }]);
+            host();
+            await intent('embed_ready');
+
+            await intent('refresh_balance');
+
+            await vi.waitFor(() => expect(balanceCalls()).toBe(4));
+            await new Promise((r) => setTimeout(r, 20));
+            expect(balanceCalls()).toBe(4);
+            expect(updates()).toEqual([]);
+        });
+
+        it('asks once more when another win comes while it is still asking', async () => {
+            wallet([{ balance: '100.00', pending: true }, { balance: '101.00', pending: false }, { balance: '103.00', pending: false }]);
+            host();
+            await intent('embed_ready');
+
+            await intent('refresh_balance');
+            await intent('refresh_balance');
+
+            await vi.waitFor(() => expect(updates()).toEqual(['101.00', '103.00']));
+        });
     });
 
     it('tells a game in a lobby it can go home, and the lobby that the game has its own Home', async () => {

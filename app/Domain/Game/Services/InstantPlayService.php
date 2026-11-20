@@ -35,7 +35,7 @@ use Illuminate\Support\Facades\DB;
  *   3. debit the stake and wait for the operator (relay operators that took the stake
  *      themselves answer the same tx_id idempotently);
  *   4. only then compute the outcome, write it once, and credit any win (capped at the
- *      bet's max win).
+ *      bet's max win) before answering, so the answer can carry the balance with it.
  *
  * A stake that isn't confirmed never gets an outcome: refused → rejected, unanswered →
  * rolled back.
@@ -162,6 +162,8 @@ final class InstantPlayService
 
         // Written once (guarded on the pending status, so a concurrent settle can't run twice)
         // and in one transaction with its credit: a win is never recorded without its payment.
+        // The credit is sent as soon as this commits, before the bet is answered: the answer
+        // then carries the wallet's balance with the win in it.
         $settled = DB::transaction(function () use ($bet, $result, $payout, $debitTxId, $operator, $player): bool {
             $settled = DB::table('bets')->where('id', $bet->id)->where('status', BetStatus::Pending->value)->update([
                 'status' => ($result->won ? BetStatus::Won : BetStatus::Lost)->value,
@@ -174,7 +176,7 @@ final class InstantPlayService
             ]);
 
             if ($settled > 0 && bccomp($payout, '0', 8) > 0) {
-                $this->wallet->credit($operator, $player, $payout, $bet->currency, "payout:{$bet->id}", (int) $bet->id);
+                $this->wallet->creditNow($operator, $player, $payout, $bet->currency, "payout:{$bet->id}", (int) $bet->id);
             }
 
             return $settled > 0;

@@ -4000,6 +4000,9 @@
                 audio.sfx('win');
                 sheet.betsChanged();
                 updateButtons();
+                // The win is paid into the casino's wallet after this: ask the page for the
+                // balance the wallet then reports (it answers with balance_update).
+                postToParent({ type: 'refresh_balance', payload: {} });
             }
 
             // Auto bet's dialog: what it repeats (the slot's bet and auto cash-out), for how many

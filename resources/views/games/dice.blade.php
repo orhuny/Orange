@@ -151,7 +151,14 @@
                     if (payload.fairness) {
                         $('fair').textContent = `Server seed hash ${payload.fairness.server_seed_hash} · client seed ${payload.fairness.client_seed} · nonce ${payload.fairness.nonce}`;
                     }
-                    if (payload.player_balance) $('balance').textContent = `${money(payload.player_balance)} ${currency}`;
+                    // Only the casino wallet's own figure, with any win paid in. Without one, ask
+                    // for it (balance_update) rather than show a stale or worked-out balance.
+                    if (payload.player_balance) {
+                        $('balance').textContent = `${money(payload.player_balance)} ${currency}`;
+                    } else {
+                        $('balance').textContent = `— ${currency}`.trim();
+                        try { bridge.send('refresh_balance'); } catch (_) { /* an old cached bridge.js */ }
+                    }
                     setStatus('');
                 }
                 render();
