@@ -391,10 +391,11 @@ The same Queen Bee character as in the first attached image, identical face, hai
 
 **The idea:** she sends her bees to the sweets, so she takes part in every win instead of only reacting to it.
 
-**How the game uses them** (all code; the outcome is already decided, and no spin waits for a bee):
+**How the game uses them** (all code; the outcome is already decided before anything moves):
 - **A win:** she blows a kiss off her palm (`kiss`), and one bee per winning sweet flies out (up to 9).
-  - Each bee lands on its sweet as the frost creeps over it.
-  - When the sweet bursts, the bee zips off with a piece of it, and she cheers.
+  - Each bee lands on its sweet (the sweet gives a little under it) and sits a moment as the frost creeps over it.
+  - When the sweet bursts, the screen shakes a little, the amount pops up, the bee zips off with a piece of it, and she cheers.
+  - A winning tumble takes about 0.8 s longer when the bees fly, so they can be seen at work (`BEE_PACE` in slot-game.js).
 - **Free spins:** bees carry the multiplier stars, with their values, to the middle of the grid. Without bees, the comets do it.
 - **A big win:** a ribbon of bees loops around the banner (6 to 12, by tier).
 - **Idle:** every 18–34 s, a bee leaves her open hand, nibbles a sweet (it wobbles) and flies home.

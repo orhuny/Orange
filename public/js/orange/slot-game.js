@@ -284,6 +284,22 @@ export function startSlot(cfg) {
         frameId = particles.length ? requestAnimationFrame(tick) : 0;
     }
 
+    const stage = document.querySelector('.stage');
+
+    /**
+     * The game gives a shake of `px` (a burst of sweets a few px, a big win more), fading over
+     * ms. It moves the stage (grid, host and bar) over the still background, and `also` (the
+     * big-win banner). Not on a skipped spin or with reduced motion.
+     */
+    function shake(px, ms = 340, also = []) {
+        if (state.quick || reducedMotion || !stage?.animate) return;
+        const sx = Math.random() < 0.5 ? -px : px;
+        const sy = Math.random() < 0.5 ? -px : px;
+        const frames = [[0, 0], [1, -0.6], [-0.85, 0.5], [0.55, 0.35], [-0.3, -0.25], [0.12, 0.08], [0, 0]]
+            .map(([x, y]) => ({ translate: `${(x * sx).toFixed(1)}px ${(y * sy).toFixed(1)}px` }));
+        for (const el of [stage, ...also]) el?.animate?.(frames, { duration: dur(ms), easing: 'ease-out' });
+    }
+
     /** Sugar frost creeps over a winning symbol before it bursts. */
     function frostOver(el) {
         if (!theme.fx?.frostCrust || state.quick) return;
@@ -342,22 +358,35 @@ export function startSlot(cfg) {
         }
     }
 
+    // A winning tumble's pace (ms, at normal speed): from the winners lighting up to the frost
+    // (hold), the frost creeping over them (frost), and from the burst to the refill (after).
+    // When her bees fly it takes its time: they cross to their sweets unhurried, sit a moment,
+    // and are seen lifting off with the pieces before the new sweets fall in.
+    const PACE = { hold: 650, frost: 180, after: 170 };
+    const BEE_PACE = { hold: 1150, frost: 260, after: 380 };
+
     async function playStep(step, index) {
         const winners = step.removed;
         winners.forEach((c) => state.els[c].classList.add('win'));
         const amount = winAmount(state.bet, step.pays);
-        floatText(shown(amount), winners);
         sfx('win', index);
-        // Her bees fly to the winners, or (none) she cheers at once.
+        // Her bees fly to the winners, and the amount pops up as the sweets burst under them.
+        // Without them, she cheers and the amount shows at once.
         const bees = beesToWinners(winners);
-        if (!bees) hostReact('win');
-        await wait(650);
+        const pace = bees ? BEE_PACE : PACE;
+        if (!bees) {
+            floatText(shown(amount), winners);
+            hostReact('win');
+        }
+        await wait(pace.hold);
 
-        // Frost creeps over the winners, then they burst into pieces.
+        // Frost creeps over the winners, then they burst into pieces, with a little shake.
         winners.forEach((c) => frostOver(state.els[c]));
-        await wait(180);
+        await wait(pace.frost);
         sfx('pop');
+        shake(Math.min(7, 2.5 + winners.length * 0.25));
         if (bees) {
+            floatText(shown(amount), winners);
             hostReact('win');
             bees.burst();
         }
@@ -367,7 +396,7 @@ export function startSlot(cfg) {
             { transform: `${at(c)} scale(1.15)`, opacity: 0 },
         ], 130)));
         winners.forEach((c) => state.els[c].remove());
-        await wait(170);
+        await wait(pace.after);
 
         const next = new Array(COLS * ROWS);
         const falls = [];
@@ -425,6 +454,7 @@ export function startSlot(cfg) {
                 await wait(450 + cells.length * 80);
             }
             emit({ img: sprite(theme.fx?.frostRing), x: target.x, y: target.y, w: target.size * 2.6, h: target.size * 2.6, s0: 0.2, s1: 1.3, fade: 0.2, life: 0.6, light: true });
+            shake(5);
             for (let i = 0; i < 3; i++) {
                 emit({
                     img: sprite(theme.fx?.twinkle), x: target.x + rand(-0.8, 0.8) * target.size, y: target.y + rand(-0.5, 0.5) * target.size,
@@ -624,6 +654,7 @@ export function startSlot(cfg) {
                 };
                 requestAnimationFrame(tick);
                 confetti();
+                shake({ big: 8, mega: 10, epic: 12, max: 14 }[tier] ?? 8, 520, [el]);
                 fireworks(layer, { big: 4, mega: 6, epic: 8, max: 10 }[tier] ?? 4);
                 beeRibbon(el, { big: 6, mega: 8, epic: 10, max: 12 }[tier] ?? 6);
             },
@@ -1328,9 +1359,9 @@ export function startSlot(cfg) {
     // loops around the banner; and while the game is idle, one now and then wanders out of her
     // hand, nibbles a sweet and flies home.
     // They fly on their own layer over the page (#bees, slot.blade.php), moved by the Web
-    // Animations API along paths sampled here, at the game's speed like everything else. A spin
-    // never waits for them: they fly in the pauses the board already has. Skipped spins, reduced
-    // motion and a theme without the bee have none.
+    // Animations API along paths sampled here, at the game's speed like everything else. A
+    // winning tumble slows down for them (BEE_PACE, playStep), so they can be seen at work; the
+    // outcome is the same. Skipped spins, reduced motion and a theme without the bee have none.
 
     const BEE_MAX = 9;
     const beeLayer = $('bees');
@@ -1454,6 +1485,16 @@ export function startSlot(cfg) {
             { duration: dur(300), iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' });
     }
 
+    /** A bee lands on the sweet in `cell`: the sweet gives a little under it. */
+    function landOn(cell) {
+        state.els[cell]?.firstElementChild?.animate?.([
+            { translate: '0 0', scale: '1 1' },
+            { translate: '0 5%', scale: '1.07 .9', offset: 0.3 },
+            { translate: '0 -1%', scale: '.98 1.03', offset: 0.65 },
+            { translate: '0 0', scale: '1 1' },
+        ], { duration: dur(380), easing: 'ease-out' });
+    }
+
     /** A bee sets off from her palm to sit on top of the sweet in `cell`. Resolves when it sits there. */
     function beeToCell(palm, cell, ms, delay) {
         const c = cellOnScreen(cell);
@@ -1461,12 +1502,16 @@ export function startSlot(cfg) {
         const seat = { x: c.x + rand(-0.08, 0.08) * c.size, y: c.y - c.size * 0.3 };
         const c1 = { x: palm.x + (seat.x - palm.x) * 0.2 + rand(-0.3, 0.3) * c.size, y: palm.y - c.size * rand(0.5, 1.2) };
         const c2 = { x: seat.x + rand(-0.6, 0.6) * c.size, y: seat.y - c.size * rand(1, 1.6) };
-        const there = fly(b, c1, c2, seat, ms, { s: 1, delay, appear: true, level: true }).then(() => hover(b, c.size * 0.05));
+        const there = fly(b, c1, c2, seat, ms, { s: 1, delay, appear: true, level: true }).then(() => {
+            if (!flying.has(b)) return;
+            landOn(cell);
+            hover(b, c.size * 0.05);
+        });
         return { b, c, there };
     }
 
     /** A bee leaves up and away, toward her side of the screen, and is gone. */
-    async function beeOff(b, size, ms = rand(650, 800)) {
+    async function beeOff(b, size, ms = rand(750, 900)) {
         if (!flying.has(b)) return;
         const to = { x: b.x + size * rand(-2.6, 0.8), y: -b.h * 2 };
         await fly(b, { x: b.x + rand(-0.3, 0.3) * size, y: b.y - size * 0.6 }, { x: to.x + rand(-1, 1) * size, y: (b.y + to.y) / 2 }, to, ms,
@@ -1484,8 +1529,9 @@ export function startSlot(cfg) {
         if (!palm) return null;
         const targets = spread(winners, BEE_MAX);
         sfx('buzz', Math.ceil(targets.length / 3));
-        // They all sit on their sweets by 650 ms, when the frost creeps over (playStep).
-        const crew = targets.map((cell, i) => ({ cell, ...beeToCell(palm, cell, rand(400, 440), 80 + (i * 150) / targets.length) }));
+        // They all sit on their sweets by about 1,060 ms, a moment before the frost creeps over
+        // (BEE_PACE.hold, playStep).
+        const crew = targets.map((cell, i) => ({ cell, ...beeToCell(palm, cell, rand(600, 680), 120 + (i * 260) / targets.length) }));
         return {
             burst() {
                 for (const { b, c, cell, there } of crew) {
@@ -1512,7 +1558,7 @@ export function startSlot(cfg) {
             return null;
         }
         sfx('buzz', 1);
-        const crew = spread(cells, BEE_MAX).map((cell, i) => ({ cell, ...beeToCell(palm, cell, 420, i * 60) }));
+        const crew = spread(cells, BEE_MAX).map((cell, i) => ({ cell, ...beeToCell(palm, cell, 560, i * 80) }));
         return async (to) => {
             hostReact('win');
             await Promise.all(crew.map(async ({ b, c, cell, there }, i) => {
@@ -1521,7 +1567,7 @@ export function startSlot(cfg) {
                 const v = state.cells[cell]?.v ?? 2;
                 load(b, theme.stars?.[starTier(v)], v);
                 const mid = { x: (b.x + to.x) / 2 + rand(-0.5, 0.5) * c.size, y: Math.min(b.y, to.y) - c.size * 0.8 };
-                const going = fly(b, mid, mid, { x: to.x + rand(-0.15, 0.15) * c.size, y: to.y - c.size * 0.3 }, 450, { delay: i * 80, s: 1.1 });
+                const going = fly(b, mid, mid, { x: to.x + rand(-0.15, 0.15) * c.size, y: to.y - c.size * 0.3 }, 600, { delay: i * 90, s: 1.1 });
                 // A bee flying left is mirrored: its star's value isn't.
                 const label = b.el.querySelector('.load.star b');
                 if (label) label.style.scale = b.face < 0 ? '-1 1' : '';
@@ -1594,6 +1640,7 @@ export function startSlot(cfg) {
         await fly(b, { x: palm.x + (seat.x - palm.x) * 0.3, y: palm.y - c.size * 1.4 }, { x: seat.x - c.size * 1.2, y: seat.y - c.size * 1.3 }, seat, 1500,
             { s: 1, appear: true, level: true, wobble: c.size * 0.1 });
         if (wanderer !== b || !calm()) return beeShoo();
+        landOn(cell);
         // Three little nibbles: the bee dips, and the sweet wobbles under it.
         const sym = state.els[cell]?.firstElementChild;
         sym?.animate?.([{ rotate: '0deg' }, { rotate: '-8deg', offset: 0.25 }, { rotate: '7deg', offset: 0.5 }, { rotate: '-5deg', offset: 0.75 }, { rotate: '0deg' }],
