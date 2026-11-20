@@ -223,34 +223,12 @@
             hiss({ at, bus, gain, dur, type: 'bandpass', freq: from, to, q: 1.2, wet: 0.2 });
         }
 
-        /** A slot machine's heavy button: the latch's sharp click, the thud of the mechanism, the latch springing back. */
-        function clack({ at, bus, gain = 0.16 }) {
-            hiss({ at, bus, gain: gain * 0.7, dur: 0.012, freq: 5200, wet: 0.04 });
-            thunk(92, { at: at + 0.01, bus, gain });
-            partial(46, 'sine', at + 0.01, gain * 0.9, 0.003, 0.14, voice(bus, 0.05));
-            hiss({ at: at + 0.06, bus, gain: gain * 0.4, dur: 0.018, type: 'bandpass', freq: 1900, q: 2.5, wet: 0.05 });
-        }
-
-        /** The reels' motor: a low geared hum that spins up, holds, and winds down as they slow. */
-        function motor({ at, bus, gain = 0.05, dur = 0.85 }) {
-            const o = ctx.createOscillator();
-            const f = ctx.createBiquadFilter();
-            const g = ctx.createGain();
-            o.type = 'sawtooth';
-            o.frequency.setValueAtTime(42, at);
-            o.frequency.exponentialRampToValueAtTime(118, at + 0.28);
-            o.frequency.exponentialRampToValueAtTime(90, at + dur);
-            f.type = 'lowpass';
-            f.frequency.value = 650;
-            f.Q.value = 2.5;
-            g.gain.setValueAtTime(0.0001, at);
-            g.gain.exponentialRampToValueAtTime(gain, at + 0.12);
-            g.gain.setValueAtTime(gain, at + dur * 0.6);
-            g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-            o.connect(f).connect(g);
-            out(g, bus, 0.08);
-            o.start(at);
-            o.stop(at + dur + 0.05);
+        /** A bell: a bright strike over an inharmonic ring that fades long, with a near twin for shimmer. */
+        function bell(freq, { at, bus, gain = 0.07, dur = 1.4, wet = 0.4 }) {
+            const v = voice(bus, wet);
+            [[1, 1, 1], [2, 0.5, 0.7], [2.76, 0.32, 0.5], [4.07, 0.16, 0.32], [5.4, 0.1, 0.22]]
+                .forEach(([ratio, level, length]) => partial(freq * ratio, 'sine', at, gain * level, 0.002, dur * length, v));
+            partial(freq * 1.004, 'sine', at, gain * 0.5, 0.002, dur * 0.9, v);
         }
 
         /** A bee flying past: a reedy hum that trembles with its wings and bends as it goes by. */
@@ -304,18 +282,10 @@
             const t = ctx.currentTime + 0.01;
             const bus = effectsBus();
             switch (name) {
-                case 'spin': { // like a real machine: the button's heavy clack, then the reels' motor
-                    // whirring up under a ratchet that ticks faster and faster as they gather speed
-                    clack({ at: t, bus });
-                    motor({ at: t + 0.05, bus });
-                    let at = t + 0.09;
-                    for (let gap = 0.075; at < t + 0.85; gap = Math.max(0.026, gap * 0.9)) {
-                        hiss({ at, bus, gain: 0.05 * (0.7 + Math.random() * 0.3), dur: 0.012, type: 'bandpass', freq: 2600 + Math.random() * 600, q: 3, wet: 0.05 });
-                        at += gap;
-                    }
-                    whoosh({ at: t + 0.1, bus, gain: 0.035, dur: 0.5, from: 1800, to: 500 });
+                case 'spin': // a bell chime: two bright bells a fifth apart, the second just after
+                    bell(midi(88), { at: t, bus, gain: 0.07 });
+                    bell(midi(95), { at: t + 0.09, bus, gain: 0.08 });
                     break;
-                }
                 case 'flame': { // a good win catches fire: a roaring whoosh, and burning sugar crackling
                     whoosh({ at: t, bus, gain: 0.09, dur: 0.6, from: 300, to: 1400 });
                     hiss({ at: t, bus, gain: 0.05, dur: 1.1, type: 'lowpass', freq: 900, wet: 0.1 });
