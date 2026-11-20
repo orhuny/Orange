@@ -108,8 +108,26 @@ it('offers only the max wins its variant was measured with', function (): void {
         ->and($engine->maxMultiplier($game))->toBe('5000.0000')
         ->and(fn () => $engine->validateConfig($game, ['model' => 'trident-of-poseidon', 'variant' => 'v1-9650', 'theme' => 'trident-of-poseidon', 'max_win_x' => 7000]))
         ->toThrow(InvalidGameConfig::class, 'max win can be')
+        ->and(fn () => $engine->validateConfig($game, ['model' => 'trident-of-poseidon', 'variant' => 'v1-9650', 'max_win_x' => 10000]))
+        ->toThrow(InvalidGameConfig::class, "set the game's RTP target to 0.9656")
         ->and(fn () => $engine->validateConfig($game, ['model' => 'trident-of-poseidon', 'variant' => 'v1-9650', 'theme' => 'sugar-orchard']))
-        ->toThrow(InvalidGameConfig::class);
+        ->toThrow(InvalidGameConfig::class)
+        // No theme picked: its own, not the first slot's.
+        ->and($engine->validateConfig($game, ['model' => 'trident-of-poseidon'])['theme'])->toBe('trident-of-poseidon');
+});
+
+it('plays a game set to a 1,000× max win: the bet pins that cap and its RTP, and verifies with it', function (): void {
+    [$operator] = poseidonSetup(['max_win_x' => 1000], 0.9169);
+
+    $played = poseidonBet($operator, '100.00', 'trident-1000', 'buy')->assertCreated()
+        ->assertJsonPath('outcome.max_win_x', '1000.00')
+        ->json('outcome');
+
+    expect(Bet::sole()->params)->toMatchArray(['max_win_x' => 1000, 'rtp' => '0.9169'])
+        ->and((float) $played['total_win_x'])->toBeLessThanOrEqual(1000.0);
+
+    $query = ['server_seed' => 'trident-seed-0009', 'client_seed' => 'player-seed', 'nonce' => 1, 'mode' => 'buy', 'variant' => 'v1-9650', 'max_win_x' => 1000];
+    expect(get('/v1/fairness/trident-of-poseidon/verify?'.http_build_query($query))->assertOk()->json('outcome'))->toBe($played);
 });
 
 it('serves its page in its own sea: the theme kit, sound, pearls, Poseidon and colours', function (): void {

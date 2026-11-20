@@ -8,6 +8,8 @@ use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
 use App\Domain\Game\Engines\Slot\Maths\Variant;
 use App\Domain\Game\Engines\Slot\Models\TridentOfPoseidon;
 use App\Domain\ProvablyFair\Services\RandomStream;
+use Random\Engine\Xoshiro256StarStar;
+use Random\Randomizer;
 
 /** Trident of Poseidon: pearls in the base game, the Tide in free spins, and a pickable cap. */
 function trident(): TumbleModel
@@ -105,12 +107,21 @@ it('stops at the cap the bet was played with, and skips the free spins', functio
         ->and(tridentSpin('base', $grid)->win)->toBe(500_000);
 });
 
-it('lists the default cap first among a variant\'s choices, with the variant\'s own RTP', function (): void {
-    $choices = trident()->maxWinChoices(trident9650());
-
-    expect($choices[500_000])->toBe('0.9650')
+it('offers the measured caps, each with its RTP, the default with the variant\'s own', function (): void {
+    expect(trident()->maxWinChoices(trident9650()))->toBe([
+        100_000 => '0.9169', 200_000 => '0.9441', 250_000 => '0.9511', 500_000 => '0.9650',
+        1_000_000 => '0.9656', 1_500_000 => '0.9657', 2_000_000 => '0.9657',
+    ])
         ->and(trident()->rtp(trident9650(), 500_000))->toBe('0.9650')
         ->and(fn () => trident()->rtp(trident9650(), 123_400))->toThrow(InvalidArgumentException::class);
+
+    // A higher cap never publishes a lower RTP, in every variant.
+    foreach (trident()->variants as $variant) {
+        $rtps = array_values(trident()->maxWinChoices($variant));
+        $sorted = $rtps;
+        sort($sorted);
+        expect($rtps)->toBe($sorted);
+    }
 });
 
 it('always gives a bought spin 4 to 6 scatters and at least 15 free spins', function (): void {
@@ -134,3 +145,20 @@ it('records the same totals with and without the outcome', function (): void {
             ->and($with->outcome['total_win_x'])->toBe(TumbleModel::x($with->win));
     }
 });
+
+it('keeps the measured maths: a fixed-seed run gives exactly the recorded totals', function (string $mode, int $spins, int $expected): void {
+    $randomizer = new Randomizer(new Xoshiro256StarStar(20261120));
+    $next = fn (int $n): int => $randomizer->getInt(0, $n - 1);
+    $total = 0;
+    for ($i = 0; $i < $spins; $i++) {
+        $total += SpinResolver::resolve(trident(), trident9650(), $mode, $next, false)->win;
+    }
+
+    // Any change to a table, the paytable or the draw order changes these. If that is intended,
+    // it is a new variant (never an edit of a live one): re-measure with slot:simulate and update.
+    expect($total)->toBe($expected);
+})->with([
+    'base' => ['base', 20_000, 1_868_020],
+    'ante' => ['ante', 20_000, 2_511_385],
+    'buy' => ['buy', 400, 4_051_260],
+]);

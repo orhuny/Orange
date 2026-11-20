@@ -62,11 +62,15 @@ final class TridentOfPoseidon
      * id => [rtp, base pearl weight (on BASE), weight of a 2× free-spin pearl, other caps' RTP].
      * The ante tables are the base ones × 10 with ANTE_SCATTER; the buy's are the base ones
      * without the scatter.
+     *
+     * Other caps (hundredths of the bet => RTP): the variant's RTP plus the lowest of the three
+     * modes' measured change from 5,000×, rounded down (docs/slots/trident-of-poseidon-maths.md).
+     * The buy sets the caps below 5,000×, the base game those above.
      */
     private const VARIANTS = [
-        'v1-9650' => ['0.9650', 650, 610, []],
-        'v1-9550' => ['0.9550', 634, 643, []],
-        'v1-9450' => ['0.9450', 619, 677, []],
+        'v1-9650' => ['0.9650', 650, 610, [100_000 => '0.9169', 200_000 => '0.9441', 250_000 => '0.9511', 1_000_000 => '0.9656', 1_500_000 => '0.9657', 2_000_000 => '0.9657']],
+        'v1-9550' => ['0.9550', 634, 643, [100_000 => '0.9077', 200_000 => '0.9345', 250_000 => '0.9414', 1_000_000 => '0.9558', 1_500_000 => '0.9558', 2_000_000 => '0.9558']],
+        'v1-9450' => ['0.9450', 619, 677, [100_000 => '0.8985', 200_000 => '0.9248', 250_000 => '0.9316', 1_000_000 => '0.9458', 1_500_000 => '0.9458', 2_000_000 => '0.9458']],
     ];
 
     private static ?TumbleModel $model = null;
