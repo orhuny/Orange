@@ -92,27 +92,8 @@ class DatabaseSeeder extends Seeder
         );
 
         if (app()->environment(['local', 'testing'])) {
-            // Trident of Poseidon, the second slot. Local only while it is being built: in
-            // production it is created in the admin panel. Same placeholder limits as Sugar Orchard.
-            $trident = Game::updateOrCreate(
-                ['code' => 'trident-of-poseidon'],
-                [
-                    'type' => 'slot',
-                    'slug' => 'trident-of-poseidon',
-                    'access' => 'listed',
-                    'category_id' => $slots->id,
-                    'name' => 'Trident of Poseidon',
-                    'version' => 1,
-                    'rtp_target' => 0.965,
-                    'house_edge' => 0.035,
-                    'config' => ['model' => 'trident-of-poseidon', 'variant' => 'v1-9650', 'theme' => 'trident-of-poseidon'],
-                    'status' => 'active',
-                ],
-            );
-            GameLimit::updateOrCreate(
-                ['game_id' => $trident->id, 'currency' => 'EUR'],
-                ['min_bet' => '0.20', 'max_bet' => '500.00', 'max_win' => '100000.00'],
-            );
+            // Trident of Poseidon, the second slot (its own seeder, also run on its own elsewhere).
+            $this->call(TridentOfPoseidonSeeder::class);
 
             // Lucky Duck: a second crash game (its own rounds) in the marsh scene. Local only:
             // in production it is created in the admin panel (docs/adding-a-game.md §5).
