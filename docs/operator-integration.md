@@ -635,9 +635,23 @@ works a balance out itself, so the games only ever show a figure your wallet rep
   It is the player's balance right after that call. Orange records when each answer arrived,
   and the newest one is the balance the games show. An answer without a decimal
   `balance_after` gives the game no balance to show.
-- **At launch,** the game shows the newest balance your wallet reported. If no wallet call has
-  happened since the launch (for example, the player deposited in between), it shows your page's
-  `player_info.balance` instead.
+- **At launch (recommended): Orange asks your wallet.** If your operator configuration has
+  `wallet_balance` on, Orange asks your wallet for the balance each time a game or the lobby
+  opens: a server-to-server call, signed like the others. The game starts from your answer.
+  This also covers a deposit made since the player's last bet.
+
+  ```
+  POST {callback_base_url}/wallet/balance
+  { "player_external_id": "12*3456", "currency": "EUR" }
+  → 200 { "balance": "250.00", "currency": "EUR" }
+  ```
+
+  - It moves no money and carries no `tx_id`; Orange may send it again.
+  - **Answer within 2 seconds.** Without an answer in 3 seconds (or with a 4xx, or a balance in
+    another currency), the game starts as below.
+- **At launch, without `wallet_balance`:** the game shows the newest balance your wallet
+  reported. If no wallet call has happened since the launch (for example, the player deposited
+  in between), it shows your page's `player_info.balance` instead.
 - **Dice and slots:** while the outcome plays, the game shows the `balance_after` of the stake's
   debit. The win's credit is sent before the bet is answered. Once the outcome has played, the
   game shows the credit's `balance_after`.
@@ -668,6 +682,7 @@ Look, embedding and the idle timeout are set on your operator configuration (fla
 | `lobby_logo_url` | An `https://` image URL shown in the lobby header |
 | `lobby_primary_color` / `lobby_accent_color` / `lobby_background_color` | `#rrggbb` colours |
 | `session_idle_minutes` | Minutes without a player request before a play session ends (default 15, at most 1440; `0` = never). Applies to the lobby and to single games |
+| `wallet_balance` | `1` once your wallet answers `POST /wallet/balance` (see "The player's balance"): Orange then asks it for the player's balance whenever a game or the lobby opens. Off by default |
 
 Anything that isn't an `https://` URL or a `#rrggbb` colour is ignored, and the default is used.
 

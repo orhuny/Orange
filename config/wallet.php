@@ -33,6 +33,16 @@ return [
         'retry_backoff_ms' => (int) env('WALLET_PAYOUT_RETRY_BACKOFF_MS', 100),
     ],
 
+    // Asking an operator's wallet for the player's balance (POST /wallet/balance) when a
+    // game opens, for operators whose config has wallet_balance on. Without an answer in
+    // time the game starts from the balance the last wallet call reported.
+    'balance' => [
+        'timeout_seconds' => (float) env('WALLET_BALANCE_TIMEOUT_SECONDS', 2),
+        'deadline_seconds' => (float) env('WALLET_BALANCE_DEADLINE_SECONDS', 3),
+        'min_retry_seconds' => (float) env('WALLET_BALANCE_MIN_RETRY_SECONDS', 1),
+        'retry_backoff_ms' => (int) env('WALLET_BALANCE_RETRY_BACKOFF_MS', 100),
+    ],
+
     // A stake debit that got no answer is rolled back, but only after this long: a slow
     // operator may still be applying that debit, and the refund must not overtake it.
     'unanswered_debit_rollback_delay_seconds' => 60,

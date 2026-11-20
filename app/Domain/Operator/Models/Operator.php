@@ -94,6 +94,20 @@ class Operator extends Model
     }
 
     /**
+     * Whether the operator's wallet answers POST /wallet/balance (config.wallet_balance):
+     * then a game asks it for the player's balance as it opens, instead of starting from
+     * the balance the last wallet call reported. Edited as a flat key/value pair in the
+     * panel: 1, true or yes turns it on.
+     */
+    public function answersWalletBalance(): bool
+    {
+        $config = $this->getAttribute('config');
+        $on = is_array($config) ? ($config['wallet_balance'] ?? null) : null;
+
+        return $on === true || $on === 1 || (is_string($on) && in_array(strtolower(trim($on)), ['1', 'true', 'yes'], true));
+    }
+
+    /**
      * The operator's lobby look, from config (lobby_logo_url, lobby_*_color). Only an
      * https logo URL and #rrggbb colours are passed on; anything else falls back.
      *

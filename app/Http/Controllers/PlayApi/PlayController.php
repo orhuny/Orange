@@ -70,10 +70,13 @@ class PlayController
         return response()->json($this->lobbies->forSession($session) + ['theme' => $session->operator->lobbyTheme()]);
     }
 
-    /** GET /play-api/session */
+    /** GET /play-api/session — asked as a game (or the lobby) opens. */
     public function session(Request $request): JsonResponse
     {
         $session = $this->playSession($request);
+        // An operator whose wallet answers /wallet/balance is asked now, so the game starts
+        // from the wallet's own figure rather than from the last bet's (or the casino page's).
+        $this->balances->ask($session->operator, $session->player, $session->currency);
         $known = $this->reportedBalance($session);
 
         return response()->json([
@@ -113,8 +116,10 @@ class PlayController
             'currency' => $session->currency,
             'pending' => $known->pending,
             'before_launch' => $this->beforeLaunch($known, $session),
-            // Which wallet call reported it, and when: what the figure can be traced back to.
+            // Which wallet call (or balance check) reported it, and when: what the figure can be
+            // traced back to.
             'wallet_tx_id' => $known->txId,
+            'balance_check_id' => $known->balanceCheckId,
             'reported_at' => $known->reportedAt?->toIso8601ZuluString('microsecond'),
         ]);
     }

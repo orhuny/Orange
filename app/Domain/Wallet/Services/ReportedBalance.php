@@ -9,7 +9,8 @@ use Carbon\CarbonImmutable;
 /**
  * A player's balance as their operator's wallet last reported it. The operator's wallet is
  * the system of record: Orange never works a balance out itself, it only passes on the
- * balance_after of the newest wallet call the operator answered.
+ * newest figure the wallet gave: a wallet call's balance_after, or its answer when asked
+ * for the balance (WalletBalances::ask).
  */
 final readonly class ReportedBalance
 {
@@ -25,5 +26,7 @@ final readonly class ReportedBalance
          * way to the wallet (or a stake is being taken), so the balance is about to change.
          */
         public bool $pending,
+        /** Instead of a wallet call: the time Orange asked the wallet for the balance. */
+        public ?int $balanceCheckId = null,
     ) {}
 }

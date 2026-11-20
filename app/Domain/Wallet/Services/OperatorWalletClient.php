@@ -14,7 +14,8 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Wallet calls to an operator: POST {callback_base_url}/wallet/{debit|credit|rollback}.
+ * Wallet calls to an operator: POST {callback_base_url}/wallet/{debit|credit|rollback}, and
+ * /wallet/balance for operators that answer it.
  * - A 2xx is the operator's yes.
  * - A 4xx is its definite no (WalletCallbackFailed, never retried).
  * - No answer (unreachable, timed out, a 5xx) is retried within the call's budget, re-sending
@@ -37,13 +38,6 @@ class OperatorWalletClient
         array $reference,
         ?WalletCallBudget $budget = null,
     ): array {
-        if ($operator->callback_base_url === null) {
-            throw new WalletCallbackFailed('operator has no callback_base_url configured', 0);
-        }
-
-        $budget ??= WalletCallBudget::callback();
-        $url = rtrim($operator->callback_base_url, '/').'/wallet/'.$type->value;
-        $path = parse_url($url, PHP_URL_PATH) ?: '/';
         $bodyJson = (string) json_encode([
             'player_external_id' => $playerExternalId,
             'amount' => $amount,
@@ -51,7 +45,45 @@ class OperatorWalletClient
             'reference' => $reference,
             'tx_id' => $idempotencyKey,
         ], JSON_UNESCAPED_SLASHES);
-        $context = ['operator_id' => $operator->id, 'type' => $type->value, 'url' => $url, 'tx_id' => $idempotencyKey];
+
+        return $this->post($operator, $type->value, $bodyJson, ['Idempotency-Key' => $idempotencyKey], $budget ?? WalletCallBudget::callback(), ['tx_id' => $idempotencyKey]);
+    }
+
+    /**
+     * POST {callback_base_url}/wallet/balance: the player's balance as the operator's wallet
+     * holds it now. Moves no money, so it is safe to send again; the answer is
+     * { "balance": "…" } (a decimal string), the same figure a wallet call's balance_after is.
+     *
+     * @return array<string, mixed> { attempts, status, body }
+     *
+     * @throws WalletCallbackFailed no answer within the budget, or a 4xx
+     */
+    public function balance(Operator $operator, string $playerExternalId, string $currency, WalletCallBudget $budget): array
+    {
+        $bodyJson = (string) json_encode([
+            'player_external_id' => $playerExternalId,
+            'currency' => $currency,
+        ], JSON_UNESCAPED_SLASHES);
+
+        return $this->post($operator, 'balance', $bodyJson, [], $budget, ['player_external_id' => $playerExternalId]);
+    }
+
+    /**
+     * One signed wallet call, retried within its budget while it gets no answer.
+     *
+     * @param  array<string, string>  $headers  on top of the signature headers
+     * @param  array<string, mixed>  $context  for the log lines
+     * @return array<string, mixed> { attempts, status, body }
+     */
+    private function post(Operator $operator, string $call, string $bodyJson, array $headers, WalletCallBudget $budget, array $context): array
+    {
+        if ($operator->callback_base_url === null) {
+            throw new WalletCallbackFailed('operator has no callback_base_url configured', 0);
+        }
+
+        $url = rtrim($operator->callback_base_url, '/').'/wallet/'.$call;
+        $path = parse_url($url, PHP_URL_PATH) ?: '/';
+        $context = ['operator_id' => $operator->id, 'type' => $call, 'url' => $url] + $context;
 
         $started = microtime(true);
         $attempts = 0;
@@ -76,10 +108,9 @@ class OperatorWalletClient
                         body: $bodyJson,
                         timestamp: $timestamp,
                     ),
-                    'Idempotency-Key' => $idempotencyKey,
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                ])
+                ] + $headers)
                     ->connectTimeout(min($budget->connectTimeoutSeconds, $timeout))
                     ->timeout($timeout)
                     ->withBody($bodyJson, 'application/json')

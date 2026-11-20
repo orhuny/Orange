@@ -50,6 +50,22 @@ final readonly class WalletCallBudget
         );
     }
 
+    /**
+     * Asking the operator's wallet for a balance (WalletBalances::ask) while a game loads:
+     * short, because without an answer the game starts from the last reported balance.
+     */
+    public static function balance(): self
+    {
+        return new self(
+            maxAttempts: 2,
+            timeoutSeconds: (float) config('wallet.balance.timeout_seconds', 2),
+            connectTimeoutSeconds: (float) config('wallet.callback.connect_timeout_seconds', 2),
+            backoffMs: (int) config('wallet.balance.retry_backoff_ms', 100),
+            deadlineSeconds: (float) config('wallet.balance.deadline_seconds', 3),
+            minRetrySeconds: (float) config('wallet.balance.min_retry_seconds', 1),
+        );
+    }
+
     /** Direct play's stake debit: a player waits on it, so it has a deadline. */
     public static function debit(): self
     {

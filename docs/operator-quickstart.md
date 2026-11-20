@@ -106,6 +106,11 @@ Her birinde:
    ```json
    { "balance_after": "100.00000000", "operator_tx_id": "your_unique_id" }
    ```
+   `balance_after` her 2xx cevapta zorunlu: oyunlar bakiyeyi sadece buradan gösterir.
+
+Önerilen 4. endpoint (operatör config'inde `wallet_balance = 1` ile açılır): `POST {your_base}/api/wallet/balance`,
+body `{ "player_external_id", "currency" }`, cevap `200 { "balance": "250.00", "currency": "EUR" }`.
+Para hareketi yok, `tx_id` yok. Orange her oyun ve lobi açılışında sorar; 2 saniye içinde cevapla.
 
 Beklenen request body (Orange senin endpoint'ine gönderir):
 ```json

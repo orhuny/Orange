@@ -13,10 +13,12 @@ use App\Domain\Launch\Services\LaunchService;
 use App\Domain\Launch\Services\PlaySessionService;
 use App\Domain\Operator\Models\Operator;
 use App\Domain\Operator\Models\Player;
+use App\Domain\Operator\Services\OperatorSignature;
 use App\Domain\ProvablyFair\Models\PlayerSeed;
 use App\Domain\Wallet\Enums\WalletCallbackStatus;
 use App\Domain\Wallet\Enums\WalletTransactionType;
 use App\Domain\Wallet\Jobs\DispatchWalletCallbackJob;
+use App\Domain\Wallet\Models\WalletBalanceCheck;
 use App\Domain\Wallet\Models\WalletTransaction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
@@ -43,11 +45,12 @@ afterEach(fn () => Carbon::setTestNow());
  * A direct-play session on dice, with the published seed pair: the first roll is 44.30, so
  * "under 50" wins 1.98× (a 1.00 stake pays 1.98).
  *
+ * @param  array<string, mixed>  $config  the operator's config (e.g. wallet_balance)
  * @return array{0: Operator, 1: PlaySession, 2: array<string, string>}
  */
-function balanceOnDice(): array
+function balanceOnDice(array $config = []): array
 {
-    $operator = Operator::factory()->create(['callback_base_url' => 'https://wallet.test/w']);
+    $operator = Operator::factory()->create(['callback_base_url' => 'https://wallet.test/w', 'config' => $config]);
     $game = Game::factory()->create([
         'code' => 'dice', 'slug' => 'dice', 'type' => 'dice', 'access' => GameAccess::Listed,
         'rtp_target' => 0.99, 'house_edge' => 0.01, 'config' => ['min_chance' => '0.01', 'max_chance' => '98.00'],
@@ -225,3 +228,78 @@ it('never passes on a balance that is not a plain decimal', function (): void {
 
     getJson('/play-api/balance', $auth)->assertOk()->assertJsonPath('balance', null);
 });
+
+it('asks the operator\'s wallet for the balance as a game opens, when it answers that', function (): void {
+    Http::fake([
+        'wallet.test/w/wallet/balance' => Http::response(['balance' => '250.00', 'currency' => 'EUR'], 200),
+        'wallet.test/w/wallet/debit' => Http::response(['balance_after' => '249.00'], 200),
+        'wallet.test/w/wallet/credit' => Http::response(['balance_after' => '250.98'], 200),
+    ]);
+    [$operator, $session, $auth] = balanceOnDice(['wallet_balance' => '1']);
+    // The player's last bet, before this session: since then they deposited at the casino.
+    WalletTransaction::factory()->create([
+        'operator_id' => $operator->id, 'player_id' => $session->player_id,
+        'operator_callback_status' => WalletCallbackStatus::Completed,
+        'operator_response' => ['status' => 200, 'body' => ['balance_after' => '3.00']],
+    ])->forceFill(['answered_at' => now()->subHour()->format('Y-m-d H:i:s.u')])->save();
+
+    getJson('/play-api/session', $auth)->assertOk()
+        ->assertJsonPath('balance', '250.00')
+        // The wallet's own figure, from now: the casino page's postMessage figure isn't needed.
+        ->assertJsonPath('balance_before_launch', false);
+
+    Http::assertSent(function (Request $r) use ($operator): bool {
+        $path = '/w/wallet/balance';
+        $timestamp = (int) $r->header('X-Timestamp')[0];
+
+        return $r->url() === "https://wallet.test{$path}"
+            && $r->data() === ['player_external_id' => 'p-1', 'currency' => 'EUR']
+            && $r->header('X-Operator-Id')[0] === $operator->id
+            && $r->header('X-Signature')[0] === OperatorSignature::compute($operator->secret_key, 'POST', $path, $r->body(), $timestamp);
+    });
+    $check = WalletBalanceCheck::sole();
+    expect($check->status)->toBe(WalletBalanceCheck::ANSWERED)
+        ->and($check->balance)->toBe('250.00')
+        ->and($check->currency)->toBe('EUR');
+    getJson('/play-api/balance', $auth)->assertJsonPath('balance_check_id', $check->id)->assertJsonPath('wallet_tx_id', null);
+
+    // A bet answered after it is newer: its balance_after is the balance now.
+    rollUnder50($auth)->assertCreated()->assertJsonPath('player_balance', '250.98');
+    getJson('/play-api/balance', $auth)->assertJsonPath('balance', '250.98')->assertJsonPath('balance_check_id', null);
+});
+
+it('never asks a wallet that does not answer /wallet/balance', function (): void {
+    walletAnswering();
+    [, , $auth] = balanceOnDice(['wallet_balance' => '0']);
+
+    getJson('/play-api/session', $auth)->assertOk()->assertJsonPath('balance', null);
+
+    Http::assertNotSent(fn (Request $r): bool => str_ends_with($r->url(), '/wallet/balance'));
+    expect(WalletBalanceCheck::count())->toBe(0);
+});
+
+it('starts from the last reported balance when the wallet does not answer the ask', function (Closure $answer): void {
+    Http::fake(['wallet.test/w/wallet/balance' => $answer]);
+    [$operator, $session, $auth] = balanceOnDice(['wallet_balance' => 'yes']);
+    WalletTransaction::factory()->create([
+        'operator_id' => $operator->id, 'player_id' => $session->player_id,
+        'operator_callback_status' => WalletCallbackStatus::Completed,
+        'operator_response' => ['status' => 200, 'body' => ['balance_after' => '3.00']],
+    ])->forceFill(['answered_at' => now()->subHour()->format('Y-m-d H:i:s.u')])->save();
+
+    getJson('/play-api/session', $auth)->assertOk()
+        ->assertJsonPath('balance', '3.00')
+        ->assertJsonPath('balance_before_launch', true);
+})->with([
+    'unavailable' => fn () => Http::response(['error' => 'down'], 503),
+    'refused' => fn () => Http::response(['error' => 'player_not_found'], 404),
+    'another currency' => fn () => Http::response(['balance' => '9.00', 'currency' => 'USD'], 200),
+    'no balance' => fn () => Http::response(['ok' => true], 200),
+]);
+
+it('reads wallet_balance from the operator\'s flat config', function (mixed $value, bool $on): void {
+    expect(Operator::factory()->make(['config' => ['wallet_balance' => $value]])->answersWalletBalance())->toBe($on);
+})->with([
+    ['1', true], ['true', true], [' Yes ', true], [true, true], [1, true],
+    ['0', false], ['no', false], ['', false], [null, false], [false, false],
+]);
