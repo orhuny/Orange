@@ -6,8 +6,11 @@
  *
  *   const pack = window.OrangeSound.orchard(ctx, master);
  *   pack.sfx('pop');                    // spin | land | win | buzz | flame | pop | scatter | star | stars |
- *                                       // retrigger | fsStart | fsEnd | big | tick | click | intro
+ *                                       // multiply | retrigger | fsStart | fsEnd | big | tick | bigEnd | click | intro
  *   pack.sfx('scatter', 3);             // the third scatter: each one rings higher
+ *   pack.sfx('win', { chain: 1, x: 6, lead: 1.4 }); // a tumble paying 6× the bet, its burst 1.4 s on:
+ *                                       // the bigger the win, the more it celebrates ('pop' too)
+ *   pack.sfx('big', 'mega');            // big | mega | epic | max, each bigger
  *   const bg = pack.ambience();         // continuous background, until bg.stop()
  *   bg.intensity(1);                    // 0 base game · 1 free spins
  *
@@ -213,14 +216,73 @@
             hiss({ at, bus, gain: gain * 0.4, dur: 0.02, freq: 3000, wet: 0 });
         }
 
-        function coin({ at, bus, gain = 0.04 }) {
+        function coin({ at, bus, gain = 0.04, freq = 2000 + Math.random() * 800 }) {
             const v = voice(bus, 0.25);
-            const f = 2000 + Math.random() * 800;
+            const f = freq;
             [[1, 1, 0.2], [2.76, 0.5, 0.12], [5.4, 0.25, 0.07]].forEach(([r, a, d]) => partial(f * r, 'sine', at, gain * a, 0.001, d, v));
         }
 
         function whoosh({ at, bus, gain = 0.08, dur = 0.35, from = 400, to = 3000 }) {
             hiss({ at, bus, gain, dur, type: 'bandpass', freq: from, to, q: 1.2, wet: 0.2 });
+        }
+
+        /** A horn section's stab: two detuned saws per note through a lowpass that blares open, then closes. */
+        function brass(freqs, { at, bus, gain = 0.07, dur = 0.35 }) {
+            for (const f0 of freqs) {
+                for (const cents of [-7, 7]) {
+                    const o = ctx.createOscillator();
+                    const f = ctx.createBiquadFilter();
+                    const g = ctx.createGain();
+                    o.type = 'sawtooth';
+                    o.frequency.value = f0;
+                    o.detune.value = cents;
+                    f.type = 'lowpass';
+                    f.Q.value = 1;
+                    f.frequency.setValueAtTime(500, at);
+                    f.frequency.exponentialRampToValueAtTime(3400, at + 0.05);
+                    f.frequency.exponentialRampToValueAtTime(900, at + dur);
+                    env(g, at, gain / freqs.length / 2, 0.015, dur);
+                    o.connect(f).connect(g);
+                    out(g, bus, 0.25);
+                    o.start(at);
+                    o.stop(at + dur + 0.05);
+                }
+            }
+        }
+
+        /** A warm chord swelling under a fanfare: detuned saws through a soft lowpass, slow in, slow out. */
+        function pad(freqs, { at, bus, gain = 0.05, dur = 2.4 }) {
+            for (const f0 of freqs) {
+                for (const cents of [-9, 9]) {
+                    const o = ctx.createOscillator();
+                    const f = ctx.createBiquadFilter();
+                    const g = ctx.createGain();
+                    o.type = 'sawtooth';
+                    o.frequency.value = f0;
+                    o.detune.value = cents;
+                    f.type = 'lowpass';
+                    f.frequency.value = 1500;
+                    env(g, at, gain / freqs.length / 2, dur * 0.35, dur);
+                    o.connect(f).connect(g);
+                    out(g, bus, 0.5);
+                    o.start(at);
+                    o.stop(at + dur + 0.05);
+                }
+            }
+        }
+
+        /** Coins showering for `length` s, n of them, a little brighter toward the end. */
+        function coins(n, { at, bus, length = 1, gain = 0.035 }) {
+            for (let i = 0; i < n; i++) coin({ at: at + Math.random() * length, bus, gain: gain * (0.7 + Math.random() * 0.6) });
+        }
+
+        /** A snare-like roll that speeds up and swells into `to` (the hit it leads to). */
+        function roll({ at, to, bus, gain = 0.06 }) {
+            let gap = 0.09;
+            for (let when = at; when < to - 0.02; when += gap, gap = Math.max(0.03, gap * 0.85)) {
+                const k = (when - at) / Math.max(0.05, to - at);
+                hiss({ at: when, bus, gain: gain * (0.35 + 0.65 * k), dur: 0.05, type: 'bandpass', freq: 2200, q: 0.9, wet: 0.2 });
+            }
         }
 
         /** A bell: a bright strike over an inharmonic ring that fades long, with a near twin for shimmer. */
@@ -281,6 +343,7 @@
         function sfx(name, arg = 0) {
             const t = ctx.currentTime + 0.01;
             const bus = effectsBus();
+            const opts = arg && typeof arg === 'object' ? arg : {}; // 'win' and 'pop' take { chain, x, lead }
             switch (name) {
                 case 'spin': // a bell chime: two bright bells a fifth apart, the second just after
                     bell(midi(88), { at: t, bus, gain: 0.07 });
@@ -297,10 +360,23 @@
                 case 'land': // one column lands: a wooden thunk, a touch higher each column
                     thunk(150 + Number(arg || 0) * 12, { at: t, bus, gain: 0.11 });
                     break;
-                case 'win': { // a tumble pays: a marimba run up and a sparkle
-                    const base = 72 + Math.min(7, Number(arg || 0)) * 2;
+                case 'win': { // a tumble pays: { chain, x, lead } (or the chain alone). Every win: a
+                    // marimba run up and a sparkle, higher down a chain of tumbles. The bigger it is
+                    // (x: its pay in bets), the more builds up toward the burst, `lead` s on ('pop'):
+                    // a bell from 1×, a horn stab and claps from 2×, a rush up from 5×, a drum roll from 10×.
+                    const chain = opts.chain ?? Number(arg || 0);
+                    const x = opts.x ?? 0;
+                    const hit = t + Math.max(0.3, opts.lead ?? 0.8);
+                    const base = 72 + Math.min(7, chain) * 2;
                     [0, 4, 7, 12].forEach((d, i) => marimba(midi(base + d), { at: t + i * 0.05, bus, gain: 0.1, dur: 0.35 }));
                     glock(midi(base + 24), { at: t + 0.2, bus, gain: 0.05 });
+                    if (x >= 1) bell(midi(base + 19), { at: t + 0.22, bus, gain: 0.045, dur: 1 });
+                    if (x >= 2) {
+                        brass([base - 12, base - 8, base - 5].map(midi), { at: t + 0.2, bus, gain: 0.06 });
+                        clap({ at: t + 0.2, bus, gain: 0.07 });
+                    }
+                    if (x >= 5) whoosh({ at: Math.max(t, hit - 0.55), bus, gain: 0.06, dur: Math.min(0.55, hit - t), from: 400, to: 5200 });
+                    if (x >= 10) roll({ at: t + 0.3, to: hit, bus });
                     break;
                 }
                 case 'buzz': { // the Queen Bee's bees fly out: a little swarm, a voice for every few bees
@@ -308,9 +384,33 @@
                     for (let i = 0; i < n; i++) buzz({ at: t + i * 0.07, bus, freq: 190 + i * 41 + Math.random() * 20 });
                     break;
                 }
-                case 'pop': // the winners burst
+                case 'pop': { // the winners burst: { chain, x } as for 'win'. The bigger the win, the
+                    // bigger the burst: coins from 1×; claps and a cymbal from 2×; a kick, a crash and
+                    // a fanfare from 5×; from 10× the horns and bass, a second fanfare and a shower of coins.
+                    const x = opts.x ?? 0;
+                    const k = Math.min(7, opts.chain ?? 0) * 2; // in the key of the chain's run
                     for (let i = 0; i < 5; i++) pop({ at: t + i * 0.025 + Math.random() * 0.02, bus, gain: 0.07 });
+                    if (x >= 1) coins(4, { at: t + 0.05, bus, length: 0.4 });
+                    if (x >= 2) {
+                        clap({ at: t, bus, gain: 0.08 });
+                        cymbal({ at: t, bus, gain: 0.045 });
+                        coins(6, { at: t + 0.1, bus, length: 0.7 });
+                    }
+                    if (x >= 5) {
+                        kick({ at: t, bus, gain: 0.32 });
+                        cymbal({ at: t, bus, gain: 0.08 });
+                        fanfare([67, 72, 76, 79].map((n) => n + k), { at: t + 0.02, bus, gap: 0.06, gain: 0.08 });
+                        coins(10, { at: t + 0.15, bus, length: 1 });
+                    }
+                    if (x >= 10) {
+                        bass(midi(36 + k), { at: t, bus, gain: 0.16, dur: 0.7 });
+                        brass([60, 64, 67, 72].map((n) => midi(n + k)), { at: t, bus, gain: 0.1, dur: 0.7 });
+                        fanfare([72, 76, 79, 84, 88].map((n) => n + k), { at: t + 0.3, bus, gap: 0.07, gain: 0.09 });
+                        cymbal({ at: t + 0.3, bus, gain: 0.08 });
+                        coins(16, { at: t + 0.2, bus, length: 1.6 });
+                    }
                     break;
+                }
                 case 'scatter': { // a basket lands: a bell, higher for each one on screen
                     const n = Math.max(1, Math.min(6, Number(arg || 1)));
                     glock(midi([72, 76, 79, 84, 88, 91][n - 1]), { at: t, bus, gain: 0.1, dur: 1.2 });
@@ -321,11 +421,26 @@
                     glock(midi(96), { at: t, bus, gain: 0.06, dur: 0.7 });
                     glock(midi(101), { at: t + 0.05, bus, gain: 0.04, dur: 0.6 });
                     break;
-                case 'stars': // the stars fly to the win and multiply it
+                case 'stars': // the stars set off for the win: a rush up and a glittering trill
                     whoosh({ at: t, bus, gain: 0.08, dur: 0.45, from: 500, to: 5000 });
-                    fanfare([72, 76, 79, 84], { at: t + 0.4, bus, gap: 0.06, gain: 0.07 });
-                    cymbal({ at: t + 0.6, bus, gain: 0.06 });
+                    [96, 100, 103, 108].forEach((n, i) => glock(midi(n), { at: t + i * 0.05, bus, gain: 0.035, dur: 0.6 }));
                     break;
+                case 'multiply': { // their total lands on the win (arg: the multiplier): a fanfare and a
+                    // cymbal; from 10× the horns, a kick and coins; from 25× a second crash and fanfare
+                    const m = Number(arg || 0);
+                    fanfare([72, 76, 79, 84], { at: t, bus, gap: 0.06, gain: 0.07 });
+                    cymbal({ at: t + 0.15, bus, gain: 0.06 });
+                    if (m >= 10) {
+                        brass([60, 64, 67, 72].map(midi), { at: t, bus, gain: 0.09, dur: 0.6 });
+                        kick({ at: t, bus, gain: 0.3 });
+                        coins(12, { at: t + 0.1, bus, length: 1.2 });
+                    }
+                    if (m >= 25) {
+                        cymbal({ at: t + 0.5, bus, gain: 0.08 });
+                        fanfare([79, 84, 88, 91], { at: t + 0.5, bus, gap: 0.06, gain: 0.08 });
+                    }
+                    break;
+                }
                 case 'retrigger':
                     fanfare([79, 84, 88], { at: t, bus, gap: 0.08 });
                     clap({ at: t + 0.24, bus });
@@ -339,16 +454,48 @@
                 case 'fsEnd': // a cadence home
                     fanfare([72, 70, 69, 65], { at: t, bus, gap: 0.14, gain: 0.08 });
                     break;
-                case 'big': { // a big win: fanfare, cymbal and a shower of coins
+                case 'big': { // a big win (arg: big | mega | epic | max): a fanfare, a cymbal and a
+                    // shower of coins. Mega adds the horns and a second fanfare, higher; epic a warm
+                    // swelling chord and a drum roll into a third hit; max a last crash and fanfare, higher still.
+                    const level = { mega: 1, epic: 2, max: 3 }[arg] ?? 0;
                     kick({ at: t, bus, gain: 0.35 });
                     cymbal({ at: t, bus, gain: 0.09 });
                     fanfare([65, 69, 72, 77, 81, 84, 89], { at: t, bus, gap: 0.07, gain: 0.1 });
-                    for (let i = 0; i < 18; i++) coin({ at: t + 0.1 + Math.random() * 1.4, bus, gain: 0.03 + Math.random() * 0.03 });
+                    coins(18 + level * 10, { at: t + 0.1, bus, length: 1.4 + level * 0.4, gain: 0.04 });
+                    if (level >= 1) {
+                        brass([53, 57, 60, 65].map(midi), { at: t, bus, gain: 0.1, dur: 0.6 });
+                        kick({ at: t + 0.6, bus, gain: 0.3 });
+                        cymbal({ at: t + 0.6, bus, gain: 0.07 });
+                        fanfare([77, 81, 84, 89, 93], { at: t + 0.6, bus, gap: 0.07, gain: 0.08 });
+                    }
+                    if (level >= 2) {
+                        pad([53, 60, 65, 69, 72].map(midi), { at: t + 0.2, bus, gain: 0.07, dur: 3 });
+                        roll({ at: t + 0.7, to: t + 1.3, bus });
+                        kick({ at: t + 1.3, bus, gain: 0.35 });
+                        cymbal({ at: t + 1.3, bus, gain: 0.09 });
+                        brass([65, 69, 72, 77].map(midi), { at: t + 1.3, bus, gain: 0.1, dur: 0.8 });
+                    }
+                    if (level >= 3) {
+                        cymbal({ at: t + 1.9, bus, gain: 0.1 });
+                        fanfare([84, 89, 93, 96, 101], { at: t + 1.9, bus, gap: 0.06, gain: 0.08 });
+                        coins(20, { at: t + 1.9, bus, length: 1.2, gain: 0.04 });
+                    }
                     break;
                 }
-                case 'tick': // the win counting up
-                    coin({ at: t, bus, gain: 0.025 });
+                case 'tick': { // the win counting up (arg: how far, 0..1): a coin, higher and brighter as it climbs
+                    const p = Math.max(0, Math.min(1, Number(arg) || 0));
+                    coin({ at: t, bus, gain: 0.022 + 0.018 * p, freq: 1600 + 1700 * p });
                     break;
+                }
+                case 'bigEnd': { // the count lands on the win (arg: its tier): a kick, a crash, the horns' chord and a bell
+                    const level = { mega: 1, epic: 2, max: 3 }[arg] ?? 0;
+                    kick({ at: t, bus, gain: 0.32 });
+                    cymbal({ at: t, bus, gain: 0.08 + level * 0.01 });
+                    brass([65, 69, 72, 77].map(midi), { at: t, bus, gain: 0.09 + level * 0.01, dur: 0.7 + level * 0.2 });
+                    bell(midi(89), { at: t + 0.05, bus, gain: 0.06, dur: 1.6 });
+                    coins(8 + level * 6, { at: t + 0.05, bus, length: 0.8 });
+                    break;
+                }
                 case 'intro': // in time with the intro: the logo falls and lands, fruit pops up, stars chime,
                     // the Queen Bee flies in (a soft rising whoosh) and winks (a high chime)
                     whoosh({ at: t + 0.1, bus, gain: 0.07, dur: 0.4, from: 3200, to: 450 });

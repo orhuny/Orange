@@ -65,10 +65,34 @@ afterEach(() => {
 });
 
 describe('orchard sound pack', () => {
-    it.each(['spin', 'land', 'win', 'buzz', 'flame', 'pop', 'scatter', 'star', 'stars', 'retrigger', 'fsStart', 'fsEnd', 'big', 'tick', 'click', 'intro'])('plays the %s effect', (name) => {
+    it.each(['spin', 'land', 'win', 'buzz', 'flame', 'pop', 'scatter', 'star', 'stars', 'multiply', 'retrigger', 'fsStart', 'fsEnd', 'big', 'tick', 'bigEnd', 'click', 'intro'])('plays the %s effect', (name) => {
         pack.sfx(name, 2);
 
         expect(ctx.started.length).toBeGreaterThan(0);
+    });
+
+    it.each(['win', 'pop'])('celebrates a bigger win with more on %s', (name) => {
+        const voices = (x) => {
+            ctx.started = [];
+            pack.sfx(name, { chain: 1, x, lead: 1.2 });
+            return ctx.started.length;
+        };
+        const counts = [0.5, 1, 2, 5, 10].map(voices);
+
+        for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeGreaterThan(counts[i - 1]);
+    });
+
+    it('celebrates a bigger multiplier and each big-win tier with more', () => {
+        const voices = (name, arg) => {
+            ctx.started = [];
+            pack.sfx(name, arg);
+            return ctx.started.length;
+        };
+
+        expect(voices('multiply', 10)).toBeGreaterThan(voices('multiply', 3));
+        expect(voices('multiply', 25)).toBeGreaterThan(voices('multiply', 10));
+        const tiers = ['big', 'mega', 'epic', 'max'].map((tier) => voices('big', tier));
+        for (let i = 1; i < tiers.length; i++) expect(tiers[i]).toBeGreaterThan(tiers[i - 1]);
     });
 
     it('ignores effects it does not know', () => {

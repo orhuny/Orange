@@ -487,11 +487,13 @@ export function startSlot(cfg) {
         const winners = step.removed;
         winners.forEach((c) => state.els[c].classList.add('win'));
         const amount = winAmount(state.bet, step.pays);
-        sfx('win', index);
         // Her bees fly to the winners, and the amount pops up as the sweets burst under them.
         // Without them, she cheers and the amount shows at once.
         const bees = beesToWinners(winners);
         const pace = bees ? BEE_PACE : PACE;
+        // The sound builds toward the burst, the more the bigger the win (x: its pay in bets).
+        const loud = { chain: index, x: step.pays / 100 };
+        sfx('win', { ...loud, lead: dur(pace.hold + pace.frost) / 1000 });
         if (!bees) {
             floatText(shown(amount), winners);
             hostReact('win');
@@ -505,7 +507,7 @@ export function startSlot(cfg) {
         // Frost creeps over the winners, then they burst into pieces, with a little shake.
         winners.forEach((c) => frostOver(state.els[c]));
         await wait(pace.frost);
-        sfx('pop');
+        sfx('pop', loud);
         shake(Math.min(7, 2.5 + winners.length * 0.25) + heat * 2);
         flare?.();
         if (bees) {
@@ -578,6 +580,7 @@ export function startSlot(cfg) {
             }
             emit({ img: sprite(theme.fx?.frostRing), x: target.x, y: target.y, w: target.size * 2.6, h: target.size * 2.6, s0: 0.2, s1: 1.3, fade: 0.2, life: 0.6, light: true });
             shake(5);
+            sfx('multiply', spin.multiplier);
             for (let i = 0; i < 3; i++) {
                 emit({
                     img: sprite(theme.fx?.twinkle), x: target.x + rand(-0.8, 0.8) * target.size, y: target.y + rand(-0.5, 0.5) * target.size,
@@ -757,7 +760,7 @@ export function startSlot(cfg) {
     }
 
     async function bigWin(tier, units) {
-        sfx('big');
+        sfx('big', tier);
         hostReact('big');
         const banner = theme.banners?.[`${tier}-win`];
         await dialog(`${banner ? `<img class="banner" src="${banner}" alt="${TIERS[tier]}">` : `<p class="kicker">${TIERS[tier]}</p>`}<div class="huge count">0.00</div>`, {
@@ -770,9 +773,20 @@ export function startSlot(cfg) {
                 const total = Number(units) / 1e8;
                 const started = performance.now();
                 const length = dur(2600);
+                // Coins tick as it counts, higher as it climbs (fast at first, slowing as the count
+                // does), and the horns ring out as it lands.
+                let ticked = 0;
+                let tickedAt = 0;
                 const tick = (now) => {
                     const f = Math.min(1, (now - started) / length);
-                    counter.textContent = shown(f >= 1 ? units : (total * (1 - Math.pow(1 - f, 3))).toFixed(2));
+                    const shownPart = 1 - Math.pow(1 - f, 3);
+                    counter.textContent = shown(f >= 1 ? units : (total * shownPart).toFixed(2));
+                    if (f < 1 && shownPart - ticked >= 0.035 && now - tickedAt >= 45) {
+                        sfx('tick', shownPart);
+                        ticked = shownPart;
+                        tickedAt = now;
+                    }
+                    if (f >= 1 && el.isConnected) sfx('bigEnd', tier);
                     if (f < 1 && el.isConnected) requestAnimationFrame(tick);
                 };
                 requestAnimationFrame(tick);
