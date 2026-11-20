@@ -1,10 +1,10 @@
-# Pearls of Poseidon: art prompts (round 1)
+# Trident of Poseidon: art prompts (round 1)
 
-Audience: whoever generates Pearls of Poseidon's art. Every prompt below is complete; copy it as is.
+Audience: whoever generates Trident of Poseidon's art. Every prompt below is complete; copy it as is.
 
-**Working name:** Pearls of Poseidon (code `pearls-of-poseidon`). Only `txt-logo` contains the name, so generate it last, once the name is final.
+**Name:** Trident of Poseidon (code `trident-of-poseidon`), picked by the user on 2026-11-20. It was "Pearls of Poseidon" before; the art doesn't change, only `txt-logo` carries the name.
 
-**Status (2026-11-20):** prompts written, nothing generated yet.
+**Status (2026-11-20):** generation has started.
 
 ## The look in one paragraph
 
@@ -42,7 +42,7 @@ The game is set **underwater, in Poseidon's own sea**. Base game: sunlit turquoi
    - **Scene:** a full picture.
 4. **Size and format:** the largest size the tool offers, as PNG. Backgrounds at least 2560×1440 (or 1440×2560); upscale if needed.
 5. **Text:** only the `txt-*` assets contain text. Check every letter, and regenerate until the spelling is exact.
-6. **Delivery:** use the file names below, in `C:\Git\Orange\storage\app\art\pearls-of-poseidon\round1\`.
+6. **Delivery:** use the file names below, in `C:\Git\Orange\storage\app\art\trident-of-poseidon\round1\`. The earlier folder, `storage\app\art\pearls-of-poseidon\round1\`, works too: the build script reads both.
    - Send 2–3 variants when unsure (`-a`, `-b`, `-c`); I pick and key the best one.
    - Batches are fine. Symbols, Poseidon and the backgrounds first already change the whole look.
 7. **Tools:**
@@ -67,7 +67,7 @@ The game is set **underwater, in Poseidon's own sea**. Base game: sunlit turquoi
 6. The banners, then `fx-*`.
 7. `fg-*`, `fx-fish`, `fx-treasure`, `fx-surge`.
 8. `key-thumbnail`.
-9. `txt-logo`, once the name is final.
+9. `txt-logo`.
 
 ---
 
@@ -361,7 +361,7 @@ A massive horizontal surge of churning water sweeping from left to right: a towe
 
 ## Lettering (transparent) · ChatGPT or Ideogram
 
-Generate the banners after `ui-frame`, and attach `sym-a` and `ui-frame` so the lettering matches the materials. Check the spelling every time. `txt-logo` comes last, once the name is final; then attach it to any banner you regenerate.
+Generate the banners after `ui-frame`, and attach `sym-a` and `ui-frame` so the lettering matches the materials. Check the spelling every time. Once `txt-logo` exists, attach it too when you regenerate a banner.
 
 ### Banners · 3:1 · attach sym-a and ui-frame
 
@@ -380,9 +380,9 @@ There is one prompt per banner; only the words and the material change.
 The words "BIG WIN" in chunky three-dimensional lettering on one line: polished gold letters with verdigris-bronze bevels, beads of water and bright sparkles. Bold, celebratory, perfectly legible, slightly arched. Match the materials and lighting of the attached images. Spell exactly: BIG WIN. Premium AAA slot game art, stylised photoreal 3D render, glossy, rich saturated colours, crisp specular highlights, tack-sharp focus. No other text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole word is in frame with a clear margin.
 ```
 
-### txt-logo.png · 2:1 · last, once the name is final · attach sym-a and sym-m-pearl-moon
+### txt-logo.png · 2:1 · attach sym-a and sym-m-pearl-moon
 ```text
-The game logo in chunky three-dimensional lettering: "PEARLS" on top in lustrous pearl-white letters with thin gold edges and a soft iridescent sheen; a small gold "OF" between the lines; "POSEIDON" below it, larger, in polished gold letters with verdigris-bronze bevels and a faint aquamarine glow from within. The letter O in POSEIDON is a big glowing pearl set in a gold ring, like the pearl in the second attached image, and a slim gold trident stands behind the words, its prongs rising above "PEARLS". A splash of white water and a few droplets curl around the bottom of the lettering. Majestic, premium and perfectly legible. Spell exactly: PEARLS OF POSEIDON. Match the finish of the first attached image. Premium AAA slot game art, stylised photoreal 3D render, glossy, rich saturated colours, crisp specular highlights, tack-sharp focus. No other text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole logo is in frame with a clear margin.
+The game logo in chunky three-dimensional lettering: "TRIDENT" on top in polished gold letters with verdigris-bronze bevels, its letter I shaped like a slim upright gold trident whose three prongs glow aquamarine; a small pearl-white "OF" between the lines; "POSEIDON" below it, larger, in polished gold letters with verdigris-bronze bevels and a faint aquamarine glow from within. The letter O in POSEIDON is a big glowing pearl set in a gold ring, like the pearl in the second attached image. A splash of white water and a few droplets curl around the bottom of the lettering. Majestic, premium and perfectly legible. Spell exactly: TRIDENT OF POSEIDON. Match the finish of the first attached image. Premium AAA slot game art, stylised photoreal 3D render, glossy, rich saturated colours, crisp specular highlights, tack-sharp focus. No other text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole logo is in frame with a clear margin.
 ```
 
 ---
@@ -399,6 +399,6 @@ Hero key art for the game's lobby tile: Poseidon from the first attached image, 
 
 ## What I do when the art arrives
 
-- **Key and cut:** `scripts/art/process-pearls-of-poseidon.py` keys the frame's magenta, turns glow sheets' black into light, splits the sheets (`fx-bubbles`, `fx-droplets`, `fx-fish`, `fx-treasure`) into single pieces, measures each pose (chin, prong tips, scale), and packs everything as WebP into `public/images/pearls-of-poseidon/` with an `art.json`.
+- **Key and cut:** `scripts/art/process-trident-of-poseidon.py` keys the frame's magenta, turns glow sheets' black into light, splits the sheets (`fx-bubbles`, `fx-droplets`, `fx-fish`, `fx-treasure`) into single pieces, measures each pose (chin, prong tips, scale), and packs everything as WebP into `public/images/trident-of-poseidon/` with an `art.json`.
 - **Made in code, not art:** the moving caustic light, the gentle warp of Poseidon's hair and cloak, each symbol's dissolve into its own coloured droplets, the swirl of the Tide, the column of water under Poseidon, the grid, the bar and every number.
 - **Thumbnail:** I compose the lobby thumbnail from `key-thumbnail` and the logo.
