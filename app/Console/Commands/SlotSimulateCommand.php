@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Game\Engines\Slot\Maths\LinesModel;
+use App\Domain\Game\Engines\Slot\Maths\LinesResolver;
 use App\Domain\Game\Engines\Slot\Maths\SpinResolver;
 use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
 use App\Domain\Game\Engines\Slot\SlotModels;
@@ -28,7 +30,7 @@ class SlotSimulateCommand extends Command
     protected $signature = 'slot:simulate
         {model=sugar-orchard : The maths model}
         {--variant= : The RTP variant (default: the model\'s default)}
-        {--mode=base : base, ante, buy or super (models with a super buy)}
+        {--mode=base : base, ante, buy or super (the modes the model has)}
         {--spins=1000000 : Bets to play}
         {--seed=1 : Seed (different seeds give independent runs)}
         {--rng=fast : fast (xoshiro256**) or hmac (production RandomStream)}
@@ -95,7 +97,7 @@ class SlotSimulateCommand extends Command
      * @param  list<int>  $caps
      * @return array<string, int|float|list<int>>
      */
-    private function simulate(TumbleModel $model, string $variantId, string $mode, int $spins, int $seed, string $rng, int $cap, array $caps): array
+    private function simulate(TumbleModel|LinesModel $model, string $variantId, string $mode, int $spins, int $seed, string $rng, int $cap, array $caps): array
     {
         $variant = $model->variant($variantId);
         $randomizer = new Randomizer(new Xoshiro256StarStar($seed));
@@ -107,7 +109,9 @@ class SlotSimulateCommand extends Command
             'biggest' => 0, 'buckets' => array_fill(0, count($bounds), 0), 'capped' => array_fill(0, count($caps), 0)];
         for ($i = 0; $i < $spins; $i++) {
             $next = $rng === 'fast' ? $fast : (new RandomStream("simulation-{$seed}", 'simulation', $i))->nextInt(...);
-            $r = SpinResolver::resolve($model, $variant, $mode, $next, false, $cap);
+            $r = $model instanceof LinesModel
+                ? LinesResolver::resolve($model, $variant, $mode, $next, false, $cap)
+                : SpinResolver::resolve($model, $variant, $mode, $next, false, $cap);
             foreach ($caps as $k => $c) {
                 $t['capped'][$k] += min($r->win, $c);
             }
@@ -187,7 +191,7 @@ class SlotSimulateCommand extends Command
      * @param  array<string, mixed>  $t
      * @param  list<int>  $caps
      */
-    private function report(TumbleModel $model, string $variantId, string $mode, string $rng, array $t, float $seconds, int $cap, array $caps): void
+    private function report(TumbleModel|LinesModel $model, string $variantId, string $mode, string $rng, array $t, float $seconds, int $cap, array $caps): void
     {
         $n = (int) $t['n'];
         $cost = $model->cost($mode, $model->variant($variantId));

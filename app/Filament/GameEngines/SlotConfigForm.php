@@ -48,7 +48,8 @@ final class SlotConfigForm implements EngineConfigForm
                     ->placeholder(fn (Get $get): string => (string) (array_values(self::themes(self::modelCode($get)))[0] ?? '')),
             ]),
             Grid::make(3)->schema([
-                Toggle::make('config.ante')->label('Ante bet (+25%)')->default(true),
+                Toggle::make('config.ante')->label('Ante bet (+25%)')->default(true)
+                    ->visible(fn (Get $get): bool => self::hasMode($get, 'ante')),
                 Toggle::make('config.buy')->label('Bonus buy (100×)')->default(true)
                     ->helperText('Switch off where buying the feature is not allowed.'),
                 Toggle::make('config.super')->label('Super buy')->default(true)
@@ -115,6 +116,14 @@ final class SlotConfigForm implements EngineConfigForm
         $code = self::modelCode($get);
 
         return SlotModels::has($code) ? number_format(intdiv(SlotModels::get($code)->maxWin, 100)).'× (default)' : '';
+    }
+
+    /** Whether the picked model has a mode (lines models have no ante). */
+    private static function hasMode(Get $get, string $mode): bool
+    {
+        $code = self::modelCode($get);
+
+        return SlotModels::has($code) && in_array($mode, SlotModels::get($code)->modes(), true);
     }
 
     /** The tide a super buy starts with, or null when the picked model has no super buy. */

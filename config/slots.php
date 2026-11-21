@@ -19,5 +19,6 @@ return [
         'sugar-orchard' => ['label' => 'Sugar Orchard', 'model' => 'sugar-orchard'],
         'trident-of-poseidon' => ['label' => 'Trident of Poseidon', 'model' => 'trident-of-poseidon'],
         'stones-of-the-titan' => ['label' => 'Stones of the Titan', 'model' => 'stones-of-the-titan'],
+        'tutti-frutti' => ['label' => 'Tutti Frutti', 'model' => 'tutti-frutti'],
     ],
 ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Game\Engines\Slot;
 
 use App\Domain\Game\Engines\Contracts\FairnessVerifier;
+use App\Domain\Game\Engines\Slot\Maths\LinesModel;
 use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
 use App\Domain\Game\Engines\Slot\Maths\WeightTable;
 use App\Domain\Game\Models\Game;
@@ -20,10 +21,15 @@ final class SlotVerifier implements FairnessVerifier
 {
     public const ALGORITHM = 'hmac-sha256-stream-tumble-slot';
 
+    public const LINES_ALGORITHM = 'hmac-sha256-stream-lines-slot';
+
     public function describe(Game $game): array
     {
         $config = app(SlotEngine::class)->validateConfig($game, (array) $game->config);
         $model = SlotModels::get($config['model']);
+        if ($model instanceof LinesModel) {
+            return $this->describeLines($model, $config);
+        }
         $variant = $model->variant($config['variant']);
         $cap = $config['max_win_x'] * 100;
         $rtp = $model->rtp($variant, $cap);
@@ -113,6 +119,96 @@ final class SlotVerifier implements FairnessVerifier
         ];
     }
 
+    /**
+     * describe() for a paylines model: the lines, the paytable by count, the wilds and the amore.
+     *
+     * @param  array<string, mixed>  $config  SlotEngine::validateConfig()
+     * @return array<string, mixed>
+     */
+    private function describeLines(LinesModel $model, array $config): array
+    {
+        $variant = $model->variant((string) $config['variant']);
+        $cap = (int) $config['max_win_x'] * 100;
+        $rtp = $model->rtp($variant, $cap);
+        $letters = fn (WeightTable $table): array => array_combine(
+            array_map(fn (int $symbol): string => $model->symbols[$symbol], array_keys($table->weights())),
+            array_values($table->weights()),
+        );
+        $lineCount = count($model->lines);
+        $firstTier = min(array_keys($model->freeSpinsAwarded));
+
+        $paytable = [];
+        foreach ($model->pays as $symbol => $byCount) {
+            $counts = array_keys($byCount);
+            $paytable[] = [
+                'symbol' => $model->symbols[$symbol],
+                'name' => $model->symbolNames[$symbol],
+                // × the bet (all lines), as the page shows it; line_pays: × the line bet (the bet ÷ lines).
+                'pays' => array_combine(array_map('strval', $counts), array_map(fn (int $count): string => TumbleModel::x($model->linePay($symbol, $count)), $counts)),
+                'line_pays' => array_combine(array_map('strval', $counts), array_map('strval', array_values($byCount))),
+            ];
+        }
+        $wild = $model->symbols[$model->wild];
+        $scatter = $model->symbols[$model->scatter];
+
+        return [
+            'algorithm' => self::LINES_ALGORITHM,
+            'model' => $model->code,
+            'variant' => $variant->id,
+            'rtp' => $rtp,
+            'house_edge' => bcsub('1', $rtp, 4),
+            'inputs' => [
+                'server_seed' => 'revealed when the player rotates their seed pair (its SHA-256 is shown beforehand)',
+                'client_seed' => "the player's own client seed",
+                'nonce' => 'the bet number on that seed pair, shown with every bet',
+                'mode' => "base or buy (in the bet's outcome)",
+                'variant' => "the RTP variant the bet was played with (in its outcome); defaults to the game's current one",
+                'max_win_x' => "the max win the bet was played with (in its outcome); defaults to the game's current one",
+            ],
+            'formula' => 'nextInt(n): read unsigned 32-bit big-endian integers from block_k = HMAC_SHA256(key=server_seed, msg="{client_seed}:{nonce}:{k}"), '
+                .'k = 0, 1, …, eight per block; take the first u < floor(2^32 / n) * n, then u mod n. '
+                .'A weighted draw calls nextInt(total) once and lands on the first entry (in the listed order) whose running total exceeds it. '
+                ."The screen is {$model->cols} reels × {$model->rows} rows; cells are drawn reel 0 first, each reel top to bottom, "
+                ."from that reel's table (\"base\", or in free spins \"free\"); a wild ({$wild}) draws its value right after it "
+                .'from "base_wilds" (in free spins "free_wilds"): 1 is a plain wild, more is a multiplier. '
+                .'A bought spin first draws the scatter count from "buy_scatters", then picks their cells by a partial Fisher–Yates shuffle '
+                ."of 0…{$model->cells}-1 (for i = 0…count-1: swap i with i + nextInt({$model->cells} - i); cell = reel × {$model->rows} + row), "
+                .'then draws every other cell in order from "buy". '
+                ."Each of the {$lineCount} lines (\"lines\": the row on each reel, row 0 at the top) pays left to right: the symbol on reel 0 "
+                ."and the run of it or wilds from reel 0; a run the paytable lists pays its line pay (× the line bet, the bet ÷ {$lineCount}), "
+                .'times the sum of the multipliers of the wilds in the run (1 when it has none). '
+                ."Scatters ({$scatter}) anywhere pay the scatter pay (never multiplied) and award free spins; "
+                ."in free spins {$model->retriggerAt}+ add {$model->retriggerAwarded} (at most {$model->maxFreeSpins} in all). "
+                ."In free spins the amore starts at 1, every wild that lands adds 1 to it before the spin pays, and it multiplies the spin's line wins. "
+                ."A bet's total win stops at max_win and the feature ends there. Wins are multiples of the bet; "
+                .'payout_multiplier = floor4(total win / cost), cost = 1 (base) or 100 (buy).',
+            'grid' => ['columns' => $model->cols, 'rows' => $model->rows],
+            'lines' => $model->lines,
+            'symbols' => array_combine($model->symbols, $model->symbolNames),
+            'paytable' => $paytable,
+            'scatter_pays' => array_map(fn (int $h): string => TumbleModel::x($h), $model->scatterPays),
+            'free_spins' => [
+                'trigger_scatters' => $firstTier, 'awarded' => $model->freeSpinsAwarded[$firstTier], 'awarded_by_count' => $model->freeSpinsAwarded,
+                'retrigger_scatters' => $model->retriggerAt, 'retrigger_awarded' => $model->retriggerAwarded, 'max' => $model->maxFreeSpins,
+            ],
+            'wilds' => [
+                'base_game' => array_keys(($variant->baseMultipliers ?? $variant->multipliers)->weights()),
+                'free_spins' => array_keys($variant->multipliers->weights()),
+            ],
+            'max_win' => TumbleModel::x($cap),
+            'costs' => array_combine($model->modes(), array_map(fn (string $mode): string => SlotEngine::cost($model, $variant, $mode), $model->modes())),
+            'features' => ['ante' => false, 'buy' => $config['buy']],
+            'tables' => [
+                'base' => array_map($letters, $variant->base),
+                'buy' => array_map($letters, $variant->buy),
+                'free' => array_map($letters, $variant->free),
+                'base_wilds' => ($variant->baseMultipliers ?? $variant->multipliers)->weights(),
+                'free_wilds' => $variant->multipliers->weights(),
+                'buy_scatters' => $variant->buyScatters->weights(),
+            ],
+        ];
+    }
+
     public function rules(): array
     {
         return [
@@ -143,7 +239,7 @@ final class SlotVerifier implements FairnessVerifier
         $result = SlotEngine::resolve($model->code, $variant, (string) $params['mode'], (new RandomStream($serverSeed, $clientSeed, $nonce))->nextInt(...), $maxWinX);
 
         return [
-            'algorithm' => self::ALGORITHM,
+            'algorithm' => $model instanceof LinesModel ? self::LINES_ALGORITHM : self::ALGORITHM,
             'server_seed_hash' => hash('sha256', $serverSeed),
             'model' => $model->code,
             'variant' => $variant,

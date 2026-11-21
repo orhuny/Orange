@@ -1,4 +1,5 @@
-"""Independent reference implementation of Orange's tumbling slot maths.
+"""Independent reference implementation of Orange's slot maths: the tumbling models and the
+paylines model (Tutti Frutti, LinesResolver.php).
 
 Written from the rules in SlotVerifier::describe() / app/Domain/Game/Engines/Slot/Maths/SpinResolver.php's
 docblock, not from the PHP code, so the golden vectors it produces can catch mistakes in either.
@@ -7,6 +8,7 @@ Not shipped; run it to regenerate a model's fixture:
     python -I tools/slot-reference/reference.py sugar-orchard > tests/Fixtures/slot/sugar-orchard-golden.json
     python -I tools/slot-reference/reference.py trident-of-poseidon > tests/Fixtures/slot/trident-of-poseidon-golden.json
     python -I tools/slot-reference/reference.py stones-of-the-titan > tests/Fixtures/slot/stones-of-the-titan-golden.json
+    python -I tools/slot-reference/reference.py tutti-frutti > tests/Fixtures/slot/tutti-frutti-golden.json
 """
 
 import hashlib
@@ -124,7 +126,57 @@ def stones_of_the_titan():
     return dict(trident_of_poseidon(), code="stones-of-the-titan", super_tide=10)
 
 
-MODELS = {"sugar-orchard": sugar_orchard, "trident-of-poseidon": trident_of_poseidon, "stones-of-the-titan": stones_of_the_titan}
+# --- Tutti Frutti v1: paylines ----------------------------------------------------------------
+# Written from SlotVerifier::describeLines(): 5 reels x 3 rows, cells drawn reel by reel, top to
+# bottom; a wild (W, never on reel 0) draws its value next; 20 lines pay left to right from
+# reel 0, times the sum of the wild multipliers in the run (1 when none); scatters anywhere; in
+# free spins the amore starts at 1 and every landed wild adds 1 before the spin pays.
+
+def tutti_frutti():
+    fruit = [400, 500, 600, 700, 1100, 1200, 1300, 1400, 1500]
+    variants = {  # base scatter, base kiss (reels 1-4), bought scatters
+        "v1-9650": (215, 430, [(3, 561), (4, 329), (5, 110)]),
+        "v1-9550": (215, 421, [(3, 573), (4, 324), (5, 103)]),
+        "v1-9450": (215, 411, [(3, 586), (4, 317), (5, 97)]),
+    }
+
+    def reel(scatter, kiss, first):
+        table = list(zip("ABCDEFGHI", fruit))
+        if scatter:
+            table.append(("S", scatter))
+        if not first:
+            table.append(("W", kiss))
+        return table
+
+    def tables(variant):
+        scatter, kiss, bought = variants[variant]
+        return {
+            "base": [reel(scatter, kiss, r == 0) for r in range(5)],
+            "buy": [reel(0, kiss, r == 0) for r in range(5)],
+            "free": [reel(250, 635, r == 0) for r in range(5)],
+            "base_wilds": [(1, 80), (2, 12), (3, 6), (5, 2)],
+            "free_wilds": [(1, 70), (2, 16), (3, 9), (5, 5)],
+            "buy_scatters": bought,
+        }
+
+    return {
+        "code": "tutti-frutti", "kind": "lines", "reels": 5, "rows": 3, "cap": 500_000,
+        "lines": [(1, 1, 1, 1, 1), (0, 0, 0, 0, 0), (2, 2, 2, 2, 2), (0, 1, 2, 1, 0), (2, 1, 0, 1, 2),
+                  (0, 0, 1, 2, 2), (2, 2, 1, 0, 0), (1, 0, 0, 0, 1), (1, 2, 2, 2, 1), (0, 1, 1, 1, 0),
+                  (2, 1, 1, 1, 2), (1, 0, 1, 2, 1), (1, 2, 1, 0, 1), (0, 1, 0, 1, 0), (2, 1, 2, 1, 2),
+                  (1, 1, 0, 1, 1), (1, 1, 2, 1, 1), (0, 0, 2, 0, 0), (2, 2, 0, 2, 2), (0, 2, 2, 2, 0)],
+        # x the line bet (the bet / 20)
+        "line_pays": {"A": {2: 5, 3: 50, 4: 200, 5: 1000}, "B": {3: 40, 4: 150, 5: 500}, "C": {3: 30, 4: 100, 5: 400},
+                      "D": {3: 25, 4: 80, 5: 300}, "E": {3: 15, 4: 40, 5: 150}, "F": {3: 10, 4: 30, 5: 120},
+                      "G": {3: 10, 4: 25, 5: 100}, "H": {3: 5, 4: 20, 5: 80}, "I": {3: 5, 4: 15, 5: 60}},
+        "scatter_pay": ((5, 5000), (4, 1000), (3, 200)),
+        "free_spins": ((5, 15), (4, 12), (3, 10)),
+        "variants": list(variants), "tables": tables,
+    }
+
+
+MODELS = {"sugar-orchard": sugar_orchard, "trident-of-poseidon": trident_of_poseidon, "stones-of-the-titan": stones_of_the_titan,
+          "tutti-frutti": tutti_frutti}
 
 
 # --- The rules --------------------------------------------------------------------------------
@@ -236,11 +288,113 @@ def play(m, variant, mode, rng, cap=None):
                 total_win_x=x(total), max_win_reached=maxed)
 
 
+# --- Paylines --------------------------------------------------------------------------------
+
+def screen_of(m, reels, wilds, rng):
+    """A fresh screen: a list of (symbol, value), cell = reel * rows + row."""
+    out = []
+    for r in range(m["reels"]):
+        for _ in range(m["rows"]):
+            symbol = draw(reels[r], rng)
+            out.append((symbol, draw(wilds, rng) if symbol == "W" else 0))
+    return out
+
+
+def bought_screen(m, t, rng):
+    cells_n = m["reels"] * m["rows"]
+    count = draw(t["buy_scatters"], rng)
+    order = list(range(cells_n))
+    for i in range(count):
+        j = i + rng.next_int(cells_n - i)
+        order[i], order[j] = order[j], order[i]
+    scatters = set(order[:count])
+    out = []
+    for c in range(cells_n):
+        if c in scatters:
+            out.append(("S", 0))
+        else:
+            symbol = draw(t["buy"][c // m["rows"]], rng)
+            out.append((symbol, draw(t["base_wilds"], rng) if symbol == "W" else 0))
+    return out
+
+
+def lines_pay(m, screen):
+    """(line win, scatters, wilds, record) of one screen."""
+    n_lines = len(m["lines"])
+    wins, total = [], 0
+    for number, rows in enumerate(m["lines"], start=1):
+        cells = [screen[r * m["rows"] + row] for r, row in enumerate(rows)]
+        first = cells[0][0]
+        if first not in m["line_pays"]:
+            continue
+        run, mult = 0, 0
+        for symbol, value in cells:
+            if symbol == first or symbol == "W":
+                run += 1
+                if symbol == "W" and value > 1:
+                    mult += value
+            else:
+                break
+        line_pay = m["line_pays"][first].get(run)
+        if not line_pay:
+            continue
+        amount = line_pay * 100 // n_lines * max(1, mult)
+        total += amount
+        wins.append({"line": number, "symbol": first, "count": run, "multiplier": max(1, mult), "win_x": x(amount)})
+    scatters = sum(1 for s, _ in screen if s == "S")
+    wilds = sum(1 for s, _ in screen if s == "W")
+    record = {"grid": "".join(s for s, _ in screen), "wilds": [v for s, v in screen if s == "W"],
+              "lines": wins, "line_win_x": x(total), "scatters": scatters}
+    return total, scatters, wilds, record
+
+
+def tier_of(tiers, count):
+    for at, value in tiers:
+        if count >= at:
+            return value
+    return 0
+
+
+def play_lines(m, variant, mode, rng, cap=None):
+    cap = cap or m["cap"]
+    t = m["tables"](variant)
+    screen = bought_screen(m, t, rng) if mode == "buy" else screen_of(m, t["base"], t["base_wilds"], rng)
+    line_win, scatters, _, record = lines_pay(m, screen)
+    sw = tier_of(m["scatter_pay"], scatters)
+    base_win = min(line_win + sw, cap)
+    maxed = base_win >= cap
+    awarded = 0 if maxed else tier_of(m["free_spins"], scatters)
+    spins = [dict(record, scatter_win_x=x(sw), win_x=x(base_win), free_spins_awarded=awarded)]
+    total, free_win, played, left, amore = base_win, 0, 0, awarded, 1
+    while left > 0 and not maxed and played < MAX_FREE:
+        line_win, scatters, wilds, record = lines_pay(m, screen_of(m, t["free"], t["free_wilds"], rng))
+        amore += wilds
+        sw = tier_of(m["scatter_pay"], scatters)
+        spin_win = line_win * amore + sw
+        if total + spin_win >= cap:
+            spin_win, maxed = cap - total, True
+        total += spin_win
+        free_win += spin_win
+        retrigger = 5 if scatters >= 3 else 0
+        left += retrigger - 1
+        played += 1
+        spins.append(dict(record, amore=amore, scatter_win_x=x(sw), win_x=x(spin_win), retrigger=retrigger))
+    return {"model": m["code"], "variant": variant, "mode": mode, "spins": spins, "base_win_x": x(base_win),
+            "free_spins": played, "free_spins_win_x": x(free_win), "total_win_x": x(total), "max_win_reached": maxed}
+
+
 def cases(m):
     if m["code"] == "sugar-orchard":
         return [("golden-seed-0001", "player-a", n, "v1-9650", "base", None) for n in range(0, 40)] \
             + [("golden-seed-0002", "player-b", n, v, "ante", None) for n in range(0, 10) for v in m["variants"]] \
             + [("golden-seed-0003", "player-c", n, v, "buy", None) for n in range(0, 4) for v in m["variants"]]
+    if m["code"] == "tutti-frutti":
+        # Lines pay about one spin in three, so plenty of base cases; buys for every variant; and
+        # buys with caps (hundredths of the bet: 30x and 100x) small enough to bite.
+        return [("tutti-seed-0001", "player-a", n, "v1-9650", "base", None) for n in range(0, 60)] \
+            + [("tutti-seed-0002", "player-b", n, v, "base", None) for n in range(0, 6) for v in ("v1-9550", "v1-9450")] \
+            + [("tutti-seed-0003", "player-c", n, v, "buy", None) for n in range(0, 3) for v in m["variants"]] \
+            + [("tutti-seed-0004", "player-d", n, "v1-9650", "buy", cap) for n in range(0, 4) for cap in (3_000, 10_000)]
     if m["code"] == "stones-of-the-titan":
         # Trident's draws, so fewer base cases; the super buy gets its own, with caps small enough to bite.
         return [("titan-seed-0001", "player-a", n, "v1-9650", "base", None) for n in range(0, 30)] \
@@ -263,7 +417,8 @@ if __name__ == "__main__":
         case = {"server_seed": server, "client_seed": client, "nonce": nonce, "variant": variant, "mode": mode}
         if cap is not None:
             case["cap"] = cap  # hundredths of the bet
-        case["outcome"] = play(model, variant, mode, RandomStream(server, client, nonce), cap)
+        player = play_lines if model.get("kind") == "lines" else play
+        case["outcome"] = player(model, variant, mode, RandomStream(server, client, nonce), cap)
         out.append(case)
     json.dump(out, sys.stdout, separators=(",", ":"))
     sys.stdout.write("\n")

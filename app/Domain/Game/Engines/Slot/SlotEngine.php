@@ -8,6 +8,8 @@ use App\Domain\Game\Engines\Contracts\FairnessVerifier;
 use App\Domain\Game\Engines\Contracts\InstantEngine;
 use App\Domain\Game\Engines\EngineFamily;
 use App\Domain\Game\Engines\InstantResult;
+use App\Domain\Game\Engines\Slot\Maths\LinesModel;
+use App\Domain\Game\Engines\Slot\Maths\LinesResolver;
 use App\Domain\Game\Engines\Slot\Maths\SpinResolver;
 use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
 use App\Domain\Game\Engines\Slot\Maths\Variant;
@@ -19,8 +21,8 @@ use Closure;
 use InvalidArgumentException;
 
 /**
- * Slots (games.type = slot): one bet is one paid spin, its tumbles and any free spins it
- * triggers, all resolved at once, so a slot is an instant game like dice. The maths lives in a
+ * Slots (games.type = slot): one bet is one paid spin, its tumbles or line wins and any free
+ * spins it triggers, all resolved at once, so a slot is an instant game like dice. The maths lives in a
  * model (games.config.model, see SlotModels) and the look in a theme (games.config.theme).
  *
  * The stake is what the player pays: the bet for a normal spin, 1.25× it with the ante bet,
@@ -122,7 +124,8 @@ final class SlotEngine implements InstantEngine
             'variant' => $variantId,
             'max_win_x' => $maxWinX,
             'theme' => $theme,
-            'ante' => (bool) ($config['ante'] ?? true),
+            // Lines models have no ante.
+            'ante' => in_array('ante', $model->modes(), true) && (bool) ($config['ante'] ?? true),
             'buy' => (bool) ($config['buy'] ?? true),
         ] + $super + [
             'autoplay' => (bool) ($config['autoplay'] ?? true),
@@ -205,7 +208,9 @@ final class SlotEngine implements InstantEngine
         $cap = $maxWinX === null ? $model->maxWin : $maxWinX * 100;
         $rtp = $model->rtp($variant, $cap);
 
-        $result = SpinResolver::resolve($model, $variant, $mode, $nextInt, true, $cap);
+        $result = $model instanceof LinesModel
+            ? LinesResolver::resolve($model, $variant, $mode, $nextInt, true, $cap)
+            : SpinResolver::resolve($model, $variant, $mode, $nextInt, true, $cap);
         $won = $result->win > 0;
         // Wins are hundredths of the bet; the cost is hundredths too (125 = 1.25× with the ante).
         $multiplier = bcdiv((string) $result->win, (string) $model->cost($mode, $variant), 4);
@@ -224,7 +229,7 @@ final class SlotEngine implements InstantEngine
     }
 
     /** What a mode's stake buys with a variant, in bets: "1.00", "1.25", "100.00", or a super buy's price. */
-    public static function cost(TumbleModel $model, Variant $variant, string $mode): string
+    public static function cost(TumbleModel|LinesModel $model, Variant $variant, string $mode): string
     {
         return bcdiv((string) $model->cost($mode, $variant), '100', 2);
     }

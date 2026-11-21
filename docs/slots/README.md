@@ -23,7 +23,13 @@ The admin panel also sets:
 
 ## The maths (`Maths/`)
 
-`SpinResolver` is the only place outcomes are made. It is pure and deterministic, and it draws only from the bet's `RandomStream`. Its docblock and `SlotVerifier::describe()` state the draw order. That order is part of the fairness contract: players replay it.
+Two kinds of model:
+- **Tumbling "pay anywhere"** (`TumbleModel`, played by `SpinResolver`): Sugar Orchard, Trident of Poseidon, Stones of the Titan.
+- **Paylines** (`LinesModel`, played by `LinesResolver`): Tutti Frutti, 5 reels × 3 rows and 20 fixed lines. Wilds may carry multipliers, which add up on a line; free spins have "the amore", a multiplier that grows with every wild that lands. It has no ante and no super buy. `SlotVerifier::describe()` publishes its lines (`lines`) and the page spins reels instead of tumbling (slot-game.js, "Reels" and "Lines"). The maths and its measurements: [tutti-frutti-maths.md](tutti-frutti-maths.md).
+
+Both offer the same surface to the engine, the panel and the bet params (variants, modes, costs, measured max-win choices), so `SlotEngine`, `SlotConfigForm` and `slot:simulate` work with either.
+
+`SpinResolver` (tumbling) and `LinesResolver` (paylines) are the only places outcomes are made. It is pure and deterministic, and it draws only from the bet's `RandomStream`. Its docblock and `SlotVerifier::describe()` state the draw order. That order is part of the fairness contract: players replay it.
 
 Rules:
 - **Amounts are integers in hundredths of the bet.** No floats anywhere in the maths.
