@@ -574,7 +574,11 @@ def main():
     art['logo'] = out.save(fit(trimmed(dusted(load('txt-logo', ph_text('', (1600, 800), ['STONES OF THE', 'TITAN'])))), 900), 'logo.webp')
 
     if source('key-thumbnail'):
-        out.save(Image.open(source('key-thumbnail')).convert('RGB').resize((1200, 900), Image.LANCZOS), 'thumbnail.jpg')
+        # The key art, with the logo over its calm top-left (the prompt keeps that area for it).
+        thumb = Image.open(source('key-thumbnail')).convert('RGB').resize((1200, 900), Image.LANCZOS)
+        logo = fit(Image.open(OUT / art['logo']).convert('RGBA'), 560)
+        thumb.paste(logo, (40, 30), logo)
+        out.save(thumb, 'thumbnail.jpg')
     else:
         placeholders.append('key-thumbnail')
         out.save(ph_thumbnail(OUT / 'bg-day-landscape.webp', OUT / 'logo.webp'), 'thumbnail.jpg')
