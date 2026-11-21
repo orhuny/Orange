@@ -81,13 +81,19 @@
         .throne .host-body { transform-origin: calc(var(--cx) * 100%) calc(var(--fy, 1) * 100%); animation-duration: 6.5s; }
         .throne .host-body .pose { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .5)); }
         .throne .pedestal { position: absolute; z-index: 0; left: calc(var(--bh) * var(--hk) * .405); bottom: 0; width: calc(var(--bh) * var(--hk) * .62); translate: -50% 30%; }
+        /* A soft shadow behind him: the busy sky dims there, so he stands out from it. */
+        .throne .host::before { content: ''; position: absolute; z-index: 0; left: calc(var(--bh) * var(--hk) * .405); bottom: 2%; width: calc(var(--bh) * var(--hk) * .9);
+                                height: 100%; translate: -50% 0; border-radius: 50%; pointer-events: none;
+                                background: radial-gradient(closest-side, rgba(6, 3, 14, .6), rgba(6, 3, 14, .38) 58%, rgba(6, 3, 14, 0)); }
 
         /* ---- The bar: plain figures, no pills ----
-           Its columns follow the cards-grid-host group above it: the tools under the cards, the
-           WIN centred in what is left, and BALANCE − SPIN + BET together at the right, under
-           the host, the balance right beside the spin button. */
-        .layout-throne .bar { grid-template-columns: calc(var(--side) + var(--gap) + var(--bh) * var(--el)) minmax(0, 1fr) auto auto auto auto auto;
-                              grid-template-areas: "tools win bal minus spin plus betm";
+           Its columns follow the cards-grid-host group above it: the tools under the cards;
+           BALANCE − SPIN + BET together under the grid, the spin button exactly under its
+           centre (the balance and the bet each get half of what is left either side), the
+           balance right beside the spin button; the WIN under the host. */
+        .layout-throne .bar { grid-template-columns: calc(var(--side) + var(--gap) + var(--bh) * var(--el)) minmax(0, 1fr) auto auto auto minmax(0, 1fr)
+                                                     calc(var(--bh) * var(--hk) * .74);
+                              grid-template-areas: "tools bal minus spin plus betm win";
                               column-gap: 0; align-items: center;
                               padding: 0 max(14px, calc((100vw - var(--group)) / 2)) max(8px, env(safe-area-inset-bottom));
                               background: linear-gradient(180deg, transparent, rgba(4, 2, 10, .78) 40%); }
@@ -96,7 +102,7 @@
                                      background: none; box-shadow: none; text-align: left; }
         .layout-throne .bar .meter small { font-size: clamp(11px, 1vw, 14px); letter-spacing: .1em; }
         .layout-throne .bar .meter span, .layout-throne .bar .meter > b { font-size: clamp(14px, 1.45vw, 21px); }
-        .layout-throne .bal { justify-self: end; margin: 0; }
+        .layout-throne .bal { justify-self: end; margin: 0; white-space: nowrap; }
         .layout-throne .bet .meter { grid-area: betm; justify-self: start; margin: 0 0 0 clamp(10px, 1.2vw, 20px); }
         .layout-throne .winm { justify-self: center; align-items: baseline; margin: 0 clamp(10px, 1.2vw, 20px); min-width: 0; padding: 0; }
         .layout-throne .winm small { font-size: clamp(18px, 2.2vw, 34px) !important; letter-spacing: .04em; }

@@ -27,13 +27,17 @@
 
         .logo { filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .65)); }
 
-        /* The Titan: the light in his cracks pulses, gold by day, ember in the Eclipse. */
+        /* The Titan stands out from the sky: more contrast and light on him, a thin gold rim
+           light tracing his silhouette, and the light in his cracks pulsing (gold by day, ember
+           in the Eclipse). */
         .host-body .pose { animation: titan-glow 4.8s ease-in-out infinite; }
-        @keyframes titan-glow { 0%, 100% { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .5)) brightness(1); }
-                                50% { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .5)) drop-shadow(0 0 14px rgba(255, 200, 110, .45)) brightness(1.08); } }
+        @keyframes titan-glow {
+            0%, 100% { filter: contrast(1.16) brightness(1.12) saturate(1.12) drop-shadow(0 0 1.5px rgba(255, 228, 165, .95)) drop-shadow(0 0 12px rgba(255, 190, 90, .5)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); }
+            50% { filter: contrast(1.16) brightness(1.22) saturate(1.15) drop-shadow(0 0 2px rgba(255, 238, 190, 1)) drop-shadow(0 0 22px rgba(255, 200, 100, .7)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); } }
         body.free .host-body .pose { animation-name: titan-ember; }
-        @keyframes titan-ember { 0%, 100% { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .55)) drop-shadow(0 0 10px rgba(255, 90, 60, .35)); }
-                                 50% { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .55)) drop-shadow(0 0 22px rgba(255, 150, 70, .7)) brightness(1.1); } }
+        @keyframes titan-ember {
+            0%, 100% { filter: contrast(1.16) brightness(1.12) saturate(1.12) drop-shadow(0 0 1.5px rgba(255, 190, 140, .95)) drop-shadow(0 0 14px rgba(255, 100, 60, .5)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); }
+            50% { filter: contrast(1.16) brightness(1.24) saturate(1.15) drop-shadow(0 0 2px rgba(255, 210, 160, 1)) drop-shadow(0 0 24px rgba(255, 150, 70, .8)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); } }
         .throne .pedestal { filter: drop-shadow(0 18px 24px rgba(0, 0, 0, .55)); }
 
         /* The feature cards' words: gold on obsidian. */
