@@ -688,6 +688,7 @@
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
 </head>
 <body class="layout-{{ $layout }}">
+@include('play.provider-intro')
 <div class="bg day"></div>
 <div class="bg night"></div>
 <div class="scenery" aria-hidden="true">

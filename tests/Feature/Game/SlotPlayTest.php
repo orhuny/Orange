@@ -276,6 +276,7 @@ it('serves the slot page with its theme, paytable and the shared bridge', functi
         ->assertSee('slot-game.js', false)
         ->assertSee('bridge.js', false)
         ->assertSee('id="home-btn"', false)
+        ->assertSee('id="mgi"', false) // the Majestic Games intro, before the game's own
         ->assertSee('id="intro"', false)
         ->assertSee('Skip intro')
         ->assertSee('symbols\/toffee.webp', false)

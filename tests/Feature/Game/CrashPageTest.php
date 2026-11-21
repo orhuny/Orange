@@ -19,6 +19,16 @@ it('offers the rules, with the RTP of the game being played', function (): void 
     get('/crash?game=nope')->assertOk()->assertSee('const RTP = "0.9700"', false);
 });
 
+it('opens with the Majestic Games intro, which the studio intro waits for, unless it is switched off', function (): void {
+    Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'type' => 'crash']);
+
+    get('/crash')->assertOk()
+        ->assertSeeInOrder(['id="mgi"', 'window.orangeIntro = {', 'id="intro"', 'window.orangeIntro.done'], false);
+
+    config()->set('games.provider_intro.enabled', false);
+    get('/crash')->assertOk()->assertDontSee('id="mgi"', false)->assertSee('id="intro"', false);
+});
+
 it('plays each crash game on its own rounds, channel and saved state', function (): void {
     $crash = Game::factory()->create(['code' => 'crash', 'slug' => 'crash', 'type' => 'crash', 'name' => 'Orange Crash']);
     $duck = Game::factory()->create(['code' => 'lucky-duck', 'slug' => 'lucky-duck', 'type' => 'crash', 'name' => 'Lucky Duck', 'config' => ['scene' => 'marsh']]);

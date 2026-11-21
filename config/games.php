@@ -56,6 +56,14 @@ return [
         'idle_timeout_seconds' => 15 * 60,
     ],
 
+    // The Majestic Games intro every game page opens with (resources/views/play/provider-intro):
+    // it plays while the game loads, then the game's own intro follows. `sound`: its chime,
+    // where the browser allows sound before a tap and the player hasn't muted the game.
+    'provider_intro' => [
+        'enabled' => (bool) env('PROVIDER_INTRO_ENABLED', true),
+        'sound' => (bool) env('PROVIDER_INTRO_SOUND', true),
+    ],
+
     // Which games' rounds also go out on the legacy `crash` channel (afq's /crash page):
     // a list of codes, or null = every crash-type game (as before there were several).
     // Only the original game: afq's page shows one game, and Orange's /crash page listens

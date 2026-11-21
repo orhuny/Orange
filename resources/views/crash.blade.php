@@ -1919,6 +1919,7 @@
     </style>
 </head>
 <body>
+    @include('play.provider-intro')
     @if ($intro)
     <div id="intro" class="intro" hidden aria-hidden="true">
         @if ($intro['mode'] === 'scene')
@@ -1965,6 +1966,8 @@
             const decode = (img) => (img.decode ? img.decode() : Promise.resolve());
             // Give up after 5 s so a slow network never holds players at a black screen.
             const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('intro timeout')), 5000));
+            // It plays once the Majestic Games intro (play.provider-intro) has made way.
+            const providerDone = window.orangeIntro ? window.orangeIntro.done : Promise.resolve();
 
             if (cfg.mode === 'frames') {
                 const urls = (portrait && cfg.portrait.length) ? cfg.portrait : (cfg.landscape.length ? cfg.landscape : cfg.portrait);
@@ -1977,7 +1980,7 @@
                     $intro.insertBefore(img, $skip); // in order, so each new frame fades in on top
                     return img;
                 });
-                Promise.race([Promise.all(imgs.map(decode)), timeout]).then(() => {
+                Promise.race([Promise.all(imgs.map(decode)), timeout]).then(() => providerDone).then(() => {
                     if (finished) return;
                     let at = 0;
                     imgs.forEach((img, i) => {
@@ -1997,7 +2000,7 @@
             const backdrop = cfg.bg[document.documentElement.getAttribute('data-theme')] ?? cfg.bg.burton;
             bg.src = portrait ? backdrop.portrait : backdrop.landscape;
             const art = [bg, ...[...$intro.querySelectorAll('img')].filter((img) => img.getClientRects().length)];
-            Promise.race([Promise.allSettled(art.map(decode)), timeout]).then(() => {
+            Promise.race([Promise.allSettled(art.map(decode)), timeout]).then(() => providerDone).then(() => {
                 if (finished) return;
                 $intro.classList.add('play');
                 timers.push(setTimeout(finish, SCENE_MS));

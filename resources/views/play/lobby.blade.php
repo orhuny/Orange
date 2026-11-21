@@ -654,6 +654,13 @@
         $('frame').addEventListener('load', () => {
             if ($('frame').getAttribute('src') !== 'about:blank') $('spinner').classList.add('gone');
         });
+        // The game page's Majestic Games intro (play.provider-intro) is on screen: it covers the
+        // loading from here, so this loader steps aside rather than hide it.
+        window.addEventListener('message', (e) => {
+            if (e.origin === window.location.origin && e.source === $('frame').contentWindow && e.data?.type === 'orange:intro') {
+                $('spinner').classList.add('gone');
+            }
+        });
 
         // ---------- Formatting ----------
         const categoryName = (slug) => lobby.categories.find((c) => c.slug === slug)?.name ?? null;
