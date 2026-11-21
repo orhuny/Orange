@@ -128,17 +128,27 @@
             .throne, .layout-throne .logo-side { display: none; }
             .layout-throne .play { display: grid; grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); }
             .layout-throne .side { flex-direction: row; align-self: auto; gap: 6px; }
-            .layout-throne .side > .feature { padding: 9% 5% 8%; }
-            .layout-throne .buy { row-gap: 2px; }
-            .layout-throne .buy-icon { width: clamp(22px, 7vw, 34px); }
+            /* Low cards, so the grid sits lower and the Titan gets more room above it. */
+            .layout-throne .side > .feature { padding: 7% 5% 6%; }
+            .layout-throne .buy { row-gap: 1px; }
+            .layout-throne .buy-icon { width: clamp(18px, 6vw, 28px); }
             .layout-throne .buy-title { font-size: 10px; letter-spacing: .04em; }
             .layout-throne .buy-price { font-size: 11px; }
             body.layout-throne.free .side { visibility: hidden; }
             /* Above the grid, clear of the host over the right corner. */
             .tumble { --bh: calc(var(--bw) * 5 / 6); bottom: calc(100% + var(--bw) * .01); height: calc(var(--bw) * .13); left: 38%; }
-            /* His head and shoulders over the frame's top-right corner, facing the grid. */
-            .layout-throne .host-peek { left: auto; right: -12%; width: 60%; height: clamp(70px, 17vh, 190px); }
-            .layout-throne .host-peek .host-fig { left: auto; right: 0; bottom: calc(100% - 100% / .42); height: calc(100% / .42 * var(--k, 1));
+            /* The room above the grid is the Titan's: the logo moves to the top left, and the
+               board sits at the bottom of its room (its bottom band just above the cards). */
+            .layout-throne .top { align-items: flex-start; padding-left: 2vw; }
+            .layout-throne .frame { place-items: end center; }
+            .layout-throne .board-wrap { margin-bottom: calc(var(--bw) * 5 / 6 * var(--ky)); }
+            /* His top half over the frame's top-right corner, facing the grid, from the top of
+               the screen down to the grid's top edge: the room above the board (its container's
+               height less the board and its bottom band) plus the logo's row. He stands in front
+               of the frame's top band, cut at the grid's edge, so he never covers a symbol. */
+            .layout-throne .host-peek { z-index: 4; left: auto; right: -10%; width: 66%;
+                                        height: min(50vh, calc(100cqh - var(--bw) * 5 / 6 * (1 + var(--ky)) + var(--top))); }
+            .layout-throne .host-peek .host-fig { left: auto; right: 0; bottom: calc(100% - 100% / .5); height: calc(100% / .5 * var(--k, 1));
                                                    translate: none; transform-origin: 60% 100%; }
             .layout-throne .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools"; }
             .layout-throne .bar .meter { display: grid; gap: 2px; text-align: center; }
