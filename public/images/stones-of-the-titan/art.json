@@ -1,0 +1,316 @@
+{
+ "symbols": {
+  "A": "symbols/caged-star.webp",
+  "B": "symbols/orrery.webp",
+  "C": "symbols/shield.webp",
+  "D": "symbols/sword.webp",
+  "E": "symbols/ammonite.webp",
+  "F": "symbols/geode.webp",
+  "G": "symbols/amethyst.webp",
+  "H": "symbols/runestone.webp",
+  "I": "symbols/comet.webp",
+  "S": "symbols/eclipse.webp"
+ },
+ "meteors": {
+  "ice": "symbols/meteor-ice.webp",
+  "jade": "symbols/meteor-jade.webp",
+  "ember": "symbols/meteor-ember.webp",
+  "sun": "symbols/meteor-sun.webp"
+ },
+ "fx": {
+  "shatter-burst": "fx/shatter-burst.webp",
+  "shockwave": "fx/shockwave.webp",
+  "cracks": "fx/cracks.webp",
+  "vortex": "fx/vortex.webp",
+  "corona": "fx/corona.webp",
+  "meteor-trail": "fx/meteor-trail.webp",
+  "twinkle": "fx/twinkle.webp",
+  "sweep": "fx/sweep.webp",
+  "stardust": [
+   "fx/stardust-1.webp",
+   "fx/stardust-2.webp",
+   "fx/stardust-3.webp",
+   "fx/stardust-4.webp",
+   "fx/stardust-5.webp",
+   "fx/stardust-6.webp",
+   "fx/stardust-7.webp",
+   "fx/stardust-8.webp",
+   "fx/stardust-9.webp",
+   "fx/stardust-10.webp",
+   "fx/stardust-11.webp",
+   "fx/stardust-12.webp",
+   "fx/stardust-13.webp",
+   "fx/stardust-14.webp",
+   "fx/stardust-15.webp",
+   "fx/stardust-16.webp",
+   "fx/stardust-17.webp",
+   "fx/stardust-18.webp",
+   "fx/stardust-19.webp",
+   "fx/stardust-20.webp",
+   "fx/stardust-21.webp",
+   "fx/stardust-22.webp",
+   "fx/stardust-23.webp",
+   "fx/stardust-24.webp",
+   "fx/stardust-25.webp",
+   "fx/stardust-26.webp",
+   "fx/stardust-27.webp",
+   "fx/stardust-28.webp",
+   "fx/stardust-29.webp",
+   "fx/stardust-30.webp"
+  ],
+  "embers": [
+   "fx/ember-1.webp",
+   "fx/ember-2.webp",
+   "fx/ember-3.webp",
+   "fx/ember-4.webp",
+   "fx/ember-5.webp",
+   "fx/ember-6.webp",
+   "fx/ember-7.webp",
+   "fx/ember-8.webp",
+   "fx/ember-9.webp",
+   "fx/ember-10.webp",
+   "fx/ember-11.webp",
+   "fx/ember-12.webp",
+   "fx/ember-13.webp",
+   "fx/ember-14.webp",
+   "fx/ember-15.webp",
+   "fx/ember-16.webp",
+   "fx/ember-17.webp",
+   "fx/ember-18.webp",
+   "fx/ember-19.webp",
+   "fx/ember-20.webp",
+   "fx/ember-21.webp",
+   "fx/ember-22.webp",
+   "fx/ember-23.webp",
+   "fx/ember-24.webp",
+   "fx/ember-25.webp",
+   "fx/ember-26.webp",
+   "fx/ember-27.webp",
+   "fx/ember-28.webp",
+   "fx/ember-29.webp",
+   "fx/ember-30.webp"
+  ],
+  "treasure": [
+   "fx/treasure-1.webp",
+   "fx/treasure-2.webp",
+   "fx/treasure-3.webp",
+   "fx/treasure-4.webp",
+   "fx/treasure-5.webp",
+   "fx/treasure-6.webp",
+   "fx/treasure-7.webp",
+   "fx/treasure-8.webp",
+   "fx/treasure-9.webp",
+   "fx/treasure-10.webp",
+   "fx/treasure-11.webp",
+   "fx/treasure-12.webp",
+   "fx/treasure-13.webp",
+   "fx/treasure-14.webp",
+   "fx/treasure-15.webp",
+   "fx/treasure-16.webp",
+   "fx/treasure-17.webp",
+   "fx/treasure-18.webp",
+   "fx/treasure-19.webp",
+   "fx/treasure-20.webp",
+   "fx/treasure-21.webp",
+   "fx/treasure-22.webp",
+   "fx/treasure-23.webp",
+   "fx/treasure-24.webp",
+   "fx/treasure-25.webp",
+   "fx/treasure-26.webp",
+   "fx/treasure-27.webp",
+   "fx/treasure-28.webp",
+   "fx/treasure-29.webp",
+   "fx/treasure-30.webp",
+   "fx/treasure-31.webp",
+   "fx/treasure-32.webp",
+   "fx/treasure-33.webp",
+   "fx/treasure-34.webp",
+   "fx/treasure-35.webp",
+   "fx/treasure-36.webp",
+   "fx/treasure-37.webp",
+   "fx/treasure-38.webp",
+   "fx/treasure-39.webp",
+   "fx/treasure-40.webp",
+   "fx/treasure-41.webp",
+   "fx/treasure-42.webp",
+   "fx/treasure-43.webp",
+   "fx/treasure-44.webp",
+   "fx/treasure-45.webp",
+   "fx/treasure-46.webp",
+   "fx/treasure-47.webp",
+   "fx/treasure-48.webp",
+   "fx/treasure-49.webp"
+  ]
+ },
+ "scenery": {
+  "asteroids": [
+   "fg/asteroid-1.webp",
+   "fg/asteroid-2.webp",
+   "fg/asteroid-3.webp",
+   "fg/asteroid-4.webp",
+   "fg/asteroid-5.webp",
+   "fg/asteroid-6.webp",
+   "fg/asteroid-7.webp",
+   "fg/asteroid-8.webp",
+   "fg/asteroid-9.webp",
+   "fg/asteroid-10.webp",
+   "fg/asteroid-11.webp"
+  ],
+  "crystals": "fg-crystals.webp"
+ },
+ "cards": {
+  "buy": "card-buy.webp",
+  "ante": "card-ante.webp"
+ },
+ "banners": {
+  "big-win": "banners/big-win.webp",
+  "mega-win": "banners/mega-win.webp",
+  "epic-win": "banners/epic-win.webp",
+  "max-win": "banners/max-win.webp",
+  "free-spins": "banners/free-spins.webp",
+  "total-win": "banners/total-win.webp"
+ },
+ "pedestal": "pedestal.webp",
+ "frame": {
+  "src": "frame.webp",
+  "window": {
+   "x0": 0.134,
+   "y0": 0.1638,
+   "x1": 0.866,
+   "y1": 0.8371
+  },
+  "pieces": {
+   "left": "frame-left.webp",
+   "right": "frame-right.webp",
+   "fill": "frame-fill.webp",
+   "px": {
+    "w": 1172,
+    "h": 1062,
+    "x0": 157,
+    "x1": 1015,
+    "y0": 174,
+    "y1": 889,
+    "cut_l": 250,
+    "cut_r": 922
+   }
+  }
+ },
+ "spin": "spin.webp",
+ "plaque": "plaque.webp",
+ "tumble": "tumble.webp",
+ "eclipse_ring": "eclipse-ring.webp",
+ "logo": "logo.webp",
+ "host": {
+  "idle": {
+   "src": "host/titan-idle.webp",
+   "cx": 0.4838,
+   "ar": 0.6613,
+   "feet": 0.9987,
+   "palm": {
+    "x": 0.8131,
+    "y": 0.2104
+   },
+   "star": {
+    "x": 0.0556,
+    "y": 0.0501
+   },
+   "head": {
+    "x": 0.3788,
+    "y": 0.1102
+   },
+   "k": 1.0
+  },
+  "command": {
+   "src": "host/titan-command.webp",
+   "cx": 0.5377,
+   "ar": 0.7321,
+   "feet": 0.9985,
+   "star": {
+    "x": 0.8024,
+    "y": 0.0391
+   },
+   "finger": {
+    "x": -0.0393,
+    "y": 0.0723
+   },
+   "head": {
+    "x": 0.5,
+    "y": 0.0317
+   },
+   "k": 0.9051
+  },
+  "crush": {
+   "src": "host/titan-crush.webp",
+   "cx": 0.5433,
+   "ar": 0.6573,
+   "feet": 0.9993,
+   "fist": {
+    "x": 0.7963,
+    "y": 0.0756
+   },
+   "star": {
+    "x": 0.053,
+    "y": 0.2564
+   },
+   "head": {
+    "x": 0.4196,
+    "y": 0.0756
+   },
+   "k": 0.998
+  },
+  "roar": {
+   "src": "host/titan-roar.webp",
+   "cx": 0.5036,
+   "ar": 0.6538,
+   "feet": 0.9987,
+   "fist": {
+    "x": 0.498,
+    "y": 0.4019
+   },
+   "star": {
+    "x": 0.2241,
+    "y": 0.0239
+   },
+   "head": {
+    "x": 0.498,
+    "y": 0.2361
+   },
+   "k": 1.0073
+  },
+  "summon": {
+   "src": "host/titan-summon.webp",
+   "cx": 0.5356,
+   "ar": 0.707,
+   "feet": 0.9986,
+   "palm": {
+    "x": 0.8665,
+    "y": 0.1734
+   },
+   "star": {
+    "x": 0.0554,
+    "y": 0.0825
+   },
+   "head": {
+    "x": 0.5005,
+    "y": 0.1455
+   },
+   "k": 0.9552
+  },
+  "waiting": {
+   "src": "host/titan-waiting.webp",
+   "cx": 0.498,
+   "ar": 0.6608,
+   "feet": 0.9987,
+   "star": {
+    "x": 0.2378,
+    "y": 0.139
+   },
+   "head": {
+    "x": 0.4106,
+    "y": 0.0853
+   },
+   "k": 0.9947
+  }
+ },
+ "placeholders": []
+}

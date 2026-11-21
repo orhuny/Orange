@@ -7,7 +7,7 @@
  */
 import { createGameBridge } from './bridge.js';
 import {
-    COLS, COST, ROWS, MULTIPLIER, SCATTER, affordable, money, plan, playableSteps, stake, starTier, toUnits, winAmount, winTier,
+    COLS, ROWS, MULTIPLIER, SCATTER, affordable, costsFrom, money, plan, playableSteps, stake, starTier, toUnits, winAmount, winTier,
 } from './slot-timeline.js';
 
 const TIERS = { big: 'BIG WIN', mega: 'MEGA WIN', epic: 'EPIC WIN', max: 'MAX WIN' };
@@ -26,6 +26,9 @@ export function startSlot(cfg) {
     const fx = $('fx');
     const theme = cfg.theme;
     const features = cfg.rules?.features ?? { ante: false, buy: false };
+    // What each mode's stake buys, from the game's rules: a super buy has its own price per game.
+    const COSTS = costsFrom(cfg.rules?.costs);
+    const canSuper = Boolean(features.super && COSTS.super);
 
     const state = {
         currency: '',
@@ -52,7 +55,7 @@ export function startSlot(cfg) {
      * - scenery(), preload(): at start-up;
      * - winStart(cells, step, pace), charge(cells, ms), burst(cell, symbol, step): a winning tumble;
      * - multipliers(spin): plays a spin's multipliers (or tide) instead of the comets;
-     * - freeSpins(on): free spins start (true) or end (false);
+     * - freeSpins(on, plan): free spins start (true) or end (false); plan.tideStart is a super buy's;
      * - celebrate(tier, dialog, layer): a big win, with the shared celebration.
      */
     let kit = null;
@@ -669,7 +672,7 @@ export function startSlot(cfg) {
         const el = $('win');
         const meter = $('win-meter');
         if (units <= 0n) {
-            cancelAnimationFrame(rollTo.raf);
+            cancelAnimationFrame(el.rollRaf);
             el.textContent = '0.00';
             meter.classList.remove('lit', 'cheer');
             return;
@@ -679,24 +682,25 @@ export function startSlot(cfg) {
             rollTo(el, before, units);
             cheer(meter);
         } else {
-            cancelAnimationFrame(rollTo.raf);
+            cancelAnimationFrame(el.rollRaf);
             el.textContent = shown(units);
         }
     }
 
-    function rollTo(el, from, to) {
+    /** Counts an amount up on `el` (each element its own count), with a little pop unless `pop` is false. */
+    function rollTo(el, from, to, pop = true) {
         const a = Number(from) / 1e8;
         const b = Number(to) / 1e8;
         const started = performance.now();
         const length = dur(520);
-        cancelAnimationFrame(rollTo.raf);
+        cancelAnimationFrame(el.rollRaf);
         const step = (now) => {
             const f = Math.min(1, (now - started) / length);
             el.textContent = f >= 1 ? shown(to) : shown((a + (b - a) * easeOut(f)).toFixed(2));
-            if (f < 1) rollTo.raf = requestAnimationFrame(step);
+            if (f < 1) el.rollRaf = requestAnimationFrame(step);
         };
-        rollTo.raf = requestAnimationFrame(step);
-        animate(el, [{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.35 }, { transform: 'scale(1)' }], 520);
+        el.rollRaf = requestAnimationFrame(step);
+        if (pop) animate(el, [{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.35 }, { transform: 'scale(1)' }], 520);
     }
 
     function cheer(meter) {
@@ -728,14 +732,61 @@ export function startSlot(cfg) {
         }
     }
 
+    // ---- The tumble-win plaque (layouts that have one, on the frame's top edge) ----------------
+    // While a spin's tumbles pay, it counts their win up; between spins it turns through the
+    // game's headlines (the max win, what scatters bring).
+
+    const tumble = $('tumble-win');
+    const tumbleLabel = $('tumble-label');
+    let tumbleIdle = 0;
+
+    function tumbleShow(units) {
+        if (!tumble) return;
+        clearInterval(tumbleIdle);
+        tumble.closest('.tumble')?.classList.toggle('lit', units > 0n);
+        if (units <= 0n) {
+            tumbleLabel.textContent = 'TUMBLE WIN';
+            tumble.textContent = '';
+            return;
+        }
+        tumbleLabel.textContent = 'TUMBLE WIN';
+        if (state.quick) tumble.textContent = shown(units);
+        else rollTo(tumble, toUnits(tumble.textContent.replace(/,/g, '')) ?? 0n, units, false);
+    }
+
+    function tumbleHeadlines() {
+        if (!tumble) return;
+        clearInterval(tumbleIdle);
+        const r = cfg.rules ?? {};
+        const lines = [
+            r.max_win ? ['WIN UP TO', `${Number(r.max_win).toLocaleString('en')}×`] : null,
+            r.free_spins ? [`${r.free_spins.trigger_scatters} SCATTERS PAY`, `${r.free_spins.awarded} FREE SPINS`] : null,
+            ...(theme.text?.headlines ?? []),
+            canSuper ? [(theme.text?.superBuy ?? 'Super buy').toUpperCase(), `STARTS AT ×${r.free_spins?.super_buy_tide}`] : null,
+        ].filter(Boolean);
+        let i = 0;
+        const show = () => {
+            const [label, value] = lines[i++ % lines.length];
+            tumbleLabel.textContent = label;
+            tumble.textContent = value;
+            if (!reducedMotion) animate(tumble.closest('.tumble'), [{ opacity: 0.35 }, { opacity: 1 }], 380);
+        };
+        tumble.closest('.tumble')?.classList.remove('lit');
+        if (!lines.length) return;
+        show();
+        tumbleIdle = setInterval(show, 3600);
+    }
+
     async function playSpin(spin, alreadyCleared) {
         if (!alreadyCleared) await dropOut();
+        tumbleShow(0n);
         await dropIn(spin.start);
         await wait(spin.steps.length ? 120 : 60);
         let line = 0;
         for (const [i, step] of spin.steps.entries()) {
             await playStep(step, i);
             line += step.pays;
+            tumbleShow(winAmount(state.bet, line));
             if (!spin.free) showWin(winAmount(state.bet, line));
         }
         // A spin's line win is multiplied by its multipliers' sum, or with a tide by the tide.
@@ -757,12 +808,14 @@ export function startSlot(cfg) {
             if (state.auto > 0 && state.autoStopOnFeature) stopAuto();
             sfx('fsStart');
             hostReact('free');
-            await dialog(plaque('free-spins', `<div class="huge">${base.awarded}</div>
+            // A super buy says what its multiplier starts at.
+            const head = p.tideStart ? `<p class="note"><strong>${theme.text?.tideName ?? 'The multiplier'} starts at ×${p.tideStart}</strong></p>` : '';
+            await dialog(plaque('free-spins', `<div class="huge">${base.awarded}</div>${head}
                 <p class="note">${theme.text?.freeSpins ?? 'Sugar stars land in free spins and multiply every winning spin.'}</p>`), {
                 button: 'Start', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0,
             });
             document.body.classList.add('free');
-            await kit?.freeSpins?.(true);
+            await kit?.freeSpins?.(true, p);
             let awarded = base.awarded;
             let fsWin = 0n;
             hud(0, awarded, 0n);
@@ -783,11 +836,11 @@ export function startSlot(cfg) {
                 { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
             document.body.classList.remove('free');
             $('fs-hud').hidden = true;
-            await kit?.freeSpins?.(false);
+            await kit?.freeSpins?.(false, p);
         }
 
         // Celebrated against what the player paid: a bought feature returning 94× its 100× price is no big win.
-        const tier = p.maxWin ? 'max' : winTier(Math.floor((p.total * 100) / Number(COST[p.mode] ?? 100n)));
+        const tier = p.maxWin ? 'max' : winTier(Math.floor((p.total * 100) / Number(COSTS[p.mode] ?? 100n)));
         if (tier !== 'none') await bigWin(tier, winAmount(state.bet, p.total));
     }
 
@@ -960,13 +1013,13 @@ export function startSlot(cfg) {
             skip();
             return;
         }
-        const amount = stake(state.bet, mode);
+        const amount = stake(state.bet, mode, COSTS);
         if (state.balance !== null && toUnits(state.balance) < toUnits(amount)) {
             toast('Not enough balance for this bet.');
             stopAuto();
             return;
         }
-        if (!affordable(state.bet, mode, state.limits)) {
+        if (!affordable(state.bet, mode, state.limits, COSTS)) {
             toast('This bet is over the maximum stake.');
             stopAuto();
             return;
@@ -1031,6 +1084,8 @@ export function startSlot(cfg) {
         balance();
         controls();
         hostRest();
+        clearTimeout(spin.headlines);
+        spin.headlines = setTimeout(() => { if (!state.busy) tumbleHeadlines(); }, 5000);
         if (state.auto > 0) {
             state.auto -= 1;
             controls();
@@ -1084,16 +1139,21 @@ export function startSlot(cfg) {
         $('ante-btn').setAttribute('aria-pressed', String(state.ante));
         $('ante-btn').disabled = state.busy;
         $('ante-box').hidden = !features.ante;
-        const buyCost = stake(state.bet, 'buy');
-        $('buy-cost').textContent = shown(buyCost);
-        $('buy-box').hidden = !features.buy;
-        $('buy-btn').disabled = !connected || state.busy || state.ante || !affordable(state.bet, 'buy', state.limits);
-        // Say why the feature can't be bought (not while a spin is playing: that passes).
-        const reason = state.ante ? 'Switch the ante bet off to buy.'
-            : (!affordable(state.bet, 'buy', state.limits) ? 'Above your maximum stake: lower the bet to buy.' : '');
-        $('buy-btn').title = reason;
-        $('buy-note').textContent = reason;
-        $('buy-note').hidden = !reason;
+        // The buy, and a super buy where the game has one: what it costs at this bet, and why it
+        // can't be bought right now (not while a spin is playing: that passes).
+        for (const [mode, offered] of [['buy', features.buy], ['super', canSuper]]) {
+            const box = $(`${mode}-box`);
+            if (!box) continue;
+            box.hidden = !offered;
+            if (!offered) continue;
+            $(`${mode}-cost`).textContent = shown(stake(state.bet, mode, COSTS));
+            const fits = affordable(state.bet, mode, state.limits, COSTS);
+            $(`${mode}-btn`).disabled = !connected || state.busy || state.ante || !fits;
+            const reason = state.ante ? 'Switch the ante bet off to buy.' : (!fits ? 'Above your maximum stake: lower the bet to buy.' : '');
+            $(`${mode}-btn`).title = reason;
+            $(`${mode}-note`).textContent = reason;
+            $(`${mode}-note`).hidden = !reason;
+        }
     }
 
     function stepBet(dir) {
@@ -1171,12 +1231,16 @@ export function startSlot(cfg) {
         betList.style.setProperty('--tx', `${Math.round(Math.max(18, Math.min(w - 18, r.left + r.width / 2 - left)))}px`);
     }
 
-    async function buy() {
+    /** Buys the feature ('buy'), or a super buy ('super': its multiplier starts above 0). */
+    async function buy(mode = 'buy') {
         if (state.busy) return;
-        const cost = stake(state.bet, 'buy');
-        const ok = await dialog(plaque('free-spins', `<div class="huge">10</div>
-            <p class="note">for <strong>${shown(cost)} ${state.currency}</strong> (100× your bet of ${shown(state.bet)})</p>`), { button: 'Buy', cancel: 'Cancel', cls: 'plaque' });
-        if (ok === '1') spin('buy');
+        const cost = stake(state.bet, mode, COSTS);
+        const price = (Number(COSTS[mode]) / 100).toLocaleString('en');
+        const start = mode === 'super' && cfg.rules?.free_spins?.super_buy_tide
+            ? `<p class="note"><strong>${theme.text?.tideName ?? 'The multiplier'} starts at ×${cfg.rules.free_spins.super_buy_tide}</strong></p>` : '';
+        const ok = await dialog(plaque('free-spins', `<div class="huge">${cfg.rules?.free_spins?.awarded ?? 10}</div>${start}
+            <p class="note">for <strong>${shown(cost)} ${state.currency}</strong> (${price}× your bet of ${shown(state.bet)})</p>`), { button: 'Buy', cancel: 'Cancel', cls: 'plaque' });
+        if (ok === '1') spin(mode);
     }
 
     async function autoplay() {
@@ -1216,9 +1280,11 @@ export function startSlot(cfg) {
             <h3>How it plays</h3>
             <ul><li>8 or more of a symbol anywhere on the ${r.grid?.columns}×${r.grid?.rows} grid win.</li>
             <li>Winning symbols burst, the rest fall, and new ones drop in; this repeats while there are wins.</li>
-            <li>In free spins, sugar stars (2× to 100×) land on the grid. When a free spin's tumbles end with a win, the stars' values add up and multiply it.</li>
+            ${(theme.text?.multipliers ?? ['In free spins, sugar stars (2× to 100×) land on the grid. When a free spin\'s tumbles end with a win, the stars\' values add up and multiply it.'])
+        .map((line) => `<li>${line}</li>`).join('')}
             ${features.ante ? `<li>Ante bet: your stake is 1.25× the bet and free spins come ${theme.text?.anteOften ?? 'about 1.75× as often'}.</li>` : ''}
             ${features.buy ? '<li>Buy free spins: 100× the bet starts the feature at once.</li>' : ''}
+            ${canSuper ? `<li>${theme.text?.superBuy ?? 'Super buy'}: ${(Number(COSTS.super) / 100).toLocaleString('en')}× the bet starts the feature at once, with ${(theme.text?.tideName ?? 'the multiplier').toLowerCase()} already at ×${r.free_spins?.super_buy_tide}.</li>` : ''}
             <li>Maximum win: ${Number(r.max_win).toLocaleString()}× the bet; the round ends when it is reached.</li>
             <li>Return to player: ${(Number(r.rtp) * 100).toFixed(2)}%.</li>
             ${state.limits?.max_win ? `<li>Your casino pays at most ${shown(state.limits.max_win)} ${state.currency} per bet.</li>` : ''}</ul>
@@ -1266,7 +1332,7 @@ export function startSlot(cfg) {
             : { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         const tags = [
             d.mode === 'ante' ? '<span class="tag">Ante</span>' : '',
-            d.mode === 'buy' ? '<span class="tag">Bought</span>' : '',
+            d.mode === 'buy' ? '<span class="tag">Bought</span>' : d.mode === 'super' ? '<span class="tag">Super</span>' : '',
             d.free_spins > 0 ? `<span class="tag fs">${Number(d.free_spins)} free spins</span>` : '',
             d.max_win ? '<span class="tag max">Max win</span>' : '',
             b.status === 'refunded' ? '<span class="tag">Refunded</span>' : '',
@@ -1280,7 +1346,7 @@ export function startSlot(cfg) {
             </summary>
             <dl>
                 <dt>Bet ID</dt><dd>${esc(b.bet_id)}</dd>
-                ${d.bet ? `<dt>Bet</dt><dd>${shown(d.bet)} ${esc(b.currency)}${d.mode && d.mode !== 'base' ? ` (${d.mode === 'buy' ? 'bought free spins' : 'ante'}: stake ${shown(b.amount)})` : ''}</dd>` : ''}
+                ${d.bet ? `<dt>Bet</dt><dd>${shown(d.bet)} ${esc(b.currency)}${d.mode && d.mode !== 'base' ? ` (${{ buy: 'bought free spins', super: 'super buy' }[d.mode] ?? 'ante'}: stake ${shown(b.amount)})` : ''}</dd>` : ''}
                 <dt>Win</dt><dd>${won ? `${shown(b.payout_amount)} ${esc(b.currency)}` : 'No win'}</dd>
                 ${f ? `<dt>Nonce</dt><dd>${esc(f.nonce)}</dd><dt>Client seed</dt><dd class="mono">${esc(f.client_seed)}</dd><dt>Server seed hash</dt><dd class="mono">${esc(f.server_seed_hash)}</dd>` : ''}
             </dl></details>`;
@@ -1350,7 +1416,8 @@ export function startSlot(cfg) {
         sfx('click');
         controls();
     });
-    $('buy-btn').addEventListener('click', buy);
+    $('buy-btn').addEventListener('click', () => buy('buy'));
+    $('super-btn')?.addEventListener('click', () => buy('super'));
     $('auto-btn').addEventListener('click', autoplay);
     $('turbo-btn').addEventListener('click', () => {
         state.turbo = !state.turbo;
@@ -1611,12 +1678,23 @@ export function startSlot(cfg) {
         return null;
     }
 
+    /** A named point of a host pose (theme.host[pose][name]: x, y of the image, e.g. a fist) on screen, or null. */
+    function hostPoint(pose, name) {
+        const p = theme.host?.[pose]?.[name];
+        if (!p) return null;
+        for (const fig of hostFigs) {
+            const r = fig.dataset.pose === pose ? fig.getBoundingClientRect() : null;
+            if (r?.width) return { x: r.left + p.x * r.width, y: r.top + p.y * r.height };
+        }
+        return null;
+    }
+
     /** What a theme's kit gets (see `kit`). */
     function kitApi() {
         return {
             state, theme, cfg, $, board, fx, stage, canvas, reducedMotion, COLS, ROWS, MULTIPLIER, SCATTER,
             rand, easeOut, linear, dur, wait, animate, sfx, emit, sprite, gridPoint, cellBox, cellOnScreen, centre, shake, floatText,
-            hostShow, hostReact, hostTip, shown, winAmount, starTier: (v) => starTier(v, theme.tiers ?? undefined),
+            hostShow, hostReact, hostTip, hostPoint, shown, winAmount, starTier: (v) => starTier(v, theme.tiers ?? undefined),
         };
     }
 
@@ -1976,6 +2054,7 @@ export function startSlot(cfg) {
     balance();
     controls();
     hostRest();
+    tumbleHeadlines();
     if (theme.effects?.dew !== false) setTimeout(dewLoop, 2500);
 
     if (!cfg.embedded) {

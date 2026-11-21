@@ -13,13 +13,21 @@
     // How much more often the ante brings free spins: measured per model (docs/slots/*-maths.md).
     $anteOften = (string) ($theme['text']['anteOften'] ?? 'about 1.75× as often');
     // The intro's two medallions beside the logo: the gold multiplier and the rarest one.
-    $introStars = [$theme['stars']['gold'] ?? '', $theme['stars'] === [] ? '' : (string) end($theme['stars'])];
+    $introStars = $theme['introStars'] ?? [$theme['stars']['gold'] ?? '', $theme['stars'] === [] ? '' : (string) end($theme['stars'])];
     // The host (the Queen Bee) starts in her idle pose; slot-game.js swaps the pose and its variables.
     $hostPoses = (array) ($theme['host'] ?? []);
     $host = $hostPoses['idle'] ?? null;
     $hostWing = $theme['hostWing'] ?? null;
     $hostStyle = static fn (array $p): string => sprintf('--cx: %s; --ar: %s; --k: %s; --wx: %s; --wy: %s; --wh: %s', $p['cx'], $p['ar'], $p['k'] ?? 1,
-        $p['wing']['x'] ?? 0, $p['wing']['y'] ?? 0, $p['wing']['h'] ?? 0).($hostWing ? "; --rx: {$hostWing['rx']}; --war: {$hostWing['ar']}" : '');
+        $p['wing']['x'] ?? 0, $p['wing']['y'] ?? 0, $p['wing']['h'] ?? 0).($hostWing ? "; --rx: {$hostWing['rx']}; --war: {$hostWing['ar']}" : '')
+        // A full-length host (the throne layout): where the soles of the feet are, of the image's height.
+        .(isset($p['feet']) ? "; --fy: {$p['feet']}" : '');
+    // The screen's arrangement: "classic" (the host above the feature panels, the logo on the
+    // frame) or "throne" (feature cards on the left, a tumble-win plaque on the frame, the host
+    // full-length on the right under the logo). See games/slot/layouts/.
+    $layout = (string) ($theme['layout'] ?? 'classic');
+    // A super buy, where the model has one (the game may still switch it off: features.super).
+    $hasSuper = array_key_exists('super', (array) ($rules['features'] ?? []));
     // Her worker bees fly only beside her (they leave her palm).
     $hostBee = $host ? ($theme['hostBee'] ?? null) : null;
 
@@ -674,11 +682,12 @@
             .host-fig { transform: none; }
             .bees { display: none; }
         }
+        @includeIf("games.slot.layouts.{$layout}")
         @includeIf("games.slot.themes.{$themeKey}.style")
     </style>
     <script src="{{ $v("js/orange/sound-{$theme['sound']}.js") }}"></script>
 </head>
-<body>
+<body class="layout-{{ $layout }}">
 <div class="bg day"></div>
 <div class="bg night"></div>
 <div class="scenery" aria-hidden="true">
@@ -698,8 +707,8 @@
     </header>
 
     <section class="play">
-        <aside @class(['side', 'with-host' => $host])>
-            @if ($host)
+        <aside @class(['side', 'with-host' => $host && $layout === 'classic'])>
+            @if ($host && $layout === 'classic')
                 <div class="host" aria-hidden="true">
                     @include('games.slot.host-figs')
                 </div>
@@ -714,6 +723,18 @@
                 </button>
                 <p id="buy-note" class="feature-note" hidden></p>
             </div>
+            @if ($hasSuper)
+                <div id="super-box" class="feature super-buy" hidden>
+                    <button id="super-btn" class="buy" disabled>
+                        <img class="buy-icon" src="{{ $theme['symbols']['S']['img'] }}" alt="">
+                        <span class="buy-text">
+                            <span class="buy-title">{{ $theme['text']['superBuy'] ?? 'Super buy' }}</span>
+                            <span class="buy-price"><span id="super-cost">—</span> <span data-currency></span></span>
+                        </span>
+                    </button>
+                    <p id="super-note" class="feature-note" hidden></p>
+                </div>
+            @endif
             <div id="ante-box" class="feature ante" hidden>
                 <div>
                     <span class="feature-title">Ante bet</span>
@@ -732,6 +753,12 @@
                 <div class="fp fp-m"></div>
                 <img class="fp fp-r" src="{{ $theme['frame']['pieces']['right'] }}" alt="">
                 <img class="logo logo-frame" src="{{ $theme['logo'] }}" alt="">
+                @if ($layout === 'throne')
+                    {{-- On the frame's top edge: the tumble win while a spin pays, the game's headlines between spins. --}}
+                    <div class="tumble" aria-live="polite">
+                        <small id="tumble-label">TUMBLE WIN</small><b id="tumble-win"></b>
+                    </div>
+                @endif
                 @if ($host)
                     <div class="host-peek" aria-hidden="true">
                         @include('games.slot.host-figs')
@@ -740,6 +767,20 @@
                 <canvas id="fxc" class="fxc"></canvas>
             </div>
         </div>
+        @if ($layout === 'throne')
+            {{-- The logo, and the host standing full-length on his rock, facing the grid. --}}
+            <aside class="throne">
+                <img class="logo logo-throne" src="{{ $theme['logo'] }}" alt="">
+                @if ($host)
+                    <div class="host" aria-hidden="true">
+                        @if (! empty($theme['pedestal']))
+                            <img class="pedestal" src="{{ $theme['pedestal'] }}" alt="">
+                        @endif
+                        @include('games.slot.host-figs')
+                    </div>
+                @endif
+            </aside>
+        @endif
     </section>
 
     <footer class="bar">

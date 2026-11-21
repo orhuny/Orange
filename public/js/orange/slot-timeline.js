@@ -121,6 +121,8 @@ export function plan(outcome) {
 
     return {
         mode: outcome.mode ?? 'base',
+        // A super buy's free spins start with the tide here (null otherwise).
+        tideStart: outcome.tide_start ?? null,
         spins,
         total: hundredths(outcome.total_win_x),
         freeSpins: outcome.free_spins ?? 0,
@@ -163,11 +165,24 @@ export function money(value) {
     return `${units / SCALE}.${String((units % SCALE) / 1_000_000n).padStart(2, '0')}`;
 }
 
-/** What a mode's stake costs for a bet: base 1×, ante 1.25×, buy 100×. */
+/** What a mode's stake costs for a bet, in hundredths of it: base 1×, ante 1.25×, buy 100×. */
 export const COST = Object.freeze({ base: 100n, ante: 125n, buy: 10_000n });
 
-export function stake(bet, mode) {
-    return fromUnits((toUnits(bet) * COST[mode]) / 100n);
+/**
+ * The costs a game publishes (rules.costs: mode → "1.00", "100.00", a super buy's price…) over
+ * COST, in hundredths of the bet. A super buy is priced per game, so only its rules know it.
+ */
+export function costsFrom(published = {}) {
+    const out = { ...COST };
+    for (const [mode, x] of Object.entries(published ?? {})) {
+        const h = hundredths(x);
+        if (h > 0) out[mode] = BigInt(h);
+    }
+    return Object.freeze(out);
+}
+
+export function stake(bet, mode, costs = COST) {
+    return fromUnits((toUnits(bet) * costs[mode]) / 100n);
 }
 
 /** A win in hundredths of the bet, as money for that bet. */
@@ -190,9 +205,9 @@ export function playableSteps(steps, limits = {}) {
 }
 
 /** Whether a mode's stake for this bet fits under the max bet. */
-export function affordable(bet, mode, limits = {}) {
+export function affordable(bet, mode, limits = {}, costs = COST) {
     const max = limits?.max_bet ? toUnits(limits.max_bet) : null;
-    return max === null || toUnits(stake(bet, mode)) <= max;
+    return max === null || toUnits(stake(bet, mode, costs)) <= max;
 }
 
 /** Sugar Orchard's star colours: [from value, tier], highest first. */

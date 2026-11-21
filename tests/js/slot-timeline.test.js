@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-    affordable, cellsOf, formatX, fromUnits, hundredths, money, parseGrid, plan, playableSteps, stake, starTier, toUnits, tumble, winAmount, winTier,
+    affordable, cellsOf, costsFrom, formatX, fromUnits, hundredths, money, parseGrid, plan, playableSteps, stake, starTier, toUnits, tumble, winAmount, winTier,
 } from '../../public/js/orange/slot-timeline.js';
 
 // A real outcome from the server (seed orange-slot-seed-0005 / player-seed, nonce 1, base):
@@ -117,6 +117,27 @@ describe('money', () => {
         expect(affordable('1.00', 'buy', { max_bet: '100' })).toBe(true);
         expect(affordable('2.00', 'buy', { max_bet: '100' })).toBe(false);
         expect(affordable('2.00', 'buy', {})).toBe(true);
+    });
+
+    it('prices a super buy from the published costs of the game', () => {
+        const costs = costsFrom({ base: '1.00', ante: '1.25', buy: '100.00', super: '179.00' });
+
+        expect(costs.super).toBe(17_900n);
+        expect(costs.buy).toBe(10_000n);
+        expect(stake('0.20', 'super', costs)).toBe('35.80');
+        expect(stake('1.00', 'super', costs)).toBe('179.00');
+        expect(affordable('1.00', 'super', { max_bet: '150' }, costs)).toBe(false);
+        expect(affordable('0.80', 'super', { max_bet: '150' }, costs)).toBe(true);
+        // Nothing published (an old page's rules): the fixed costs.
+        expect(costsFrom(undefined).buy).toBe(10_000n);
+        expect(costsFrom({}).super).toBeUndefined();
+    });
+
+    it('knows where the tide of a super buy starts', () => {
+        const outcome = { mode: 'super', tide_start: 10, spins: [], total_win_x: '0.00', free_spins: 0, max_win_reached: false };
+
+        expect(plan(outcome).tideStart).toBe(10);
+        expect(plan({ ...outcome, mode: 'buy', tide_start: undefined }).tideStart).toBeNull();
     });
 });
 

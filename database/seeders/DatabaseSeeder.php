@@ -94,6 +94,8 @@ class DatabaseSeeder extends Seeder
         if (app()->environment(['local', 'testing'])) {
             // Trident of Poseidon, the second slot (its own seeder, also run on its own elsewhere).
             $this->call(TridentOfPoseidonSeeder::class);
+            // Stones of the Titan, the third slot (likewise).
+            $this->call(StonesOfTheTitanSeeder::class);
 
             // Lucky Duck: a second crash game (its own rounds) in the marsh scene. Local only:
             // in production it is created in the admin panel (docs/adding-a-game.md §5).
