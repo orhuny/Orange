@@ -141,12 +141,17 @@
                board sits at the bottom of its room (its bottom band just above the cards). */
             .layout-throne .top { align-items: flex-start; padding-left: 2vw; }
             .layout-throne .frame { place-items: end center; }
-            .layout-throne .board-wrap { margin-bottom: calc(var(--bw) * 5 / 6 * var(--ky)); }
-            /* His top half over the frame's top-right corner, facing the grid, from the top of
-               the screen down to the grid's top edge: the room above the board (its container's
-               height less the board and its bottom band) plus the logo's row. He stands in front
-               of the frame's top band, cut at the grid's edge, so he never covers a symbol. */
-            .layout-throne .host-peek { z-index: 4; left: auto; right: -10%; width: 66%;
+            /* A slightly narrower grid than the classic phone layout's (92% of the width), so
+               the frame sits lower and more of the Titan shows above it. */
+            .layout-throne .board-wrap { --bw: min(92cqw, calc(120cqh / (1 + 2 * var(--ky))), 640px); margin-bottom: calc(var(--bw) * 5 / 6 * var(--ky)); }
+            @supports (width: round(down, 10.5px, 1px)) {
+                .layout-throne .board-wrap { width: round(down, var(--bw), 6px); }
+            }
+            /* His top half behind the frame's top-right corner, facing the grid, from the top of
+               the screen down to the grid's top edge (the room above the board, its container's
+               height less the board and its bottom band, plus the logo's row). The frame's top
+               band hides where he is cut, so he seems to stand behind the grid. */
+            .layout-throne .host-peek { left: auto; right: -10%; width: 66%;
                                         height: min(50vh, calc(100cqh - var(--bw) * 5 / 6 * (1 + var(--ky)) + var(--top))); }
             .layout-throne .host-peek .host-fig { left: auto; right: 0; bottom: calc(100% - 100% / .5); height: calc(100% / .5 * var(--k, 1));
                                                    translate: none; transform-origin: 60% 100%; }
