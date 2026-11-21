@@ -2,11 +2,17 @@
 
 Audience: whoever generates the art for Tutti Frutti. Every prompt below is complete; copy it as is.
 
-**Name:** Tutti Frutti (code `tutti-frutti`), the user's choice on 2026-11-21. Only `txt-logo` carries the name.
+**Name:** Tutti Frutti (code `tutti-frutti`), the user's choice, confirmed on 2026-11-21. Only `txt-logo` carries the name.
+
+**The game:** a **lines** game. Five reels and four rows, 40 fixed lines, and fruit that matches along a line from the left pays. That makes it our first slot that isn't pay-anywhere.
 
 ## The look in one paragraph
 
-The game is set in **a glamorous beach club on the Italian Riviera, in high summer**. In the base game it is noon: a white terrace with a turquoise infinity pool above a sparkling bay, pastel villas stacked up the cliffs, hot-magenta bougainvillea, palms, and a clear azure sky. Free spins are **the Neon Night**: the same terrace after dark, with the pool lit from below, neon signs shaped like fruit, party lights strung between the palms, and heart-shaped fireworks over the sea. The host is **Bella**, the club's hostess: a glamorous, flirtatious pin-up in a hot-pink halter dress, holding the house cocktail. She stands full-length on a tiled podium to the right of the grid. The symbols are **nine exotic fruits, and only fruit**. Wins are **sliced and squeezed**: a slash of light cuts each winning fruit into two juicy halves, and juice splashes in its own colour. Multipliers are **kisses**, heart-shaped enamel lockets with a lipstick print. In free spins they fill **Amore**, a big heart above the grid.
+The game is set in **a glamorous beach club on the Italian Riviera, in high summer**. In the base game it is noon: a white terrace with a turquoise infinity pool above a sparkling bay, pastel villas stacked up the cliffs, hot-magenta bougainvillea, palms, and a clear azure sky. Free spins are **the Neon Night**: the same terrace after dark, with the pool lit from below, neon signs shaped like fruit, party lights strung between the palms, and heart-shaped fireworks over the sea. Two hostesses run the club and flank the reels, each on her own tiled podium:
+- **Marina**, a copper-haired siren in turquoise, stands on the left with a gold cocktail shaker.
+- **Bella**, a jet-black-haired pin-up in hot pink, stands on the right with the house cocktail.
+
+The symbols are **nine exotic fruits, and only fruit**. The wild is **the kiss**, a heart-shaped enamel locket with a lipstick print, which can carry a multiplier. In free spins every kiss fills **Amore**, a big heart that multiplies every win.
 
 **The style, which is the user's main ask:** crisp and sharp like a top mobile game. That means bold, simple, glossy shapes, juicy saturated colours, a thin clean contour on every fruit, and bright clean sunlight. There is no haze, no bokeh, no depth-of-field blur and no painterly softness, in the symbols and in the backgrounds alike.
 
@@ -16,36 +22,35 @@ Tutti Frutti must not look or feel like Sugar Orchard. Keep these differences in
 
 | | Sugar Orchard | Tutti Frutti |
 |---|---|---|
+| How it pays | 6×5, any 8+ of a fruit anywhere, tumbles | 5×4, 40 lines, 3+ of a fruit along a line |
 | Place and light | a candy orchard at golden hour, warm haze | a Riviera beach club at noon: turquoise, azure, white, hot pink |
 | Free spins | the orchard at night, lanterns and fireflies | the Neon Night: neon fruit signs, a lit pool, heart fireworks |
 | Style | painterly, photoreal, soft light | crisp glossy stylised 3D with a clean contour, sharp everywhere |
 | Symbols | four candies and five orchard fruits | nine exotic fruits, no candy at all |
-| A win | frost crust, then a sugar explosion | a slash of light, two juicy halves, a juice splash |
-| Multipliers | candy stars | kiss lockets: enamel hearts with a lipstick print |
-| Scatter | a fruit-and-sweets basket with a bow | the house cocktail in a gold-stemmed coupe |
-| Host | the Queen Bee: brown waves, honey-gold gown, tiara, wings | Bella: jet-black ponytail, hot-pink mini halter dress, no wings, no crown |
-| Host's helpers | worker bees | none: her kisses |
-| Screen | the host's upper body on the left | the host full-length on the right (the "throne" layout) |
+| A win | frost crust, then a sugar explosion | the line lights up, and its fruit bounce and burst with juice in their own colour |
+| Special symbols | candy stars (multipliers) | kiss lockets (wilds, some with a multiplier) and the house cocktail (scatter) |
+| Host | the Queen Bee: brown waves, honey-gold gown, tiara, wings, upper body on the left | two hostesses, full-length on both sides: Marina (copper hair, turquoise) and Bella (jet black, hot pink) |
 
 ## How the art becomes the game
 
-**A win:**
-1. Bella winks and flicks her finger at the grid (`char-bella-wink`).
-2. A crisp slash of light swipes across each winning fruit (`fx-slash`). The fruit falls apart into its two juicy halves (`cut-*`), which slide apart and tumble away.
-3. Juice bursts out in the fruit's own colour (`fx-splash`, tinted per fruit by code), and drops fly and fall with gravity (`fx-droplets`). A glint flashes on the cut (`fx-twinkle`).
-4. New fruit drops in from above and lands with a glossy bounce.
+**The screen:** the reels sit in the centre in their frame (`ui-frame`), with the logo above them. Marina stands full-length on the left and Bella on the right, each on a podium (`fg-podium`). The game marks the 40 lines on the frame's two side bands. The buy badge (`ui-buy-badge`) sits at the bottom left, and the spin button (`ui-spin`) on the bar.
 
-**The kisses (multipliers):**
-1. A kiss locket lands on a cell with a pop (`sym-m-kiss-*`). The game prints its value on the locket.
-2. When a winning tumble chain ends, Bella blows a kiss (`char-bella-kiss`). The lockets lift off the grid and fly to her on a trail of tiny hearts (`fx-heart-trail`).
-3. She sends one big kiss into the win, which bursts in hearts (`fx-heart-burst`) and jumps.
-4. In free spins the kiss flies into **Amore** (`ui-amore-heart`) instead. The game fills the heart with glowing pink, and its total multiplies every later winning free spin.
+**A line win:**
+1. The game draws each winning line across the reels as a glowing ribbon in its own colour, with a sparkle running along it (`fx-twinkle`).
+2. The fruit on the line bounce with a glossy squash and stretch, and each bursts with juice in its own colour behind it (`fx-splash`, tinted per fruit by code). Drops fly and fall with gravity (`fx-droplets`).
+3. The win rises in the bar. Marina cheers (`char-marina-cheer`), and on a good win Bella winks (`char-bella-wink`).
+
+**The kiss (wild):**
+1. A kiss locket substitutes for every fruit. The game writes WILD on it, and its value when it carries one: 2×, 3× or 5×, each in its own colour (`sym-m-kiss-*`).
+2. When a line wins with a multiplier kiss, Bella blows a kiss (`char-bella-kiss`). A trail of tiny hearts flies from her to the locket (`fx-heart-trail`), and the line win bursts in hearts (`fx-heart-burst`) as it multiplies.
+3. In free spins every kiss that lands flies into **Amore** (`ui-amore-heart`). The game fills the heart with glowing pink, and Amore multiplies every win until the free spins end.
 
 **Celebrations:**
-- **Big wins:** a wave of glittering pink, turquoise and gold light sweeps the screen (`fx-sweep`). Confetti, paper parasols, fruit slices and gold heart coins rain down (`fx-confetti`). Bella dances (`char-bella-dance`), and the screen shakes more with each tier.
-- **Free spins:** Bella raises her sparkler cocktail (`char-bella-party`). The sun sets in a fast time-lapse, the neon signs flicker on, heart fireworks burst over the bay (`fx-firework-heart`), and FREE SPINS lights up in neon.
-- **Scatters:** each cocktail that lands flashes a sunburst (`fx-sunburst`). Once three are down, the remaining columns slow down to a drumroll.
-- **The scene is alive:** the sea glitters and the pool water ripples. Tropical leaves sway in the lower corners (`fg-tropical`). Bella sways gently on her podium (`fg-podium`). At night the neon flickers and fireworks go off now and then. Code draws the glitter, the ripples and the flicker.
+- **Scatters:** each cocktail that lands flashes a sunburst (`fx-sunburst`). Once two are down, Marina shakes her cocktail shaker (`char-marina-shake`) and the last reels spin longer to a drumroll.
+- **Free spins:** both hostesses start the party (`char-marina-party`, `char-bella-party`). The sun sets in a fast time-lapse, the neon signs flicker on, heart fireworks burst over the bay (`fx-firework-heart`), and FREE SPINS lights up in neon.
+- **Big wins:** a wave of glittering pink, turquoise and gold light sweeps the screen (`fx-sweep`). Confetti, paper parasols, fruit and gold heart coins rain down (`fx-confetti`). Both hostesses dance (`char-*-dance`), and the screen shakes more with each tier.
+- **Idle:** after a minute without a spin, both tease the player to spin again (`char-*-waiting`).
+- **The scene is alive:** the sea glitters and the pool ripples. Tropical leaves sway in the lower corners (`fg-tropical`). The hostesses sway gently. At night the neon flickers and fireworks go off now and then. Code draws the glitter, the ripples and the flicker.
 
 **What code does and what art does:** the animation is code. The art supplies the pieces it animates: layered stills, particles and light. Image models can't draw a consistent frame-by-frame sequence, so **never ask for sprite sheets or animation frames**.
 
@@ -53,11 +58,12 @@ Tutti Frutti must not look or feel like Sugar Orchard. Keep these differences in
 
 1. **One prompt per request.** Never ask for several assets at once. If you do, the tool falls back to flat vector art.
 2. **Set the style first.**
-   - Generate `sym-a-peach` until you love it, then attach it as a style reference to every other symbol, kiss, cut, UI and lettering prompt.
-   - Generate `char-bella-idle` until you love her, then attach her to every other pose.
+   - Generate `sym-a-peach` until you love it, then attach it as a style reference to every other symbol, kiss, UI and lettering prompt.
+   - Generate `char-bella-idle` until you love her. Attach her to every other Bella pose, and attach her to `char-marina-idle` too, for the finish only.
+   - Then generate `char-marina-idle` until you love her, and attach her to every other Marina pose.
    - Each prompt says what to attach. In Midjourney, use `--sref <image url>` for style and `--cref <image url>` for the character.
-3. **Five kinds of canvas.** Each prompt ends with one of these:
-   - **Transparent** (the default): a real transparent PNG. ChatGPT image can export one. This game is full of pink, magenta and purple (the peach, the dragon fruit, the fig, Bella's dress), so **never key a symbol, a pose or a card on magenta**.
+3. **Four kinds of canvas.** Each prompt ends with one of these:
+   - **Transparent** (the default): a real transparent PNG. ChatGPT image can export one. This game is full of pink, magenta and purple (the peach, the dragon fruit, the fig, Bella's dress), so **never key a symbol, a pose or a badge on magenta**.
    - **Magenta:** flat pure `#FF00FF`, only for the frame, which has no pink or purple on it. The script finds the frame's window by its magenta.
    - **Glow:** pure black `#000000`. These are light effects. The game adds them as light, so black disappears and the glow stays soft. Never generate a glow on magenta or transparency.
    - **Liquid:** white liquid on pure black (`fx-splash`, `fx-droplets`). The script turns the white into the liquid's shape and shading, and the game tints it with each fruit's colour, so one splash serves all nine fruits. Keep the liquid pure white: no colour.
@@ -69,35 +75,34 @@ Tutti Frutti must not look or feel like Sugar Orchard. Keep these differences in
 5. **Text:** only the `txt-*` assets contain text. Check every letter, and regenerate until the spelling is exact.
 6. **Delivery:** put the files, under the names below, in `C:\Git\Orange\storage\app\art\tutti-frutti\round1\`. The build script reads that folder.
    - When unsure, send 2–3 variants (`-a`, `-b`, `-c`). I pick the best one.
-   - Batches are fine. The symbols, Bella and the backgrounds first already change the whole look. The `cut-*` halves can come last: until they arrive, the game splits each fruit's own picture.
+   - Batches are fine. The symbols, the two hostesses and the backgrounds first already change the whole look.
 7. **Tools:**
-   - **ChatGPT image** is best for transparency, text, layouts and the character. Use it for `sym-*`, `cut-*`, `char-*`, `ui-*`, `txt-*` and `fx-confetti`.
+   - **ChatGPT image** is best for transparency, text, layouts and the characters. Use it for `sym-*`, `char-*`, `fg-podium`, `ui-*`, `txt-*` and `fx-confetti`.
    - **Midjourney** is richest for backgrounds and light effects. Add `--ar 16:9`, `--ar 9:16`, `--ar 2:1`, `--ar 21:9` or `--ar 1:1`, and move each prompt's "Avoid:" list into `--no`.
-8. **Bella is flirtatious, not explicit.** She is a glamorous summer pin-up: a figure-hugging dress, bare shoulders, a side slit, teasing looks, winks and blown kisses. She is always fully dressed. Never ask for lingerie, nudity, see-through fabric or explicit poses. Image tools refuse them, and regulated operators would reject the game; UK advertising rules, for one, forbid linking gambling to seduction or sexual attractiveness, and operators use the lobby tile in their marketing.
+8. **The hostesses are sexy, not explicit.** They are glamorous summer pin-ups: figure-hugging dresses, bare shoulders, high hems, teasing looks, winks and blown kisses. They are always fully dressed. Never ask for lingerie, swimwear, nudity, see-through fabric or explicit poses. Image tools refuse them, and regulated operators would reject the game; UK advertising rules, for one, forbid linking gambling to seduction or sexual attractiveness, and operators use the lobby tile in their marketing.
 9. **Keep it ours.** This game must not look like Sugar Orchard or like any other slot. Never generate any of these:
    - **Sugar Orchard's world:** candy, sweets, toffee, chocolate, caramel, sugar frost, gumballs, baskets, bows, orchards, golden-hour light, bees, honey, wings, tiaras, evening gowns.
    - **Sugar Orchard's fruit:** oranges, cherries, strawberries, lemons, kiwis.
-   - **Another famous fruit-and-candy slot's set:** bananas, grapes, watermelons, plums, apples, lollipops, rainbows, candy hearts, colourful bombs, red-and-white candy-cane stripes, pastel cotton-candy clouds.
-   - **For Bella:** a hat or turban piled with fruit (that is a famous real performer's signature look), or any resemblance to a real person, model or film character.
+   - **Other fruit slots' sets:** bananas, grapes, watermelons, plums, apples, lollipops, rainbows, candy hearts, colourful bombs, red-and-white candy-cane stripes, pastel cotton-candy clouds, lucky sevens, bells, bars, dollar signs, crowns, flames.
+   - **For the hostesses:** a hat or turban piled with fruit (that is a famous real performer's signature look), heart-shaped sunglasses, or any resemblance to a real person, model or film character.
    - **Names:** never put the name of a real person, film, song, brand or other game in any prompt.
 
 ### Order
 
 1. `sym-a-peach`: the style anchor.
 2. The other symbols, `sym-b` … `sym-i`, then `sym-s-cocktail` and the four `sym-m-kiss-*`.
-3. `char-bella-idle`: the character anchor. Then the other five poses and `fg-podium`.
+3. `char-bella-idle`, then `char-marina-idle`: the two character anchors. Then their other poses and `fg-podium`.
 4. `bg-day-landscape`, then the other three backgrounds and `fg-tropical`.
-5. `ui-frame`, `ui-tumble-plaque`, the three `ui-card-*`, `ui-spin`, `ui-plaque`, `ui-amore-heart`.
+5. `ui-frame`, `ui-buy-badge`, `ui-spin`, `ui-plaque`, `ui-amore-heart`.
 6. `txt-logo`, then the banners.
 7. The `fx-*` effects and `fx-confetti`.
-8. The nine `cut-*` halves.
-9. `key-thumbnail`.
+8. `key-thumbnail`.
 
 ---
 
 ## Symbols (square 1:1, transparent)
 
-The grid shows the symbols at about 60–120 px. Each one needs a bold, instantly readable silhouette and its own dominant colour.
+The reels show the symbols at about 70–150 px. Each one needs a bold, instantly readable silhouette and its own dominant colour.
 
 | Symbol | Rank | Dominant colour |
 |---|---|---|
@@ -113,9 +118,7 @@ The grid shows the symbols at about 60–120 px. Each one needs a bold, instantl
 
 The four high fruits are the lavish ones: a sparkle on the highlight, a dew drop, a leaf. The five low fruits are simpler and bolder.
 
-The game cuts a winning fruit in two, so **every symbol must be solid and opaque**, with crisp edges.
-
-Every symbol prompt ends with the same style block, so the set matches.
+Every symbol must be **solid and opaque**, with crisp edges. Every symbol prompt ends with the same style block, so the set matches.
 
 ### sym-a-peach.png · top symbol · generate first
 ```text
@@ -168,63 +171,90 @@ The page adds the word SCATTER over it as text, so the bottom fifth should stay 
 The scatter symbol: the house cocktail of a glamorous beach club. A wide, elegant coupe glass with a polished gold stem and a plain polished gold foot, brimming with a layered tropical cocktail in three bright bands (hot pink at the bottom, tangerine in the middle, sunny yellow on top), frosted with tiny bubbles. It is garnished with a wedge of pineapple and a lime wheel on the rim, a small pink paper cocktail parasol, and a lit gold sparkler throwing tiny bright stars. A glossy red lipstick kiss print sits on the rim of the glass. Clearly the most special and festive symbol: bigger, brighter and more radiant than any other. Straight front view; the lowest fifth is the plain gold foot. Match the style, lighting and finish of the attached image. Fills about 85% of the frame. Premium AAA slot game art in a crisp, glossy stylised 3D style like a top mobile game: bold simple shapes, smooth glossy surfaces, juicy saturated colours, a thin clean contour line around the silhouette, bright crisp white specular highlights, bright clean summer sunlight from the upper left, a soft turquoise bounce light from the right like light off the sea, tack-sharp edges everywhere, no blur, no depth of field, no film grain, no haze, high detail. No text, no cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole object is in frame with a clear margin.
 ```
 
-### Kiss lockets, the multipliers (4 colours by value) · attach sym-a
+### Kiss lockets, the wilds (4 colours) · attach sym-a
 
-The game prints the value, from 2× up to 500×, on the locket's face, so the face must be big and plain. There is one prompt per colour; only the colour sentence changes.
+The game writes WILD across the bottom of the locket and, on a multiplier kiss, its value in the middle. So the face must be big and plain. There is one prompt per colour; only the colour sentence changes.
 
-| File | Values | Colour sentence |
+| File | Use | Colour sentence |
 |---|---|---|
-| `sym-m-kiss-aqua.png` | 2×–5× | `glossy turquoise enamel` |
-| `sym-m-kiss-lime.png` | 6×–15× | `glossy lime-green enamel` |
-| `sym-m-kiss-pink.png` | 20×–50× | `glossy hot-pink enamel` |
-| `sym-m-kiss-gold.png` | 100×–500× | `mirror-polished gold, its rim set with a row of tiny sparkling white diamonds, the most dazzling and rare of the set` |
+| `sym-m-kiss-pink.png` | the plain wild | `glossy hot-pink enamel` |
+| `sym-m-kiss-aqua.png` | the 2× wild | `glossy turquoise enamel` |
+| `sym-m-kiss-lime.png` | the 3× wild | `glossy lime-green enamel` |
+| `sym-m-kiss-gold.png` | the 5× wild | `mirror-polished gold, its rim set with a row of tiny sparkling white diamonds, the most dazzling and rare of the set` |
 
 ```text
-A multiplier symbol: a plump, heart-shaped locket of glossy turquoise enamel with a smooth, polished gold rim and a small gold ring at its top, and a small glossy red lipstick kiss print on its upper left lobe. The heart's face is large, smooth and plain at its centre, where a number will be printed later: no number, no text. It is a piece of jewellery, not a sweet. Bold, round and compact. Straight front view, tilted very slightly. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art in a crisp, glossy stylised 3D style like a top mobile game: bold simple shapes, smooth glossy surfaces, juicy saturated colours, a thin clean contour line around the silhouette, bright crisp white specular highlights, bright clean summer sunlight from the upper left, a soft turquoise bounce light from the right, tack-sharp edges everywhere, no blur, no depth of field, no film grain, no haze, high detail. No cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole object is in frame with a clear margin.
+A wild symbol: a plump, heart-shaped locket of glossy hot-pink enamel with a smooth, polished gold rim and a small gold ring at its top, and a small glossy red lipstick kiss print on its upper left lobe. The heart's face is large, smooth and plain in its middle and lower part, where a word and a number will be printed later: no word, no number, no text. It is a piece of jewellery, not a sweet. Bold, round and compact. Straight front view, tilted very slightly. Match the style, lighting and finish of the attached image. Fills about 80% of the frame. Premium AAA slot game art in a crisp, glossy stylised 3D style like a top mobile game: bold simple shapes, smooth glossy surfaces, juicy saturated colours, a thin clean contour line around the silhouette, bright crisp white specular highlights, bright clean summer sunlight from the upper left, a soft turquoise bounce light from the right, tack-sharp edges everywhere, no blur, no depth of field, no film grain, no haze, high detail. No cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole object is in frame with a clear margin.
 ```
 
 ---
 
-## Bella, the game's host (2:3, transparent)
+## The two hostesses (2:3, transparent)
 
-She stands **full-length on the right of the grid**, turned toward it, on her podium (`fg-podium`). On a phone, the game shows her from the waist up over the frame's top-right corner, so her face, hair and hands must be crisp.
+They stand **full-length on both sides of the reels**, each turned toward them, on a podium (`fg-podium`):
+- **Marina** on the left, turned toward the right of the image;
+- **Bella** on the right, turned toward the left of the image.
 
-**How to generate:** use ChatGPT image, one request per image, on a transparent background. Generate `char-bella-idle` first. Then attach it to every other pose, so her face, hair, dress and jewellery stay identical. Regenerate a pose until it's clearly the same woman. Keep her feet at the same height and her body at the same size in every pose; the game stands each pose on the same podium.
+On a phone, the game shows both from the waist up over the frame's top corners, so their faces, hair and hands must be crisp.
 
-### char-bella-idle.png · the character anchor · attach sym-a
+They must look **clearly different from each other**:
+
+| | Marina (left) | Bella (right) |
+|---|---|---|
+| Hair | long, voluminous copper-red waves over one shoulder | sleek jet-black high ponytail with a hot-pink hibiscus |
+| Skin and eyes | fair, lightly sun-kissed, freckles; sapphire-blue eyes | sun-kissed bronze; emerald-green eyes |
+| Dress | turquoise satin one-shoulder mini dress, ruched | hot-pink satin halter mini dress with a side slit and a gold belt |
+| Prop | a polished gold cocktail shaker | the house cocktail in a gold-stemmed coupe |
+| Character | the sultry, mysterious siren | the playful, flirty pin-up |
+
+**How to generate:** use ChatGPT image, one request per image, on a transparent background.
+- Generate `char-bella-idle` first. Then generate `char-marina-idle` with Bella attached for the rendering finish only: Marina is a completely different woman.
+- Attach each woman's idle image to every one of her other poses, so her face, hair, dress and jewellery stay identical. Regenerate a pose until it's clearly the same woman.
+- Keep both women at the same height and size, with their feet at the same height in every pose. The game stands each pose on the same podium.
+
+### char-bella-idle.png · Bella's anchor · attach sym-a
 ```text
-An original glamorous hostess of a Riviera beach club, the host of a premium slot game: a stunning, confident adult woman in her late twenties with a curvy hourglass figure and sun-kissed bronze skin. She has sleek, glossy jet-black hair in a high swinging ponytail, with a big hot-pink hibiscus flower tucked behind one ear; large emerald-green eyes with long lashes and a sharp winged liner; glossy coral-red lips; small gold hoop earrings; and oversized white cat-eye sunglasses pushed up on top of her head. She wears a figure-hugging halter sundress of glossy hot-pink satin with a sweetheart neckline, bare shoulders and an open back, cinched at the waist by a thin polished gold belt; the skirt ends at mid-thigh with a flirty high slit on one side. Strappy gold high-heeled sandals, a stack of thin gold bangles on one wrist. In her left hand she holds a wide coupe glass with a polished gold stem, filled with a layered tropical cocktail in hot pink, tangerine and yellow, garnished with a pineapple wedge, a lime wheel and a small pink paper parasol, like the cocktail of a glamorous beach club. Pose: the full figure from head to toe, standing with her weight on one hip in a confident, alluring summer pin-up pose, three-quarter view with her body turned toward the left of the image; her right hand lifted to touch her ponytail; a teasing, flirtatious half-smile, looking at the viewer from under her lashes. Sensual, playful and glamorous, tasteful and fully dressed, nothing explicit. Original design, not resembling any real person, model or existing character. Match the finish of the attached image. The figure fills about 92% of the frame height. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right like light off the sea, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her ponytail to the soles of her sandals is in frame with a clear margin.
+An original glamorous hostess of a Riviera beach club, a host of a premium slot game: a stunning, confident adult woman in her late twenties with a curvy hourglass figure and sun-kissed bronze skin. She has sleek, glossy jet-black hair in a high swinging ponytail, with a big hot-pink hibiscus flower tucked behind one ear; large emerald-green eyes with long lashes and a sharp winged liner; glossy coral-red lips; small gold hoop earrings; and oversized white cat-eye sunglasses pushed up on top of her head. She wears a figure-hugging halter sundress of glossy hot-pink satin with a sweetheart neckline, bare shoulders and an open back, cinched at the waist by a thin polished gold belt; the skirt ends at mid-thigh with a flirty high slit on one side. Strappy gold high-heeled sandals, a stack of thin gold bangles on one wrist. In her left hand she holds a wide coupe glass with a polished gold stem, filled with a layered tropical cocktail in hot pink, tangerine and yellow, garnished with a pineapple wedge, a lime wheel and a small pink paper parasol. Pose: the full figure from head to toe, standing with her weight on one hip in a confident, alluring summer pin-up pose, three-quarter view with her body turned toward the left of the image; her right hand lifted to touch her ponytail; a teasing, flirtatious half-smile, looking at the viewer from under her lashes. Sexy, playful and glamorous, tasteful and fully dressed, nothing explicit. Original design, not resembling any real person, model or existing character. Match the finish of the attached image. The figure fills about 92% of the frame height. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right like light off the sea, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her ponytail to the soles of her sandals is in frame with a clear margin.
 ```
 
-Every other pose starts with the same description of her, so she stays the same woman. Only the "New pose" sentences differ.
-
-### char-bella-wink.png · on a win · attach char-bella-idle and sym-a
+### char-marina-idle.png · Marina's anchor · attach char-bella-idle and sym-a
 ```text
-The same woman as in the first attached image: identical face, emerald-green eyes, coral-red lips, sleek jet-black high ponytail with the hot-pink hibiscus, white cat-eye sunglasses on her head, gold hoop earrings, sun-kissed bronze skin, the same hot-pink satin halter mini dress with its gold belt and side slit, gold sandals and gold bangles, and the same cocktail in her left hand. New pose: she stretches her right arm toward the left of the image and flicks her index finger at it playfully, as if sending a spark there, and gives the viewer a cheeky wink with a bright, delighted smile; her hip is popped to one side and her ponytail swings. Flirty, confident and fun, fully dressed. The full figure from head to toe, three-quarter view turned toward the left, feet at the same height and the same size in the frame as in the attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her ponytail to the soles of her sandals is in frame with a clear margin.
+A second original glamorous hostess of the same Riviera beach club, a host of a premium slot game, rendered in exactly the same style and finish as the woman in the first attached image but a completely different woman: a stunning, sultry adult woman around thirty with a curvy hourglass figure and fair, lightly sun-kissed skin with a dusting of freckles across her nose and shoulders. She has long, voluminous copper-red hair in loose glossy waves swept over one shoulder, large sapphire-blue eyes with long lashes and a soft gold shimmer on the lids, glossy berry-red lips, long dangling gold earrings set with small turquoise stones, and a delicate gold anklet. She wears a figure-hugging one-shoulder mini dress of glossy turquoise satin, softly ruched across the body, the hem ending high on the thigh, with white high-heeled sandals with gold buckles and a wide gold cuff on one wrist. In her right hand she holds a polished gold cocktail shaker resting on her shoulder. Pose: the full figure from head to toe, standing with her weight on one hip and one knee bent in a confident, alluring summer pin-up pose, three-quarter view with her body turned toward the right of the image; her left hand on her hip; her chin lowered, a slow, sultry, mysterious smile, looking at the viewer through her lashes. Sexy, mysterious and glamorous, tasteful and fully dressed, nothing explicit. Original design, not resembling any real person, model or existing character, and clearly not the woman in the first attached image. Match the finish of the second attached image. The figure fills about 92% of the frame height, the same size as the woman in the first attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right like light off the sea, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her hair to the soles of her sandals is in frame with a clear margin.
 ```
 
-### char-bella-kiss.png · when the kisses pay · attach char-bella-idle and sym-a
+### Bella's poses · attach char-bella-idle and sym-a
+
+Each pose starts with the same description of her, so she stays the same woman. Only the "New pose" sentences differ.
+
+| File | When | New pose |
+|---|---|---|
+| `char-bella-wink.png` | a good win | `New pose: she stretches her right arm toward the left of the image and flicks her index finger at it playfully, as if sending a spark there, and gives the viewer a cheeky wink with a bright, delighted smile; her hip is popped to one side and her ponytail swings. Flirty, confident and fun.` |
+| `char-bella-kiss.png` | a multiplier kiss pays | `New pose: she blows a kiss toward the left of the image: her right hand is raised in front of her lips with the palm open and facing left, her lips puckered in a kiss, her eyes half-closed and her head tilted, one knee bent playfully. Draw no hearts or effects around her: the game adds them. Romantic, flirtatious and charming.` |
+| `char-bella-dance.png` | big wins | `New pose: she dances with joy: her hips swing to one side and the skirt of her dress flares, her left arm raised high above her head holding the cocktail glass up without spilling, her right hand on her hip, her ponytail flying, laughing with her head tilted back. Exuberant, sexy and celebratory.` |
+| `char-bella-party.png` | free spins | `New pose: she starts the party: she raises her cocktail glass high in a toast with her left hand, a lit gold sparkler in the glass throwing bright sparks, and opens her right arm wide in welcome; she faces the viewer with a slight turn toward the left, with a dazzling, excited smile and lips parted as if calling everyone to the party. Glamorous, thrilling and inviting.` |
+| `char-bella-waiting.png` | a minute without a spin | `New pose: she waits for the player, teasing: her left hand rests on her hip, and with her right hand she lifts a ripe golden-and-coral peach like the one in the second attached image to her lips, about to take a slow bite, one eyebrow raised and a teasing look straight at the viewer, as if to say "your move". Playful, provocative and charming.` |
+
 ```text
-The same woman as in the first attached image: identical face, emerald-green eyes, coral-red lips, sleek jet-black high ponytail with the hot-pink hibiscus, white cat-eye sunglasses on her head, gold hoop earrings, sun-kissed bronze skin, the same hot-pink satin halter mini dress with its gold belt and side slit, gold sandals and gold bangles, and the same cocktail in her left hand. New pose: she blows a kiss toward the left of the image: her right hand is raised in front of her lips with the palm open and facing left, her lips puckered in a kiss, her eyes half-closed and her head tilted, one knee bent playfully. Draw no hearts or effects around her: the game adds them. Romantic, flirtatious and charming, fully dressed. The full figure from head to toe, three-quarter view turned toward the left, feet at the same height and the same size in the frame as in the attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her ponytail to the soles of her sandals is in frame with a clear margin.
+The same woman as in the first attached image: identical face, emerald-green eyes, coral-red lips, sleek jet-black high ponytail with the hot-pink hibiscus, white cat-eye sunglasses on her head, gold hoop earrings, sun-kissed bronze skin, the same hot-pink satin halter mini dress with its gold belt and side slit, gold sandals and gold bangles, and the same cocktail. New pose: she stretches her right arm toward the left of the image and flicks her index finger at it playfully, as if sending a spark there, and gives the viewer a cheeky wink with a bright, delighted smile; her hip is popped to one side and her ponytail swings. Flirty, confident and fun. Fully dressed, nothing explicit. The full figure from head to toe, three-quarter view turned toward the left, feet at the same height and the head and body the same size in the frame as in the first attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure, including anything she raises, is in frame with a clear margin.
 ```
 
-### char-bella-dance.png · with the big-win banners · attach char-bella-idle and sym-a
+### Marina's poses · attach char-marina-idle and sym-a
+
+The same pattern as Bella's: only the "New pose" sentences differ.
+
+| File | When | New pose |
+|---|---|---|
+| `char-marina-cheer.png` | a line win | `New pose: she cheers: she raises the gold cocktail shaker high in her right hand like a trophy, her left hand pressed to her chest, laughing with delight and looking at the viewer, her copper hair swinging. Joyful, warm and sexy.` |
+| `char-marina-shake.png` | the scatter tease | `New pose: she shakes the gold cocktail shaker with both hands beside her shoulder, hips swaying to the rhythm, biting her lower lip in excited anticipation, her eyes on the right of the image. Thrilling, playful and alluring.` |
+| `char-marina-dance.png` | big wins | `New pose: she dances with joy: her hips sway, one arm raised high above her head with the shaker, the other sweeping her copper hair up off her neck, her head tilted back with a delighted laugh. Exuberant, sexy and celebratory.` |
+| `char-marina-party.png` | free spins | `New pose: she starts the party: she flings a handful of hot-pink hibiscus petals and confetti up into the air with her left hand, the shaker raised in her right, facing the viewer with a slight turn toward the right, with a dazzling, excited smile. Glamorous, thrilling and inviting.` |
+| `char-marina-waiting.png` | a minute without a spin | `New pose: she waits for the player: she leans back with the shaker resting on her shoulder, slowly twirling a lock of her copper hair around one finger, giving the viewer a smouldering look through her lashes with a knowing half-smile, as if daring them to spin. Sultry, teasing and charming.` |
+
 ```text
-The same woman as in the first attached image: identical face, emerald-green eyes, coral-red lips, sleek jet-black high ponytail with the hot-pink hibiscus, white cat-eye sunglasses on her head, gold hoop earrings, sun-kissed bronze skin, the same hot-pink satin halter mini dress with its gold belt and side slit, gold sandals and gold bangles, and the same cocktail. New pose: she dances with joy: her hips swing to one side and the skirt of her dress flares, her left arm raised high above her head holding the cocktail glass up without spilling, her right hand on her hip, her ponytail flying, laughing with her head tilted back. Exuberant, sexy and celebratory, fully dressed. The full figure from head to toe, feet at the same height and the head and body the same size in the frame as in the attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her ponytail and raised glass to the soles of her sandals is in frame with a clear margin.
+The same woman as in the first attached image: identical face, sapphire-blue eyes, freckles, berry-red lips, long copper-red waves over one shoulder, dangling gold-and-turquoise earrings, the same turquoise satin one-shoulder ruched mini dress, white sandals with gold buckles, gold cuff and gold anklet, and the same gold cocktail shaker. New pose: she cheers: she raises the gold cocktail shaker high in her right hand like a trophy, her left hand pressed to her chest, laughing with delight and looking at the viewer, her copper hair swinging. Joyful, warm and sexy. Fully dressed, nothing explicit. The full figure from head to toe, three-quarter view turned toward the right, feet at the same height and the head and body the same size in the frame as in the first attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure, including anything she raises, is in frame with a clear margin.
 ```
 
-### char-bella-party.png · free spins · attach char-bella-idle and sym-a
-```text
-The same woman as in the first attached image: identical face, emerald-green eyes, coral-red lips, sleek jet-black high ponytail with the hot-pink hibiscus, white cat-eye sunglasses on her head, gold hoop earrings, sun-kissed bronze skin, the same hot-pink satin halter mini dress with its gold belt and side slit, gold sandals and gold bangles. New pose: she starts the party: she raises her cocktail glass high in a toast with her left hand, a lit gold sparkler in the glass throwing bright sparks, and opens her right arm wide in welcome; she faces the viewer with a slight turn toward the left, with a dazzling, excited smile and lips parted as if calling everyone to the party. Glamorous, thrilling and inviting, fully dressed. The full figure from head to toe, feet at the same height and the head and body the same size in the frame as in the attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her raised glass to the soles of her sandals is in frame with a clear margin.
-```
-
-### char-bella-waiting.png · after a minute without a spin · attach char-bella-idle and sym-a
-```text
-The same woman as in the first attached image: identical face, emerald-green eyes, coral-red lips, sleek jet-black high ponytail with the hot-pink hibiscus, white cat-eye sunglasses on her head, gold hoop earrings, sun-kissed bronze skin, the same hot-pink satin halter mini dress with its gold belt and side slit, gold sandals and gold bangles. New pose: she waits for the player, teasing: her left hand rests on her hip, and with her right hand she lifts a ripe golden-and-coral peach like the one in the second attached image to her lips, about to take a slow bite, one eyebrow raised and a teasing look straight at the viewer, as if to say "your move". Playful, provocative and charming, fully dressed. The full figure from head to toe, three-quarter view turned toward the left, feet at the same height and the same size in the frame as in the attached image. Match the finish of the second attached image. Premium AAA slot game art, high-end stylised 3D character render, crisp and clean like a premium mobile-game heroine: glossy satin, polished gold jewellery, smooth skin with a soft healthy glow, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, a soft turquoise rim light from the right, tack-sharp edges, no blur, no depth of field, high detail. No text, no outline, no cast shadow, no floor, no frame. On a transparent background, exported as a PNG with transparency. The whole figure from the top of her ponytail to the soles of her sandals is in frame with a clear margin.
-```
-
-### fg-podium.png · 3:2 · transparent · her podium · attach char-bella-idle and sym-a
-Every pose stands on it.
+### fg-podium.png · 3:2 · transparent · both hostesses stand on it · attach char-bella-idle and sym-a
+The game uses it under both women, mirrored for Marina.
 ```text
 A round, low podium for a glamorous hostess to stand on, seen from the front and slightly above: a short, wide drum of glossy white glazed ceramic wrapped in a band of hand-painted Mediterranean majolica tiles (turquoise, lemon yellow and lime green fruit-and-leaf motifs on white), with a polished gold rim at its top and bottom edges and a flat, smooth, empty top. At its foot on both sides, a few glossy tropical leaves and two hot-pink hibiscus flowers. Wide, solid and stable, empty on top. Match the colours of the woman in the first attached image and the finish of the second. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, bright clean summer sunlight from the upper left, tack-sharp edges, no blur, high detail. No text, no figure, no cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole podium is in frame with a clear margin.
 ```
@@ -234,29 +264,29 @@ A round, low podium for a glamorous hostess to stand on, seen from the front and
 ## Backgrounds (scene)
 
 **The layout:**
-- **Landscape:** the reel grid fills the centre, with the tumble-win plaque on top of its frame. The logo and the Buy, Super Buy and Ante cards stand in a column on the left. Bella stands full-length on her podium on the right. The bar runs along the bottom.
-- **Portrait:** the logo is at the top, then the tumble-win plaque and the grid. Bella's upper body rises over the frame's top-right corner. The cards and the buttons are at the bottom.
+- **Landscape:** the logo sits at the top centre. Below it are the reels in their frame, 5 wide by 4 high. Marina stands full-length on the left and Bella on the right. The bar runs along the bottom.
+- **Portrait:** the logo is at the top, then the reels, with each woman's upper body rising over one of the frame's top corners. The buttons are at the bottom.
 
-So keep **the grid area calm**: open sky and sea in clean, smooth gradients. Keep the left column and the area behind Bella fairly calm too, and spend the detail on the edges. Calm still means crisp: clean shapes and smooth colour, never haze or blur. Code adds the glitter on the sea, the ripples in the pool, the neon flicker and the fireworks, so leave room for them.
+So keep **the reel area calm**: open sky and sea in clean, smooth gradients. Keep the left and right quarters, where the women stand, fairly calm too, and spend the detail on the outer edges. Calm still means crisp: clean shapes and smooth colour, never haze or blur. Code adds the glitter on the sea, the ripples in the pool, the neon flicker and the fireworks, so leave room for them.
 
 ### bg-day-landscape.png · 16:9 · base game · generate first
 ```text
-A glamorous beach club on the Italian Riviera at noon in high summer. A bright white stone terrace runs along the bottom with a long turquoise infinity pool whose far edge seems to spill into a sparkling turquoise-and-cobalt bay. On the cliffs to the left and right, pastel villas in coral, peach, lemon yellow and white stack up the hillside with little balconies and green shutters; cascades of hot-magenta bougainvillea pour over the walls; tall palm trees lean in from both sides; crisp white sun loungers and round parasols in turquoise and coral line the terrace edges; a white yacht sits far out on the sea; a clear azure sky with a few crisp, bright white clouds and a hot, bright sun in the upper left. Composition for a game screen: the reel grid covers the centre (about 55% of the width, from 12% to 88% of the height), so that area is open sea and sky in clean, smooth, calm gradients with little detail; the left fifth, where buttons go, is fairly calm; the right quarter, where a woman will stand, is calm open sea and sky; the richest detail is around the outer edges. Bright, sunny, glamorous and joyful. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain, no painterly brush strokes. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
+A glamorous beach club on the Italian Riviera at noon in high summer. A bright white stone terrace runs along the bottom with a long turquoise infinity pool whose far edge seems to spill into a sparkling turquoise-and-cobalt bay. On the cliffs to the far left and far right, pastel villas in coral, peach, lemon yellow and white stack up the hillside with little balconies and green shutters; cascades of hot-magenta bougainvillea pour over the walls; tall palm trees lean in from both outer edges; crisp white sun loungers and round parasols in turquoise and coral line the terrace's outer ends; a white yacht sits far out on the sea; a clear azure sky with a few crisp, bright white clouds and a hot, bright sun in the upper left. Composition for a game screen: the reels cover the centre (about 50% of the width, from 16% to 88% of the height), so that area is open sea and sky in clean, smooth, calm gradients with little detail; the top centre is calm sky for the logo; the left quarter and the right quarter, where two women will stand, are calm open sea, sky and terrace; the richest detail is around the outer edges and corners. Bright, sunny, glamorous and joyful. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain, no painterly brush strokes. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
 ```
 
 ### bg-day-portrait.png · 9:16 · attach bg-day-landscape
 ```text
-The same Riviera beach club at noon as in the attached image, recomposed for a tall phone screen. The reel grid sits in the middle (about 90% of the width, from 20% to 62% of the height), so that area stays open sea and sky in clean, smooth, calm gradients. The pastel villas with their bougainvillea, and the palms, frame the sides; the top 12% is calm azure sky, where the logo goes; the upper right just above the grid stays calm, because a woman's head and shoulders rise there; the bottom 35% is the white terrace and the turquoise pool, simple and slightly darker in tone, where the buttons go. Same light, palette and style as the attached image. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
+The same Riviera beach club at noon as in the attached image, recomposed for a tall phone screen. The reels sit in the middle (about 94% of the width, from 24% to 60% of the height), so that area stays open sea and sky in clean, smooth, calm gradients. The pastel villas with their bougainvillea, and the palms, frame the outer sides; the top 12% is calm azure sky, where the logo goes; the band just above the reels stays calm, because two women's heads and shoulders rise there at the left and right corners; the bottom 35% is the white terrace and the turquoise pool, simple and slightly darker in tone, where the buttons go. Same light, palette and style as the attached image. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
 ```
 
 ### bg-night-landscape.png · 16:9 · free spins, the Neon Night · attach bg-day-landscape
 ```text
-The same beach club as in the attached image, with the same composition, now at night during a glamorous party for the free spins. A deep violet-blue night sky with a big, bright full moon over the bay and its silver path on the sea. The infinity pool glows electric turquoise from underwater lights. Glowing neon signs shaped like fruit hang on the villa walls and the terrace: a hot-pink peach, a lime-green pineapple, a turquoise palm tree and a pink heart, made of neon tubes only, with no letters or words. Strings of warm round party lights loop between the palms; the villa windows glow warm gold; the bougainvillea glows magenta in the neon light; two heart-shaped fireworks burst in hot pink and gold high over the sea and are mirrored in the water. Electric, glamorous and exciting, with rich contrast. The centre stays calm and dark for the reel grid, the left fifth fairly calm, the right quarter calm behind where a woman will stand, the edges rich. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no letters in the neon, no people, no characters, no UI. Avoid: candy, sweets, lanterns, fireflies, orchards, fruit trees, haze, bokeh, red-and-white stripes, horror.
+The same beach club as in the attached image, with the same composition, now at night during a glamorous party for the free spins. A deep violet-blue night sky with a big, bright full moon over the bay and its silver path on the sea. The infinity pool glows electric turquoise from underwater lights. Glowing neon signs shaped like fruit hang on the villa walls at the far left and far right: a hot-pink peach, a lime-green pineapple, a turquoise palm tree and a pink heart, made of neon tubes only, with no letters or words. Strings of warm round party lights loop between the palms; the villa windows glow warm gold; the bougainvillea glows magenta in the neon light; two heart-shaped fireworks burst in hot pink and gold high over the sea and are mirrored in the water. Electric, glamorous and exciting, with rich contrast. The centre stays calm and dark for the reels, the top centre calm for the logo, the left and right quarters calm behind where two women will stand, the outer edges rich. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no letters in the neon, no people, no characters, no UI. Avoid: candy, sweets, lanterns, fireflies, orchards, fruit trees, haze, bokeh, red-and-white stripes, horror.
 ```
 
 ### bg-night-portrait.png · 9:16 · attach bg-day-portrait and bg-night-landscape
 ```text
-The Neon Night beach club of the second attached image, recomposed exactly like the tall phone layout of the first attached image: the reel grid in the middle (about 90% of the width, from 20% to 62% of the height) stays calm and dark; the moon sits in the upper left; the neon fruit signs, the party lights and the villas frame the sides; a heart-shaped firework bursts in the upper right just above the grid, where a woman's head and shoulders will rise; the top 12% is calm night sky, where the logo goes; the bottom 35% is the terrace and the glowing pool, simple and darker, where the buttons go. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no letters in the neon, no people, no characters, no UI. Avoid: candy, sweets, lanterns, fireflies, orchards, fruit trees, haze, bokeh, red-and-white stripes, horror.
+The Neon Night beach club of the second attached image, recomposed exactly like the tall phone layout of the first attached image: the reels in the middle (about 94% of the width, from 24% to 60% of the height) stay calm and dark; the moon sits high in the centre above the logo area; the neon fruit signs, the party lights and the villas frame the outer sides; the band just above the reels stays calm, because two women's heads and shoulders rise there at the left and right corners; the top 12% is calm night sky, where the logo goes; the bottom 35% is the terrace and the glowing pool, simple and darker, where the buttons go. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no letters in the neon, no people, no characters, no UI. Avoid: candy, sweets, lanterns, fireflies, orchards, fruit trees, haze, bokeh, red-and-white stripes, horror.
 ```
 
 ### fg-tropical.png · 1:1 · transparent · attach bg-day-landscape
@@ -267,34 +297,22 @@ A lush cluster of glossy tropical foliage entering from the lower-left corner of
 
 ---
 
-## Frame, cards and buttons · attach sym-a
+## Frame and buttons · attach sym-a
 
-The frame, the tumble-win plaque, the cards and the message plaque are blank on purpose. The game writes every word and number on them, so they stay sharp at any size and in any language.
+The frame, the buy badge and the message plaque are blank on purpose. The game writes every word and number on them, so they stay sharp at any size and in any language.
 
 The materials are **glossy white glazed ceramic, hand-painted Mediterranean majolica tiles, glossy coloured lacquer and polished gold**.
 
-### ui-frame.png · 5:4 · magenta · ChatGPT recommended
+### ui-frame.png · 4:3 · magenta · ChatGPT recommended
+The game marks the 40 lines on the two side bands.
 ```text
-An ornate premium frame around a slot game's reel window, in the style of a glamorous Riviera beach club: a frame of glossy white glazed ceramic set with a band of hand-painted Mediterranean majolica tiles (turquoise, lemon yellow and lime green fruit-and-leaf motifs on white), edged inside and out with thin polished gold mouldings. On each of the four corners sits a small cluster of two glossy tropical leaves, a glossy lime and the green crown of a pineapple. The middle of the top edge is a plain, straight gold ledge with no crest, because a title plaque will sit there. The frame is symmetrical left to right and evenly thick on all four sides. The inner opening is a clean, sharp-cornered rectangle with proportions of exactly 6 wide to 5 high, filled with flat pure magenta (#FF00FF); everything outside the frame is flat pure magenta too. Straight front view, no perspective. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. Nothing on the frame is pink, purple, magenta or see-through.
+An ornate premium frame around a slot game's reel window, in the style of a glamorous Riviera beach club: a frame of glossy white glazed ceramic set with a band of hand-painted Mediterranean majolica tiles (turquoise, lemon yellow and lime green fruit-and-leaf motifs on white), edged inside and out with thin polished gold mouldings. The left and right sides of the frame are a little wider than the top and bottom, and each holds a plain, smooth vertical band of polished gold running its full height, where small markers will be placed. On each of the four corners sits a small cluster of two glossy tropical leaves, a glossy lime and the green crown of a pineapple. The middle of the top edge is a plain, straight gold ledge with no crest, because the game's logo will sit there. The frame is symmetrical left to right. The inner opening is a clean, sharp-cornered rectangle with proportions of exactly 5 wide to 4 high, filled with flat pure magenta (#FF00FF); everything outside the frame is flat pure magenta too. Straight front view, no perspective. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no numbers, no cast shadow. Nothing on the frame is pink, purple, magenta or see-through.
 ```
 
-### ui-tumble-plaque.png · 4:1 · transparent · sits on the frame's top edge
-The game writes "TUMBLE WIN" and the amount on it.
+### ui-buy-badge.png · 1:1 · transparent · the feature buy
+The game writes "BUY FREE SPINS" and the price on it.
 ```text
-A wide horizontal title plaque made to sit on the top edge of a slot game's reel frame: a long, shallow shape with a straight bottom edge and a gently arched top edge. Its face is glossy hot-pink lacquer with a soft inner glow. It is framed by a raised polished gold border with a thin band of turquoise-and-white majolica tile inside it, and at each end sits a glossy tropical leaf with a small hot-pink hibiscus flower. The large centre of the face is plain and empty, left blank for text. Symmetrical, straight front view. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole plaque is in frame with a clear margin.
-```
-
-### ui-card-buy.png, ui-card-super.png and ui-card-ante.png · 3:4 · transparent
-These are the cards in the left column. The game writes "BUY FREE SPINS" and the price on the first, the super buy and its price on the second, and the ante text and its switch on the third. Only the colour sentence changes:
-
-| File | Colour sentence |
-|---|---|
-| `ui-card-buy.png` | `glossy hot-pink lacquer with a soft inner glow, crowned at its top centre by a small cocktail coupe with a gold stem and a pink paper parasol` |
-| `ui-card-super.png` | `glossy polished-gold lacquer with a soft warm inner glow, crowned at its top centre by a small gold heart-shaped locket with a red lipstick kiss print` |
-| `ui-card-ante.png` | `glossy turquoise lacquer with a soft inner glow, crowned at its top centre by a small hot-pink hibiscus flower and a lime wheel` |
-
-```text
-A tall feature card for a slot game's side menu: a vertical rounded-rectangle tablet of glossy hot-pink lacquer with a soft inner glow, crowned at its top centre by a small cocktail coupe with a gold stem and a pink paper parasol. It is framed by a raised polished gold border with a thin band of white-and-turquoise majolica tile inside it, with small gold heart studs at its four corners. Its face is plain and empty, left blank for text and buttons. Symmetrical, straight front view. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole card is in frame with a clear margin.
+A round feature badge for a slot game's menu, seen straight on: a domed disc of glossy hot-pink lacquer with a soft inner glow, framed by a raised polished gold ring with a thin band of white-and-turquoise majolica tile inside it, and crowned at its top by a small cocktail coupe with a gold stem, a pink paper parasol and a tiny sparkler. Its face is plain and empty, left blank for text. Symmetrical, straight front view. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole badge is in frame with a clear margin.
 ```
 
 ### ui-spin.png · 1:1 · transparent
@@ -304,37 +322,13 @@ A round premium spin button seen straight on, made like a giant glossy slice of 
 
 ### ui-plaque.png · 16:9 · transparent · for the free-spins intro, the buy confirmation and the win summary
 ```text
-An ornate horizontal message panel for a slot game: a rounded-rectangle plaque of glossy deep turquoise lacquer with a soft inner glow, framed by a raised polished gold border with a band of white majolica tiles painted with tiny lemons, limes and leaves; a hot-pink hibiscus between two glossy tropical leaves crowns its top centre, and small gold heart studs sit at its four corners. Its large centre is a smooth, plain, empty surface, left blank for text. Symmetrical, straight front view. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole panel is in frame with a clear margin.
+An ornate horizontal message panel for a slot game: a rounded-rectangle plaque of glossy deep turquoise lacquer with a soft inner glow, framed by a raised polished gold border with a band of white majolica tiles painted with tiny limes, pineapples and leaves; a hot-pink hibiscus between two glossy tropical leaves crowns its top centre, and small gold heart studs sit at its four corners. Its large centre is a smooth, plain, empty surface, left blank for text. Symmetrical, straight front view. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole panel is in frame with a clear margin.
 ```
 
 ### ui-amore-heart.png · 1:1 · transparent · the Amore meter
-The game fills the heart with glowing pink and writes the free-spins total multiplier inside it.
+The game fills the heart with glowing pink and writes the free-spins multiplier inside it.
 ```text
-A heart-shaped meter frame seen straight on: a thick, heart-shaped ring of glossy hot-pink lacquer with thin polished gold mouldings on its inner and outer edges, a row of small glossy white pearls along its outer edge, and a small gold bow with a red lipstick kiss print at its top centre. Its centre is completely empty and see-through: a clean heart-shaped hole about 70% of the heart's width. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole frame is in frame with a clear margin.
-```
-
----
-
-## The halves (square 1:1, transparent) · batch 2
-
-When a fruit wins, the game swaps it for its two halves and slides them apart. Attach the matching symbol, so each half matches its fruit exactly. Until these arrive, the game splits the fruit's own picture.
-
-There is one prompt per fruit; only the fruit sentence changes.
-
-| File | Attach | Fruit sentence |
-|---|---|---|
-| `cut-a-peach.png` | sym-a | `the peach, cut cleanly in two from top to bottom: juicy golden-yellow flesh blushing red toward the centre, the rough red-brown stone sitting in the left half, the leaves still on the right half` |
-| `cut-b-pineapple.png` | sym-b | `the pineapple, cut cleanly in two from top to bottom: juicy golden flesh with fine fibres and a paler core, the leafy crown split between the two halves` |
-| `cut-c-dragonfruit.png` | sym-c | `the dragon fruit, cut cleanly in two from top to bottom: bright white flesh speckled with tiny black seeds, inside the hot-magenta skin and its green-tipped scales` |
-| `cut-d-pomegranate.png` | sym-d | `the pomegranate, cut cleanly in two across its middle: hundreds of glistening translucent ruby seeds packed between thin cream walls, a few loose seeds flying` |
-| `cut-e-mango.png` | sym-e | `the mango, cut cleanly in two lengthwise: bright juicy orange flesh, the flat pale stone showing in the left half, the leaf on the right half` |
-| `cut-f-lime.png` | sym-f | `the lime, cut cleanly in two across its middle: pale green juicy segments in a star pattern inside a white ring and the green peel` |
-| `cut-g-blueberries.png` | sym-g | `the three blueberries, each cut cleanly in two: pale green-gold flesh with a purple rim inside the cobalt skins, the six halves in two groups of three` |
-| `cut-h-fig.png` | sym-h | `the fig, cut cleanly in two from top to bottom: a glowing pink-red inside full of tiny golden seeds, ringed by pale cream flesh and the violet skin` |
-| `cut-i-lychee.png` | sym-i | `the lychee, cut cleanly in two: translucent pearl-white flesh around a glossy dark-brown seed, the rose-red shell on the outside` |
-
-```text
-The peach, cut cleanly in two from top to bottom: juicy golden-yellow flesh blushing red toward the centre, the rough red-brown stone sitting in the left half, the leaves still on the right half. The two halves stand side by side with a clear gap between them, both turned slightly toward the viewer so the juicy cut faces show, wet and glistening with a few juice drops on them. Exactly the same fruit, colours, contour and finish as the attached image. Fills about 85% of the frame width. Premium AAA slot game art in a crisp, glossy stylised 3D style like a top mobile game: bold simple shapes, smooth glossy surfaces, juicy saturated colours, a thin clean contour line around each piece, bright crisp white specular highlights, bright clean summer sunlight from the upper left, tack-sharp edges everywhere, no blur, no depth of field, high detail. No knife, no hands, no plate, no text, no cast shadow, no frame. On a transparent background, exported as a PNG with transparency. Both halves are whole and in frame with a clear margin.
+A heart-shaped meter frame seen straight on: a thick, heart-shaped ring of glossy hot-pink lacquer with thin polished gold mouldings on its inner and outer edges, a row of small glossy white pearls along its outer edge, and a small gold bow with a red lipstick kiss print at its top centre. Its centre is completely empty and see-through: a clean heart-shaped hole about 70% of the heart's width. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole heart is in frame with a clear margin.
 ```
 
 ---
@@ -343,22 +337,17 @@ The peach, cut cleanly in two from top to bottom: juicy golden-yellow flesh blus
 
 These are light, so the game adds them on top. Black means "no light". Keep them **centred, and fading out before the edges**.
 
-### fx-slash.png · 1:1 · the slice across a winning fruit
-```text
-A single swift, curved slash of light, like the arc of a blade cutting through the air, seen head-on: a thin, razor-sharp crescent of brilliant white light sweeping from the lower left to the upper right, brightest and thickest in its middle and tapering to fine points at both ends, with a soft pale-pink glow along it and a few tiny sparks flying off its outer edge. Centred, with clear black space all around. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. Nothing is cropped by the frame. No blade, no text.
-```
-
-### fx-twinkle.png · 1:1 · the glint on a cut, and sparkle
+### fx-twinkle.png · 1:1 · the sparkle that runs along a winning line
 ```text
 A single four-pointed sparkle star: a tiny brilliant white core, two long razor-thin rays (one horizontal, one vertical), two shorter diagonal rays and a soft pale-pink halo. Centred, with the rays fading out before the edges. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. No text.
 ```
 
-### fx-heart-trail.png · 2:1 · a kiss flying to Bella and into the win
+### fx-heart-trail.png · 2:1 · a kiss flying from Bella, and into Amore
 ```text
 A tiny glowing heart flying from left to right: a bright white-pink heart at its head with a small sparkle, followed by a long tapering trail of tiny glowing hearts, sparkles and glitter in hot pink, coral and gold, fading out toward the left. Horizontal, vertically centred, nothing cropped. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. No text.
 ```
 
-### fx-heart-burst.png · 1:1 · a kiss landing on the win or in Amore
+### fx-heart-burst.png · 1:1 · a multiplier kiss paying, and a kiss landing in Amore
 ```text
 A joyful burst of light seen head-on: a bright white-pink flash at the centre, with dozens of tiny glowing hearts and sparkles exploding outward in every direction in hot pink, coral and gold, with a soft pink haze. Symmetrical radial composition, centred, fading out well before the edges of the image. A light effect only, glowing, on a pure black (#000000) background with nothing else in the frame. Nothing is cropped by the frame. No text.
 ```
@@ -385,7 +374,7 @@ A sweeping wave of glittering light rushing from left to right: billowing, shimm
 
 The script turns the white into the liquid's shape and shading, and the game tints it with the winning fruit's colour: pink for the peach, gold for the pineapple, magenta for the dragon fruit, and so on. So the liquid must be **pure white with grey shading**, never coloured.
 
-### fx-splash.png · 1:1 · the juice burst of a sliced fruit
+### fx-splash.png · 1:1 · the juice burst behind a winning fruit
 ```text
 A juicy liquid splash seen head-on, frozen in time as if photographed with a high-speed flash: a burst of pure white milk-like liquid flying outward from the centre in every direction, a crown of smooth liquid tendrils that end in round drops, and a few loose drops around it, with crisp bright highlights and soft grey shading inside the liquid so it reads as glossy, three-dimensional liquid. Centred; the splash fills about 75% of the image and nothing is cropped by the frame. Tack-sharp, no motion blur. Only white liquid on a pure black (#000000) background: no glass, no fruit, no colour, no text.
 ```
@@ -413,6 +402,7 @@ About 40 small separate pieces scattered evenly across the image with clear gaps
 Generate `txt-logo` first, then attach it to every banner so the lettering matches. Check the spelling every time.
 
 ### txt-logo.png · 2:1 · attach sym-a, sym-c-dragonfruit and sym-m-kiss-pink
+It sits on the frame's top edge, so it must read well over both the frame and the sky.
 ```text
 The game logo in chunky, juicy three-dimensional lettering on two lines. On top, "TUTTI" in glossy hot-pink lacquer letters with polished gold rims and bright highlights. Below it and larger, "FRUTTI", each letter a different juicy fruit colour in glossy lacquer with a polished gold rim: F tangerine orange, R golden yellow, U lime green, T turquoise, T hot magenta, I cobalt blue. A ripe peach like the one in the first attached image nestles against the T at the start of TUTTI; a small glossy red lipstick kiss print sits beside the last letter of FRUTTI; a few clear juice drops and sparkles fly off the letters; two glossy tropical leaves peek out from behind. Flirty, juicy, glamorous, premium and perfectly legible. Spell exactly: TUTTI FRUTTI. Match the finish of the attached images. Premium AAA slot game art in a crisp, glossy stylised 3D style like a top mobile game: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur. No other text, no cast shadow. On a transparent background, exported as a PNG with transparency. The whole logo is in frame with a clear margin.
 ```
@@ -438,10 +428,10 @@ The words "BIG WIN" in chunky, juicy three-dimensional lettering on one line: gl
 
 ## Lobby tile (scene)
 
-### key-thumbnail.png · 4:3 · attach char-bella-party, bg-day-landscape and sym-a
+### key-thumbnail.png · 4:3 · attach char-bella-party, char-marina-party, bg-day-landscape and sym-a
 The logo goes on top afterwards; I compose it.
 ```text
-Hero key art for the game's lobby tile: the woman from the first attached image, seen from the knees up on the right side of the image, raising her sparkler cocktail in a toast and winking at the viewer, glamorous and flirtatious, fully dressed; around her, glossy fruit bursts toward the viewer (a peach like the one in the third attached image, a pineapple, a dragon fruit, and pomegranate and lime halves), with crisp juice splashes in pink, gold and green, hot-pink heart lockets and confetti; the sunny Riviera beach club of the second attached image behind her. The background stays clear and crisp, only slightly softer than the foreground. The top third and the left side are calmer, because the logo goes there afterwards. Spectacular, juicy, glamorous and premium. Crisp stylised 3D, bright summer light, saturated colours, premium AAA slot game key art. No text, no logo. Avoid: candy, sweets, lollipops, rainbows, orchards, golden-hour light, haze, heavy bokeh, red-and-white stripes, a hat of fruit, lingerie.
+Hero key art for the game's lobby tile: the two women from the first and second attached images, seen from the knees up, side by side on the right half of the image and turned slightly toward each other: the jet-black-haired one in hot pink raising her sparkler cocktail in a toast and winking at the viewer, the copper-haired one in turquoise raising her gold cocktail shaker with a sultry smile; glamorous and flirtatious, both fully dressed. Around them, glossy fruit bursts toward the viewer (a peach like the one in the fourth attached image, a pineapple, a dragon fruit, a pomegranate and a lime), with crisp juice splashes in pink, gold and green, hot-pink heart lockets and confetti; the sunny Riviera beach club of the third attached image behind them. The background stays clear and crisp, only slightly softer than the foreground. The top third and the left side are calmer, because the logo goes there afterwards. Spectacular, juicy, glamorous and premium. Crisp stylised 3D, bright summer light, saturated colours, premium AAA slot game key art. No text, no logo. Avoid: candy, sweets, lollipops, rainbows, orchards, golden-hour light, haze, heavy bokeh, red-and-white stripes, a hat of fruit, lingerie, swimwear.
 ```
 
 ---
@@ -449,22 +439,23 @@ Hero key art for the game's lobby tile: the woman from the first attached image,
 ## What I do when the art arrives
 
 **The build script:** `scripts/art/process-tutti-frutti.py`, on the shared helpers in `scripts/art/artlib.py`, does the following:
-- keys the frame's magenta and finds its window;
+- keys the frame's magenta, and finds its window and its two side bands;
 - turns the glow sheets' black into light;
 - turns the juice sheets' white into a tintable liquid;
 - splits the sheets (`fx-droplets`, `fx-confetti`) into single pieces;
-- measures each pose: the feet line, the head, the hand that flicks, the lips for the kiss, and the raised glass;
+- measures each pose of both women: the feet line, the head, the hand that flicks or blows the kiss, the raised glass or shaker;
 - packs everything as WebP into `public/images/tutti-frutti/`, with an `art.json`;
 - draws a placeholder for every file not yet delivered.
 
-**Kept crisp:** symbols and halves are shrunk once, with a high-quality filter and a light sharpen, to twice the largest cell size, so they stay sharp on high-density screens. Backgrounds are served at their full size and never stretched past it.
+**Kept crisp:** symbols are shrunk once, with a high-quality filter and a light sharpen, to twice the largest cell size, so they stay sharp on high-density screens. Backgrounds are served at their full size and never stretched past it.
 
 **Made in code, not art:**
+- the 40 line markers on the frame and the glowing line ribbons;
 - the glitter on the sea, the ripples in the pool, the sway of the leaves;
 - the neon flicker and the fireworks of the Neon Night;
 - the sunset time-lapse into the free spins;
-- each fruit's split, the halves' fall and the juice's colour;
+- the fruit's bounce, and the juice's colour;
 - the kisses' flight, and Amore filling up;
-- the grid, the bar, every word on the plaques and cards, and every number.
+- the reels, the bar, every word on the badge, the plaque and the kisses, and every number.
 
 **Thumbnail:** I compose the lobby thumbnail from `key-thumbnail` and the logo.
