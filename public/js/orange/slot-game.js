@@ -2083,10 +2083,8 @@ export function startSlot(cfg) {
         $('status').textContent = `Open ${cfg.gameName} from your casino to play.`;
     } else {
         if (!reducedMotion) {
-            // It starts when it is visible: once the Majestic Games intro (play.provider-intro)
-            // makes way, else at load (when the lobby reveals its frame).
-            if (window.orangeIntro) window.orangeIntro.done.then(playIntro);
-            else if (document.readyState === 'complete') playIntro();
+            // The lobby reveals its frame at load, so the animation starts when it is visible.
+            if (document.readyState === 'complete') playIntro();
             else window.addEventListener('load', playIntro, { once: true });
         }
         bridge.ready({ home: true });

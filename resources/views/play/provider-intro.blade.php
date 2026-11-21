@@ -1,13 +1,14 @@
 {{--
-    The Majestic Games intro every game page opens with, like a studio's logo before a film:
-    the crown draws itself in gold, the name rises under it, and it fades into the game once
-    the page has loaded (a progress line shows if that takes longer than the animation).
+    The Majestic Games intro the lobby opens with, like a studio's logo before a film: the
+    crown draws itself in gold, the name rises under it, and it fades into the lobby once the
+    page is ready (a progress line shows if that takes longer than the animation). Games open
+    with their own intros only.
 
     - Include it first thing in <body>: it is inline (no request but the font), so it is on
-      screen before the game's own art arrives.
-    - window.orangeIntro.done resolves as it fades: a game starts its own intro then.
-    - An Orange host page that embeds the game (the lobby) is told it is showing, so it can
-      drop its own loading screen; only a parent on Orange's origin receives that.
+      screen at once.
+    - window.orangeIntro.waitFor(promise): hold until this has settled too (the lobby: its
+      first list of games), so it fades into a page that is all there.
+    - window.orangeIntro.done resolves as it fades.
     - config('games.provider_intro'): enabled, sound.
 --}}
 @if (config('games.provider_intro.enabled', true))
@@ -171,16 +172,19 @@
         const root = document.getElementById('mgi');
         const started = performance.now();
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const LENGTH = reduced ? 1400 : 2900; // the animation; it holds until the page has loaded
+        const LENGTH = reduced ? 1400 : 2900; // the animation; it holds until the page is ready
         const FADE = 600;
         const MAX_WAIT = 12000; // a slow page never keeps a player at the intro longer than this
         let resolveDone;
-        window.orangeIntro = { done: new Promise((resolve) => { resolveDone = resolve; }) };
-
-        // The lobby drops its loading screen now: this is on screen. Only a parent on our own origin hears it.
-        if (window.parent !== window) {
-            try { window.parent.postMessage({ type: 'orange:intro' }, window.location.origin); } catch (_) { /* no parent to tell */ }
-        }
+        // What it waits for besides the animation: the page's load, and what the page adds.
+        const waits = [new Promise((resolve) => {
+            if (document.readyState === 'complete') resolve();
+            else window.addEventListener('load', resolve, { once: true });
+        })];
+        window.orangeIntro = {
+            done: new Promise((resolve) => { resolveDone = resolve; }),
+            waitFor(promise) { waits.push(Promise.resolve(promise).catch(() => {})); },
+        };
 
         if (!reduced) {
             const dust = root.querySelector('.mgi-dust');
@@ -193,18 +197,20 @@
             }
         }
 
-        let loaded = document.readyState === 'complete';
+        let ready = false;
         let finished = false;
         let ticker = null;
-        const pageLoaded = new Promise((resolve) => {
-            if (loaded) resolve();
-            else window.addEventListener('load', () => { loaded = true; resolve(); }, { once: true });
-        });
+        // Ready once every wait has settled, counting any added while it waited.
+        const settled = () => {
+            const count = waits.length;
+            return Promise.all(waits).then(() => (waits.length === count ? undefined : settled()));
+        };
+        const whenReady = settled().then(() => { ready = true; });
         const played = new Promise((resolve) => setTimeout(resolve, LENGTH));
 
-        // Still loading when the animation ends: a progress line under the name until it has.
+        // Not ready when the animation ends: a progress line under the name until it is.
         played.then(() => {
-            if (loaded || finished) return;
+            if (ready || finished) return;
             root.classList.add('waiting');
             let progress = 0;
             ticker = setInterval(() => {
@@ -219,19 +225,19 @@
             clearInterval(ticker);
             root.style.setProperty('--p', '1');
             root.classList.add('out');
-            setTimeout(resolveDone, FADE / 2); // the game's own intro begins as this fades
+            setTimeout(resolveDone, FADE / 2); // the page comes in as this fades
             setTimeout(() => root.remove(), FADE + 60);
         }
-        Promise.race([Promise.all([pageLoaded, played]), new Promise((resolve) => setTimeout(resolve, MAX_WAIT))]).then(finish);
-        // Once the game has loaded, a tap skips the rest.
-        root.addEventListener('pointerdown', () => { if (loaded) finish(); });
+        Promise.race([Promise.all([whenReady, played]), new Promise((resolve) => setTimeout(resolve, MAX_WAIT))]).then(finish);
+        // Once the page is ready, a tap skips the rest.
+        root.addEventListener('pointerdown', () => { if (ready) finish(); });
 
         if (sound && !reduced) chime();
 
         /**
          * The sonic logo: a rolled major chord of bells as the crown lands, sparkles with the
          * gleam. Only where the browser lets sound start (it often does not before a tap), and
-         * never when the player muted a game.
+         * never when the player muted a game's sound.
          */
         function chime() {
             try {

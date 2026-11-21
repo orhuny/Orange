@@ -41,11 +41,20 @@ it('opens the lobby with the operator\'s theme, and lets the operator\'s origins
         ->assertSee('--primary: #123abc', false)
         ->assertSee('https://casino.example/logo.svg', false)
         ->assertSee('play-host.js', false)
+        // It opens with the Majestic Games intro, which holds for the first list of games.
+        ->assertSeeInOrder(['id="mgi"', 'window.orangeIntro = {', 'window.orangeIntro?.waitFor(firstLoad)'], false)
         // The host script's bridge import resolves to a versioned URL, so a deploy reaches browsers at once.
         ->assertSee(json_encode(asset('js/orange/bridge.js').'?v='.filemtime(public_path('js/orange/bridge.js'))), false);
     expect($response->headers->get('Content-Security-Policy'))
         ->toContain('https://casino.example')
         ->toContain('https://m.casino.example');
+});
+
+it('leaves the intro out when it is switched off', function (): void {
+    config()->set('games.provider_intro.enabled', false);
+    [, $token] = lobbyLaunch();
+
+    get("/lobby?token={$token}")->assertOk()->assertDontSee('id="mgi"', false)->assertSee('id="content"', false);
 });
 
 it('falls back to the default look for anything that is not a safe logo URL or a hex colour', function (): void {

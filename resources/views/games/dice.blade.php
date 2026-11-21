@@ -41,7 +41,6 @@
     </style>
 </head>
 <body>
-@include('play.provider-intro')
 <main>
     <header><strong>Dice</strong><span id="balance">—</span></header>
 

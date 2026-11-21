@@ -276,8 +276,8 @@ it('serves the slot page with its theme, paytable and the shared bridge', functi
         ->assertSee('slot-game.js', false)
         ->assertSee('bridge.js', false)
         ->assertSee('id="home-btn"', false)
-        ->assertSee('id="mgi"', false) // the Majestic Games intro, before the game's own
         ->assertSee('id="intro"', false)
+        ->assertDontSee('id="mgi"', false) // its own intro only: the Majestic Games one is the lobby's
         ->assertSee('Skip intro')
         ->assertSee('symbols\/toffee.webp', false)
         // The host, the Queen Bee: beside the panels, and peeking over the frame in portrait.

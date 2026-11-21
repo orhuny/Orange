@@ -56,9 +56,9 @@ return [
         'idle_timeout_seconds' => 15 * 60,
     ],
 
-    // The Majestic Games intro every game page opens with (resources/views/play/provider-intro):
-    // it plays while the game loads, then the game's own intro follows. `sound`: its chime,
-    // where the browser allows sound before a tap and the player hasn't muted the game.
+    // The Majestic Games intro the lobby opens with (resources/views/play/provider-intro): it
+    // plays while the lobby loads. Games open with their own intros only. `sound`: its chime,
+    // where the browser allows sound before a tap and the player hasn't muted a game's sound.
     'provider_intro' => [
         'enabled' => (bool) env('PROVIDER_INTRO_ENABLED', true),
         'sound' => (bool) env('PROVIDER_INTRO_SOUND', true),

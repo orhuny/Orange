@@ -289,6 +289,8 @@
         /* Sections rise in, one after another, the first time the lobby shows. */
         .reveal { animation: rise .7s var(--ease) both; animation-delay: calc(var(--i) * 70ms); }
         @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+        /* Behind the Majestic Games intro, the entrance and the carousel wait for it to go. */
+        body.intro-hold .reveal, body.intro-hold .hero-tab.active .hero-bar i { animation-play-state: paused; }
 
         .empty { display: grid; place-items: center; text-align: center; gap: 10px; padding: 72px 16px; color: var(--muted); }
         .empty-icon { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; margin-bottom: 6px; color: var(--muted);
@@ -437,6 +439,7 @@
     </style>
 </head>
 <body>
+    @include('play.provider-intro')
     {{-- The provider's crown, used where the operator has no logo of its own and in the footer. --}}
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
@@ -536,6 +539,11 @@
         import { startPlayHost } from @json(asset('js/orange/play-host.js').'?v='.filemtime(public_path('js/orange/play-host.js')));
 
         const $ = (id) => document.getElementById(id);
+        // The Majestic Games intro (play.provider-intro) is playing: the lobby comes in as it fades.
+        if (window.orangeIntro) {
+            document.body.classList.add('intro-hold');
+            window.orangeIntro.done.then(() => document.body.classList.remove('intro-hold'));
+        }
         let lobby = null; // null until the first answer: placeholders show meanwhile
         let tab = 'all';
         let firstPaint = true; // sections rise in only the first time
@@ -653,13 +661,6 @@
         }
         $('frame').addEventListener('load', () => {
             if ($('frame').getAttribute('src') !== 'about:blank') $('spinner').classList.add('gone');
-        });
-        // The game page's Majestic Games intro (play.provider-intro) is on screen: it covers the
-        // loading from here, so this loader steps aside rather than hide it.
-        window.addEventListener('message', (e) => {
-            if (e.origin === window.location.origin && e.source === $('frame').contentWindow && e.data?.type === 'orange:intro') {
-                $('spinner').classList.add('gone');
-            }
         });
 
         // ---------- Formatting ----------
@@ -982,7 +983,9 @@
             host?.outer.send('back_to_lobby', {});
         });
         render();
-        refresh();
+        const firstLoad = refresh();
+        // The intro holds until the games are here, so it opens onto a full lobby.
+        window.orangeIntro?.waitFor(firstLoad);
     </script>
 </body>
 </html>

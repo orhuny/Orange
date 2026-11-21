@@ -234,7 +234,6 @@ it('serves the dice page with the game\'s odds and the shared bridge', function 
 
     get('/games/dice')->assertOk()
         ->assertSee('bridge.js', false)
-        ->assertSee('id="mgi"', false)
         ->assertSee('const RTP = "0.9900"', false)
         ->assertSee('const MAX_CHANCE = "98.00"', false);
 });
