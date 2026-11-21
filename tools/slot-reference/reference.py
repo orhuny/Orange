@@ -6,6 +6,7 @@ Not shipped; run it to regenerate a model's fixture:
 
     python -I tools/slot-reference/reference.py sugar-orchard > tests/Fixtures/slot/sugar-orchard-golden.json
     python -I tools/slot-reference/reference.py trident-of-poseidon > tests/Fixtures/slot/trident-of-poseidon-golden.json
+    python -I tools/slot-reference/reference.py stones-of-the-titan > tests/Fixtures/slot/stones-of-the-titan-golden.json
 """
 
 import hashlib
@@ -117,7 +118,13 @@ def trident_of_poseidon():
     }
 
 
-MODELS = {"sugar-orchard": sugar_orchard, "trident-of-poseidon": trident_of_poseidon}
+# --- Stones of the Titan v1: Trident's tables, plus the Super Eclipse buy ---------------------
+
+def stones_of_the_titan():
+    return dict(trident_of_poseidon(), code="stones-of-the-titan", super_tide=10)
+
+
+MODELS = {"sugar-orchard": sugar_orchard, "trident-of-poseidon": trident_of_poseidon, "stones-of-the-titan": stones_of_the_titan}
 
 
 # --- The rules --------------------------------------------------------------------------------
@@ -188,8 +195,10 @@ def bought(m, t, rng):
 def play(m, variant, mode, rng, cap=None):
     cap = cap or m["cap"]
     t = m["tables"](variant)
-    table = t[mode]
-    cols = bought(m, t, rng) if mode == "buy" else fresh(table, t["base_mults"], rng)
+    # A super buy draws exactly like a buy; only its tide starts above 0.
+    is_bought = mode in ("buy", "super")
+    table = t["buy" if is_bought else mode]
+    cols = bought(m, t, rng) if is_bought else fresh(table, t["base_mults"], rng)
     win, scatters, mult, record = tumble(m, cols, table, t["base_mults"], rng)
     base_sum = mult if win > 0 else 0
     line_win = win * base_sum if base_sum > 0 else win
@@ -201,7 +210,8 @@ def play(m, variant, mode, rng, cap=None):
     if m["base_multipliers"]:
         first["multiplier"] = base_sum
     spins = [dict(first, scatter_win_x=x(sw), win_x=x(base_win), free_spins_awarded=awarded)]
-    total, free_win, played, left, tide = base_win, 0, 0, awarded, 0
+    total, free_win, played, left = base_win, 0, 0, awarded
+    tide = m["super_tide"] if mode == "super" else 0
     while left > 0 and not maxed and played < MAX_FREE:
         win, scatters, mult, record = tumble(m, fresh(t["free"], t["mults"], rng), t["free"], t["mults"], rng)
         spin_sum = mult if win > 0 else 0
@@ -219,8 +229,11 @@ def play(m, variant, mode, rng, cap=None):
         if m["tide"]:
             spin["tide"] = tide
         spins.append(spin)
-    return {"model": m["code"], "variant": variant, "mode": mode, "spins": spins, "base_win_x": x(base_win),
-            "free_spins": played, "free_spins_win_x": x(free_win), "total_win_x": x(total), "max_win_reached": maxed}
+    out = {"model": m["code"], "variant": variant, "mode": mode}
+    if mode == "super":
+        out["tide_start"] = m["super_tide"]
+    return dict(out, spins=spins, base_win_x=x(base_win), free_spins=played, free_spins_win_x=x(free_win),
+                total_win_x=x(total), max_win_reached=maxed)
 
 
 def cases(m):
@@ -228,6 +241,13 @@ def cases(m):
         return [("golden-seed-0001", "player-a", n, "v1-9650", "base", None) for n in range(0, 40)] \
             + [("golden-seed-0002", "player-b", n, v, "ante", None) for n in range(0, 10) for v in m["variants"]] \
             + [("golden-seed-0003", "player-c", n, v, "buy", None) for n in range(0, 4) for v in m["variants"]]
+    if m["code"] == "stones-of-the-titan":
+        # Trident's draws, so fewer base cases; the super buy gets its own, with caps small enough to bite.
+        return [("titan-seed-0001", "player-a", n, "v1-9650", "base", None) for n in range(0, 30)] \
+            + [("titan-seed-0002", "player-b", n, v, "ante", None) for n in range(0, 4) for v in m["variants"]] \
+            + [("titan-seed-0003", "player-c", n, v, "buy", None) for n in range(0, 3) for v in m["variants"]] \
+            + [("titan-seed-0004", "player-d", n, v, "super", None) for n in range(0, 4) for v in m["variants"]] \
+            + [("titan-seed-0005", "player-e", n, "v1-9650", "super", cap) for n in range(0, 4) for cap in (5_000, 20_000)]
     # Base pearls show up about once in five spins, so more base cases. The caps are hundredths of
     # the bet (20× and 50×), small enough to bite.
     return [("trident-seed-0001", "player-a", n, "v1-9650", "base", None) for n in range(0, 60)] \

@@ -10,6 +10,7 @@ use App\Domain\Game\Engines\EngineFamily;
 use App\Domain\Game\Engines\InstantResult;
 use App\Domain\Game\Engines\Slot\Maths\SpinResolver;
 use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
+use App\Domain\Game\Engines\Slot\Maths\Variant;
 use App\Domain\Game\Exceptions\InvalidBetParams;
 use App\Domain\Game\Exceptions\InvalidGameConfig;
 use App\Domain\Game\Models\Game;
@@ -23,12 +24,13 @@ use InvalidArgumentException;
  * model (games.config.model, see SlotModels) and the look in a theme (games.config.theme).
  *
  * The stake is what the player pays: the bet for a normal spin, 1.25× it with the ante bet,
- * 100× it for a bought feature. Wins are computed in multiples of the bet and paid as
- * multiplier = win ÷ cost, so payout = stake × multiplier = bet × win.
+ * 100× it for a bought feature, and the variant's price for a super buy (models that have
+ * one). Wins are computed in multiples of the bet and paid as multiplier = win ÷ cost, so
+ * payout = stake × multiplier = bet × win.
  */
 final class SlotEngine implements InstantEngine
 {
-    public const MODES = ['base', 'ante', 'buy'];
+    public const MODES = ['base', 'ante', 'buy', TumbleModel::SUPER];
 
     private const DEFAULT_BET_STEPS = ['0.20', '0.40', '0.60', '0.80', '1.00', '2.00', '3.00', '4.00', '5.00', '10.00', '20.00', '50.00', '100.00'];
 
@@ -105,6 +107,16 @@ final class SlotEngine implements InstantEngine
         $normalised = array_values(array_unique($normalised));
         usort($normalised, fn (string $a, string $b): int => bccomp($a, $b, 2));
 
+        // A super buy is priced to pay the variant's RTP at the default cap; a lower cap would cut
+        // off most of what it buys, so it needs the default or higher.
+        $super = [];
+        if ($model->superBuyTide !== null) {
+            $super = ['super' => (bool) ($config['super'] ?? true)];
+            if ($super['super'] && $maxWinX * 100 < $model->maxWin) {
+                throw new InvalidGameConfig('The super buy needs a max win of at least '.number_format(intdiv($model->maxWin, 100)).'×: raise the max win or switch the super buy off.');
+            }
+        }
+
         return [
             'model' => $code,
             'variant' => $variantId,
@@ -112,6 +124,7 @@ final class SlotEngine implements InstantEngine
             'theme' => $theme,
             'ante' => (bool) ($config['ante'] ?? true),
             'buy' => (bool) ($config['buy'] ?? true),
+        ] + $super + [
             'autoplay' => (bool) ($config['autoplay'] ?? true),
             'bet_steps' => $normalised,
         ];
@@ -127,12 +140,12 @@ final class SlotEngine implements InstantEngine
         return $this->verifier;
     }
 
-    /** Params: mode = base (default), ante or buy. The model, variant, max win and price are pinned to the bet. */
+    /** Params: mode = base (default), ante, buy or super. The model, variant, max win and price are pinned to the bet. */
     public function validateParams(Game $game, array $params): array
     {
         $mode = $params['mode'] ?? 'base';
         if (! is_string($mode) || ! in_array($mode, self::MODES, true)) {
-            throw new InvalidBetParams('mode must be "base", "ante" or "buy".');
+            throw new InvalidBetParams('mode must be "base", "ante", "buy" or "super".');
         }
 
         $config = $this->validateConfig($game, (array) $game->config);
@@ -142,18 +155,22 @@ final class SlotEngine implements InstantEngine
         if ($mode === 'buy' && ! $config['buy']) {
             throw new InvalidBetParams('This game does not offer the bonus buy.');
         }
+        if ($mode === TumbleModel::SUPER && ! ($config['super'] ?? false)) {
+            throw new InvalidBetParams('This game does not offer the super buy.');
+        }
 
         // Pinned when the bet is placed: a later change to the game can neither alter a
         // pending payout nor stop the bet from verifying.
         $model = SlotModels::get($config['model']);
+        $variant = $model->variant($config['variant']);
 
         return [
             'mode' => $mode,
             'model' => $config['model'],
             'variant' => $config['variant'],
             'max_win_x' => $config['max_win_x'],
-            'cost' => self::cost($mode),
-            'rtp' => $model->rtp($model->variant($config['variant']), $config['max_win_x'] * 100),
+            'cost' => self::cost($model, $variant, $mode),
+            'rtp' => $model->rtp($variant, $config['max_win_x'] * 100),
         ];
     }
 
@@ -191,12 +208,12 @@ final class SlotEngine implements InstantEngine
         $result = SpinResolver::resolve($model, $variant, $mode, $nextInt, true, $cap);
         $won = $result->win > 0;
         // Wins are hundredths of the bet; the cost is hundredths too (125 = 1.25× with the ante).
-        $multiplier = bcdiv((string) $result->win, (string) TumbleModel::COSTS[$mode], 4);
+        $multiplier = bcdiv((string) $result->win, (string) $model->cost($mode, $variant), 4);
 
         return new InstantResult(
             outcome: (array) $result->outcome + [
                 'max_win_x' => TumbleModel::x($cap),
-                'cost' => self::cost($mode),
+                'cost' => self::cost($model, $variant, $mode),
                 'win' => $won,
                 'payout_multiplier' => $multiplier,
                 'rtp' => $rtp,
@@ -206,9 +223,9 @@ final class SlotEngine implements InstantEngine
         );
     }
 
-    /** What a mode's stake buys, in bets: "1.00", "1.25", "100.00". */
-    public static function cost(string $mode): string
+    /** What a mode's stake buys with a variant, in bets: "1.00", "1.25", "100.00", or a super buy's price. */
+    public static function cost(TumbleModel $model, Variant $variant, string $mode): string
     {
-        return bcdiv((string) TumbleModel::COSTS[$mode], '100', 2);
+        return bcdiv((string) $model->cost($mode, $variant), '100', 2);
     }
 }

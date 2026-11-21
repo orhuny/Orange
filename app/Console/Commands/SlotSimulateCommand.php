@@ -28,7 +28,7 @@ class SlotSimulateCommand extends Command
     protected $signature = 'slot:simulate
         {model=sugar-orchard : The maths model}
         {--variant= : The RTP variant (default: the model\'s default)}
-        {--mode=base : base, ante or buy}
+        {--mode=base : base, ante, buy or super (models with a super buy)}
         {--spins=1000000 : Bets to play}
         {--seed=1 : Seed (different seeds give independent runs)}
         {--rng=fast : fast (xoshiro256**) or hmac (production RandomStream)}
@@ -55,8 +55,8 @@ class SlotSimulateCommand extends Command
         $variantId = (string) ($this->option('variant') ?: $model->defaultVariant);
         $mode = (string) $this->option('mode');
         $rng = (string) $this->option('rng');
-        if (! isset($model->variants[$variantId]) || ! isset(TumbleModel::COSTS[$mode]) || ! in_array($rng, ['fast', 'hmac'], true)) {
-            $this->error('Check --variant ('.implode(', ', array_keys($model->variants)).'), --mode (base, ante, buy) and --rng (fast, hmac).');
+        if (! isset($model->variants[$variantId]) || ! in_array($mode, $model->modes(), true) || ! in_array($rng, ['fast', 'hmac'], true)) {
+            $this->error('Check --variant ('.implode(', ', array_keys($model->variants)).'), --mode ('.implode(', ', $model->modes()).') and --rng (fast, hmac).');
 
             return self::FAILURE;
         }
@@ -100,7 +100,7 @@ class SlotSimulateCommand extends Command
         $variant = $model->variant($variantId);
         $randomizer = new Randomizer(new Xoshiro256StarStar($seed));
         $fast = fn (int $n): int => $randomizer->getInt(0, $n - 1);
-        $cost = TumbleModel::COSTS[$mode];
+        $cost = $model->cost($mode, $variant);
         $bounds = array_values(self::BUCKETS);
 
         $t = ['n' => $spins, 'win' => 0, 'sumSq' => 0.0, 'base' => 0, 'free' => 0, 'hits' => 0, 'triggers' => 0, 'freeSpins' => 0, 'maxed' => 0,
@@ -190,7 +190,7 @@ class SlotSimulateCommand extends Command
     private function report(TumbleModel $model, string $variantId, string $mode, string $rng, array $t, float $seconds, int $cap, array $caps): void
     {
         $n = (int) $t['n'];
-        $cost = TumbleModel::COSTS[$mode];
+        $cost = $model->cost($mode, $model->variant($variantId));
         $rtp = $t['win'] / $n / $cost;
         $sd = sqrt(max(0.0, $t['sumSq'] / $n - $rtp ** 2));
         $ci = 1.96 * $sd / sqrt($n);

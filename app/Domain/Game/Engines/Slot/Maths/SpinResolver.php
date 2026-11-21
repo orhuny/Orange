@@ -15,7 +15,7 @@ use InvalidArgumentException;
  *   1. The grid, column 0 to the last, each column top to bottom: one draw per cell from
  *      that column's table; a multiplier cell draws its value next (outside free spins
  *      from the variant's base multiplier table, if it has one).
- *      A bought spin first draws the scatter count, then their cells by a partial
+ *      A bought spin (buy or super) first draws the scatter count, then their cells by a partial
  *      Fisher–Yates shuffle of 0 … cells − 1 (i-th: swap i with i + nextInt(cells − i)),
  *      then fills the other cells in order from the buy tables.
  *   2. Pay symbols with at least payTiers[0] copies anywhere win. They are removed, the
@@ -24,8 +24,8 @@ use InvalidArgumentException;
  *   3. The multiplier sum (the values on the final grid) of a spin that won:
  *      - base game (models with base multipliers): multiplies the spin's line win;
  *      - free spins, SPIN: multiplies the spin's win;
- *      - free spins, TIDE: joins the tide (a running total from 0), and the tide, if above
- *        0, multiplies the spin's win.
+ *      - free spins, TIDE: joins the tide (a running total from 0, or from the model's
+ *        superBuyTide in a super buy), and the tide, if above 0, multiplies the spin's win.
  *      Scatters are counted on the final grid; their pay is never multiplied.
  *   4. A bet's total win stops at the cap, and nothing more is played.
  *
@@ -42,17 +42,18 @@ final class SpinResolver
      */
     public static function resolve(TumbleModel $model, Variant $variant, string $mode, Closure $nextInt, bool $record = true, ?int $maxWin = null): SpinResult
     {
-        if (! isset(TumbleModel::COSTS[$mode])) {
-            throw new InvalidArgumentException("Unknown mode [{$mode}].");
+        if (! in_array($mode, $model->modes(), true)) {
+            throw new InvalidArgumentException("Model [{$model->code}] has no mode [{$mode}].");
         }
         $cap = $maxWin ?? $model->maxWin;
         if ($cap <= 0) {
             throw new InvalidArgumentException("The max win must be positive, got {$cap}.");
         }
 
-        $set = $variant->set($mode === 'ante' ? 'ante' : ($mode === 'buy' ? 'buy' : 'base'));
+        $bought = $mode === 'buy' || $mode === TumbleModel::SUPER;
+        $set = $variant->set($mode === 'ante' ? 'ante' : ($bought ? 'buy' : 'base'));
         $baseValues = $model->baseMultipliers ? ($variant->baseMultipliers ?? $variant->multipliers) : null;
-        [$grid, $values] = $mode === 'buy'
+        [$grid, $values] = $bought
             ? self::boughtGrid($model, $variant, $baseValues, $nextInt)
             : self::drawGrid($model, $set, $baseValues, $nextInt);
 
@@ -74,7 +75,7 @@ final class SpinResolver
         }
 
         $tides = $model->freeSpinMultiplier === TumbleModel::TIDE;
-        $tide = 0;
+        $tide = $mode === TumbleModel::SUPER ? (int) $model->superBuyTide : 0;
         $total = $baseWin;
         $freeWin = 0;
         $played = 0;
@@ -111,6 +112,7 @@ final class SpinResolver
             'model' => $model->code,
             'variant' => $variant->id,
             'mode' => $mode,
+        ] + ($mode === TumbleModel::SUPER ? ['tide_start' => $model->superBuyTide] : []) + [
             'spins' => $spins,
             'base_win_x' => TumbleModel::x($baseWin),
             'free_spins' => $played,

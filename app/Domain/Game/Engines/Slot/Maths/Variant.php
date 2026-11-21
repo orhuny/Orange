@@ -24,6 +24,7 @@ final readonly class Variant
      * @param  WeightTable  $buyScatters  how many scatters a bought trigger spin places
      * @param  WeightTable|null  $baseMultipliers  a multiplier's value outside free spins (default: $multipliers)
      * @param  array<int, string>  $rtpByCap  other caps a game may pick (hundredths of the bet) => the RTP measured with it
+     * @param  int|null  $superCost  a super buy's price (hundredths of the bet), set so it pays the variant's RTP; null when the model has none
      */
     public function __construct(
         public string $id,
@@ -36,6 +37,7 @@ final readonly class Variant
         public WeightTable $buyScatters,
         public ?WeightTable $baseMultipliers = null,
         public array $rtpByCap = [],
+        public ?int $superCost = null,
     ) {
         foreach (['base' => $base, 'ante' => $ante, 'buy' => $buy, 'free' => $free] as $name => $columns) {
             if ($columns === []) {

@@ -17,6 +17,7 @@ A slot is two independent pieces, picked in the admin panel:
 The admin panel also sets:
 - `config.variant`: the RTP variant. It sets the game's RTP target and house edge.
 - `config.ante`, `config.buy`, `config.autoplay`: switch those features off where a jurisdiction requires it.
+- `config.super`: the super buy, for a model that has one (Stones of the Titan). Same reason to switch it off. It needs a max win of at least the model's default.
 - `config.max_win_x`: the max win, from the variant's measured choices (below). It also sets the RTP target.
 - `config.bet_steps`: what the page's − / + buttons step through. Left empty, the defaults (0.20 up to 100.00).
 
@@ -28,13 +29,17 @@ Rules:
 - **Amounts are integers in hundredths of the bet.** No floats anywhere in the maths.
 - **A live variant is immutable.** A bet's params pin `model`, `variant`, `max_win_x`, `mode`, `cost` and `rtp`, and verification replays exactly that. To retune, add a new variant id (`v2-9650`), measure it, and switch games to it in the admin panel. Never edit one that a real bet has used.
 - **A paytable or rules change is a new model** with its own code.
-- **Every variant measures the same RTP in every mode.** base, ante (stake 1.25×) and buy (stake 100×) are each tuned on their own tables.
+- **Every variant measures the same RTP in every mode.** base, ante (stake 1.25×) and buy (stake 100×) are each tuned on their own tables. A super buy is priced instead (below).
 
 What a model can choose (`TumbleModel`):
 - **Multipliers in the base game** (`baseMultipliers`). Their values come from the variant's `baseMultipliers` table (default: the free-spin one), and they multiply the line win of the spin they end on, never the scatter pay. Sugar Orchard has none; Trident of Poseidon's pearls land in both.
 - **Free-spin multipliers** (`freeSpinMultiplier`):
   - `SPIN`: each winning spin is multiplied by the sum on its own grid (Sugar Orchard's stars).
-  - `TIDE`: every winning spin's sum joins a running total, the Tide, which multiplies that spin and every winning spin after (Trident of Poseidon).
+  - `TIDE`: every winning spin's sum joins a running total, the Tide, which multiplies that spin and every winning spin after (Trident of Poseidon; Stones of the Titan calls it the Eclipse).
+- **A super buy** (`superBuyTide`, TIDE models only): mode `super`, a bought feature that draws exactly like the buy, except that its tide starts at `superBuyTide` instead of 0. The outcome records `tide_start`.
+  - Its price is per variant (`Variant::$superCost`, hundredths of the bet): measure what it is worth at the default cap with `slot:simulate --mode=super`, divide by the variant's RTP, and round down to whole bets. Whole bets keep every stake exact; rounding down means it never pays below the published RTP.
+  - The rules publish the price (`costs.super`), the start (`free_spins.super_buy_tide`) and the switch (`features.super`). Models without one publish exactly what they always have.
+  - It is offered only with the default cap or higher: below it, the cap would cut off most of what it buys.
 
 **The max win is a game setting.** The admin form offers a slot's max win from its variant's measured choices: the model's default (`maxWin`, its own RTP) plus each cap in the variant's `rtpByCap`. A lower cap cuts off the biggest wins, so each choice comes with its own RTP, and picking it fills the game's RTP target as the variant does.
 - To offer a cap, measure it (`--caps`, below) and add it to the variant's `rtpByCap` with the RTP to publish. Use the lowest of the three modes, so no mode pays less than the published RTP.
@@ -64,7 +69,7 @@ Slot RTP has no closed form (tumbles and multipliers), so it is measured. With a
 
 ## Tests (all required for a new model or variant)
 
-- **Golden vectors** (`tests/Unit/Slot/SpinResolverTest.php`, `TridentOfPoseidonTest.php`). They come from the **independent** Python implementation in `tools/slot-reference/reference.py`; regenerate them with `python -I tools/slot-reference/reference.py {model} > tests/Fixtures/slot/{model}-golden.json`. A new model needs its own section in the reference and its own fixture.
+- **Golden vectors** (`tests/Unit/Slot/SpinResolverTest.php`, `TridentOfPoseidonTest.php`, `StonesOfTheTitanTest.php`). They come from the **independent** Python implementation in `tools/slot-reference/reference.py`; regenerate them with `python -I tools/slot-reference/reference.py {model} > tests/Fixtures/slot/{model}-golden.json`. A new model needs its own section in the reference and its own fixture.
 - **Scripted grids:** the `scripted()` helper (`tests/Support/slot-script.php`) lays out exact grids. Use them for pays and tiers, gravity, multipliers, retriggers, the max-win cap and the buy guarantee.
 - **Fixed-seed totals:** these catch any change to the maths. If a change is intended, it is a new variant.
 - **Money flows, verification, secrecy, page and admin:** `SlotPlayTest`, `SlotSecrecyTest`, `SlotAdminTest`.
@@ -89,8 +94,9 @@ Slot RTP has no closed form (tumbles and multipliers), so it is measured. With a
      - `hostReactions`: which pose answers a win, a big win, free spins (and `strike`, for a kit);
      - `effects`: `flames` and `dew` off (Sugar Orchard's caramel flames and dew drops);
      - `pace`: a winning tumble's timing;
-     - `text`: `anteOften` (how much more often the ante brings free spins, from the maths doc) and `freeSpins` (the free-spins intro's note).
-   - `kit` and `kitArt`: a theme's own effects module, `public/js/orange/slot-kit-{kit}.js`, and the art only it uses. It exports `createKit(api)` and answers any of the hooks listed at `kit` in `slot-game.js`: the scenery, a winning tumble's lead-up and burst, the multipliers, the free-spins change and the big-win celebration. Trident of Poseidon's (`slot-kit-tides.js`) is the example.
+     - `text`: `anteOften` (how much more often the ante brings free spins, from the maths doc), `freeSpins` (the free-spins intro's note), `multipliers` (the rules' lines about multipliers), `tideName` and `superBuy` (what the tide and the super buy are called), `headlines` (extra [label, value] pairs for the tumble-win plaque);
+     - `layout`: `classic` (default: the host above the feature panels, the logo on the frame) or `throne` (feature cards on the left, a tumble-win plaque on the frame, the host full-length on his rock on the right under the logo; `resources/views/games/slot/layouts/throne.blade.php`). A throne theme also gives `tumblePlaque`, `cards` (`buy`, `ante`), `pedestal`, and a `feet` line per host pose.
+   - `kit` and `kitArt`: a theme's own effects module, `public/js/orange/slot-kit-{kit}.js`, and the art only it uses. It exports `createKit(api)` and answers any of the hooks listed at `kit` in `slot-game.js`: the scenery, a winning tumble's lead-up and burst, the multipliers, the free-spins change and the big-win celebration. Trident of Poseidon's (`slot-kit-tides.js`) and Stones of the Titan's (`slot-kit-cosmos.js`) are the examples.
    - `style.blade.php` beside `theme.php`: CSS the page loads after its own, for the theme's colours.
 3. Put the art in `public/images/{theme}/`, built by `scripts/art/process-{theme}.py` from the raw deliveries; see [art/README.md](../art/README.md).
    - Symbols are square transparent WebP, 320 px.

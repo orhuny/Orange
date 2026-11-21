@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Game\Engines\Slot;
 
 use App\Domain\Game\Engines\Slot\Maths\TumbleModel;
+use App\Domain\Game\Engines\Slot\Models\StonesOfTheTitan;
 use App\Domain\Game\Engines\Slot\Models\SugarOrchard;
 use App\Domain\Game\Engines\Slot\Models\TridentOfPoseidon;
 use InvalidArgumentException;
@@ -16,6 +17,7 @@ final class SlotModels
     private const MODELS = [
         SugarOrchard::CODE => SugarOrchard::class,
         TridentOfPoseidon::CODE => TridentOfPoseidon::class,
+        StonesOfTheTitan::CODE => StonesOfTheTitan::class,
     ];
 
     /** @return list<string> */

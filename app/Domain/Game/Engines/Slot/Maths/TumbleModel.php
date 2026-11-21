@@ -18,11 +18,17 @@ use InvalidArgumentException;
  * win of the spin they end on. In free spins, SPIN multiplies a winning spin by its own sum;
  * TIDE adds the sum of every winning spin to a running total that multiplies each winning
  * spin from then on.
+ *
+ * A super buy (models with $superBuyTide) is a bought feature whose tide starts at that value
+ * instead of 0; each variant sets its price (Variant::$superCost).
  */
 final readonly class TumbleModel
 {
-    /** Mode => what the stake buys, in hundredths of the base bet. */
+    /** Mode => what the stake buys, in hundredths of the base bet. A super buy's price is its variant's. */
     public const COSTS = ['base' => 100, 'ante' => 125, 'buy' => 10_000];
+
+    /** The super buy's mode: a bought feature that starts with the tide at $superBuyTide. */
+    public const SUPER = 'super';
 
     /** Free spins: each winning spin is multiplied by the sum on its own grid. */
     public const SPIN = 'spin';
@@ -46,6 +52,7 @@ final readonly class TumbleModel
      * @param  int  $maxWin  the default cap on a bet's total win; a game may pick another its variant has measured (Variant::$rtpByCap)
      * @param  bool  $baseMultipliers  whether multipliers land outside free spins
      * @param  string  $freeSpinMultiplier  SPIN or TIDE
+     * @param  int|null  $superBuyTide  the tide a super buy starts with (TIDE models only; null: no super buy)
      */
     public function __construct(
         public string $code,
@@ -69,6 +76,7 @@ final readonly class TumbleModel
         public string $defaultVariant,
         public bool $baseMultipliers = false,
         public string $freeSpinMultiplier = self::SPIN,
+        public ?int $superBuyTide = null,
     ) {
         $this->cells = $cols * $rows;
         $this->payCount = count($pays);
@@ -88,7 +96,13 @@ final readonly class TumbleModel
         if (! in_array($freeSpinMultiplier, [self::SPIN, self::TIDE], true)) {
             throw new InvalidArgumentException("Model [{$code}]: free-spin multipliers are SPIN or TIDE, not [{$freeSpinMultiplier}].");
         }
+        if ($superBuyTide !== null && ($freeSpinMultiplier !== self::TIDE || $superBuyTide <= 0)) {
+            throw new InvalidArgumentException("Model [{$code}]: a super buy starts the tide above 0, so it needs TIDE free spins.");
+        }
         foreach ($variants as $id => $variant) {
+            if (($superBuyTide !== null) !== ($variant->superCost !== null) || ($variant->superCost !== null && $variant->superCost <= 0)) {
+                throw new InvalidArgumentException("Model [{$code}] variant [{$id}]: give every variant a super buy price exactly when the model has a super buy.");
+            }
             foreach (['base', 'ante', 'buy'] as $set) {
                 foreach ($variant->set($set) as $table) {
                     if (! $baseMultipliers && in_array($multiplier, $table->values, true)) {
@@ -100,6 +114,26 @@ final readonly class TumbleModel
                 throw new InvalidArgumentException("Model [{$code}] variant [{$id}]: the default cap's RTP is the variant's own; don't list it again.");
             }
         }
+    }
+
+    /**
+     * The modes a bet may be played in.
+     *
+     * @return list<string>
+     */
+    public function modes(): array
+    {
+        return $this->superBuyTide === null ? array_keys(self::COSTS) : [...array_keys(self::COSTS), self::SUPER];
+    }
+
+    /** What a mode's stake buys with a variant, in hundredths of the base bet. */
+    public function cost(string $mode, Variant $variant): int
+    {
+        if ($mode === self::SUPER && $this->superBuyTide !== null) {
+            return (int) $variant->superCost;
+        }
+
+        return self::COSTS[$mode] ?? throw new InvalidArgumentException("Model [{$this->code}] has no mode [{$mode}].");
     }
 
     /**

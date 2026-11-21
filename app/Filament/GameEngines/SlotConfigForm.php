@@ -51,6 +51,10 @@ final class SlotConfigForm implements EngineConfigForm
                 Toggle::make('config.ante')->label('Ante bet (+25%)')->default(true),
                 Toggle::make('config.buy')->label('Bonus buy (100×)')->default(true)
                     ->helperText('Switch off where buying the feature is not allowed.'),
+                Toggle::make('config.super')->label('Super buy')->default(true)
+                    ->visible(fn (Get $get): bool => self::superBuyTide($get) !== null)
+                    ->helperText(fn (Get $get): string => 'Free spins that start with the multiplier at '.self::superBuyTide($get).'×. Needs a max win of at least '
+                        .self::defaultMaxWin($get).'; switch off where buying the feature is not allowed.'),
                 Toggle::make('config.autoplay')->label('Autoplay')->default(true),
             ]),
             TagsInput::make('config.bet_steps')->label('Bet steps')
@@ -111,6 +115,14 @@ final class SlotConfigForm implements EngineConfigForm
         $code = self::modelCode($get);
 
         return SlotModels::has($code) ? number_format(intdiv(SlotModels::get($code)->maxWin, 100)).'× (default)' : '';
+    }
+
+    /** The tide a super buy starts with, or null when the picked model has no super buy. */
+    private static function superBuyTide(Get $get): ?int
+    {
+        $code = self::modelCode($get);
+
+        return SlotModels::has($code) ? SlotModels::get($code)->superBuyTide : null;
     }
 
     /** The picked maths model, or the first (the placeholder) when none is. */
