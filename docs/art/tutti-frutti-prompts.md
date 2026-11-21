@@ -4,7 +4,7 @@ Audience: whoever generates the art for Tutti Frutti. Every prompt below is comp
 
 **Name:** Tutti Frutti (code `tutti-frutti`), the user's choice, confirmed on 2026-11-21. Only `txt-logo` carries the name.
 
-**The game:** a **lines** game. Five reels and four rows, 40 fixed lines, and fruit that matches along a line from the left pays. That makes it our first slot that isn't pay-anywhere.
+**The game:** a **lines** game. Five reels and three rows, 20 fixed lines (the classic shape), and fruit that matches along a line from the left pays. That makes it our first slot that isn't pay-anywhere.
 
 ## The look in one paragraph
 
@@ -22,7 +22,7 @@ Tutti Frutti must not look or feel like Sugar Orchard. Keep these differences in
 
 | | Sugar Orchard | Tutti Frutti |
 |---|---|---|
-| How it pays | 6×5, any 8+ of a fruit anywhere, tumbles | 5×4, 40 lines, 3+ of a fruit along a line |
+| How it pays | 6×5, any 8+ of a fruit anywhere, tumbles | 5×3, 20 lines, 3+ of a fruit along a line |
 | Place and light | a candy orchard at golden hour, warm haze | a Riviera beach club at noon: turquoise, azure, white, hot pink |
 | Free spins | the orchard at night, lanterns and fireflies | the Neon Night: neon fruit signs, a lit pool, heart fireworks |
 | Style | painterly, photoreal, soft light | crisp glossy stylised 3D with a clean contour, sharp everywhere |
@@ -33,7 +33,7 @@ Tutti Frutti must not look or feel like Sugar Orchard. Keep these differences in
 
 ## How the art becomes the game
 
-**The screen:** the reels sit in the centre in their frame (`ui-frame`), with the logo above them. Marina stands full-length on the left and Bella on the right, each on a podium (`fg-podium`). The game marks the 40 lines on the frame's two side bands. The buy badge (`ui-buy-badge`) sits at the bottom left, and the spin button (`ui-spin`) on the bar.
+**The screen:** the reels sit in the centre in their frame (`ui-frame`), with the logo above them. Marina stands full-length on the left and Bella on the right, each on a podium (`fg-podium`). The game marks the 20 lines on the frame's two side bands. The buy badge (`ui-buy-badge`) sits at the bottom left, and the spin button (`ui-spin`) on the bar.
 
 **A line win:**
 1. The game draws each winning line across the reels as a glowing ribbon in its own colour, with a sparkle running along it (`fx-twinkle`).
@@ -102,7 +102,7 @@ Tutti Frutti must not look or feel like Sugar Orchard. Keep these differences in
 
 ## Symbols (square 1:1, transparent)
 
-The reels show the symbols at about 70–150 px. Each one needs a bold, instantly readable silhouette and its own dominant colour.
+The reels show the symbols at about 90–180 px. Each one needs a bold, instantly readable silhouette and its own dominant colour.
 
 | Symbol | Rank | Dominant colour |
 |---|---|---|
@@ -264,19 +264,19 @@ A round, low podium for a glamorous hostess to stand on, seen from the front and
 ## Backgrounds (scene)
 
 **The layout:**
-- **Landscape:** the logo sits at the top centre. Below it are the reels in their frame, 5 wide by 4 high. Marina stands full-length on the left and Bella on the right. The bar runs along the bottom.
+- **Landscape:** the logo sits at the top centre. Below it are the reels in their frame, 5 wide by 3 high. Marina stands full-length on the left and Bella on the right. The bar runs along the bottom.
 - **Portrait:** the logo is at the top, then the reels, with each woman's upper body rising over one of the frame's top corners. The buttons are at the bottom.
 
 So keep **the reel area calm**: open sky and sea in clean, smooth gradients. Keep the left and right quarters, where the women stand, fairly calm too, and spend the detail on the outer edges. Calm still means crisp: clean shapes and smooth colour, never haze or blur. Code adds the glitter on the sea, the ripples in the pool, the neon flicker and the fireworks, so leave room for them.
 
 ### bg-day-landscape.png · 16:9 · base game · generate first
 ```text
-A glamorous beach club on the Italian Riviera at noon in high summer. A bright white stone terrace runs along the bottom with a long turquoise infinity pool whose far edge seems to spill into a sparkling turquoise-and-cobalt bay. On the cliffs to the far left and far right, pastel villas in coral, peach, lemon yellow and white stack up the hillside with little balconies and green shutters; cascades of hot-magenta bougainvillea pour over the walls; tall palm trees lean in from both outer edges; crisp white sun loungers and round parasols in turquoise and coral line the terrace's outer ends; a white yacht sits far out on the sea; a clear azure sky with a few crisp, bright white clouds and a hot, bright sun in the upper left. Composition for a game screen: the reels cover the centre (about 50% of the width, from 16% to 88% of the height), so that area is open sea and sky in clean, smooth, calm gradients with little detail; the top centre is calm sky for the logo; the left quarter and the right quarter, where two women will stand, are calm open sea, sky and terrace; the richest detail is around the outer edges and corners. Bright, sunny, glamorous and joyful. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain, no painterly brush strokes. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
+A glamorous beach club on the Italian Riviera at noon in high summer. A bright white stone terrace runs along the bottom with a long turquoise infinity pool whose far edge seems to spill into a sparkling turquoise-and-cobalt bay. On the cliffs to the far left and far right, pastel villas in coral, peach, lemon yellow and white stack up the hillside with little balconies and green shutters; cascades of hot-magenta bougainvillea pour over the walls; tall palm trees lean in from both outer edges; crisp white sun loungers and round parasols in turquoise and coral line the terrace's outer ends; a white yacht sits far out on the sea; a clear azure sky with a few crisp, bright white clouds and a hot, bright sun in the upper left. Composition for a game screen: the reels cover the centre (a wide band about 55% of the width, from 20% to 84% of the height), so that area is open sea and sky in clean, smooth, calm gradients with little detail; the top centre is calm sky for the logo; the left quarter and the right quarter, where two women will stand, are calm open sea, sky and terrace; the richest detail is around the outer edges and corners. Bright, sunny, glamorous and joyful. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain, no painterly brush strokes. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
 ```
 
 ### bg-day-portrait.png · 9:16 · attach bg-day-landscape
 ```text
-The same Riviera beach club at noon as in the attached image, recomposed for a tall phone screen. The reels sit in the middle (about 94% of the width, from 24% to 60% of the height), so that area stays open sea and sky in clean, smooth, calm gradients. The pastel villas with their bougainvillea, and the palms, frame the outer sides; the top 12% is calm azure sky, where the logo goes; the band just above the reels stays calm, because two women's heads and shoulders rise there at the left and right corners; the bottom 35% is the white terrace and the turquoise pool, simple and slightly darker in tone, where the buttons go. Same light, palette and style as the attached image. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
+The same Riviera beach club at noon as in the attached image, recomposed for a tall phone screen. The reels sit in the middle (about 94% of the width, from 26% to 58% of the height), so that area stays open sea and sky in clean, smooth, calm gradients. The pastel villas with their bougainvillea, and the palms, frame the outer sides; the top 12% is calm azure sky, where the logo goes; the band just above the reels stays calm, because two women's heads and shoulders rise there at the left and right corners; the bottom 35% is the white terrace and the turquoise pool, simple and slightly darker in tone, where the buttons go. Same light, palette and style as the attached image. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no signs with letters, no people, no characters, no UI. Avoid: candy, sweets, lollipops, rainbows, orchards, fruit trees, golden-hour light, sunset, haze, bokeh, red-and-white stripes, cotton-candy clouds.
 ```
 
 ### bg-night-landscape.png · 16:9 · free spins, the Neon Night · attach bg-day-landscape
@@ -286,7 +286,7 @@ The same beach club as in the attached image, with the same composition, now at 
 
 ### bg-night-portrait.png · 9:16 · attach bg-day-portrait and bg-night-landscape
 ```text
-The Neon Night beach club of the second attached image, recomposed exactly like the tall phone layout of the first attached image: the reels in the middle (about 94% of the width, from 24% to 60% of the height) stay calm and dark; the moon sits high in the centre above the logo area; the neon fruit signs, the party lights and the villas frame the outer sides; the band just above the reels stays calm, because two women's heads and shoulders rise there at the left and right corners; the top 12% is calm night sky, where the logo goes; the bottom 35% is the terrace and the glowing pool, simple and darker, where the buttons go. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no letters in the neon, no people, no characters, no UI. Avoid: candy, sweets, lanterns, fireflies, orchards, fruit trees, haze, bokeh, red-and-white stripes, horror.
+The Neon Night beach club of the second attached image, recomposed exactly like the tall phone layout of the first attached image: the reels in the middle (about 94% of the width, from 26% to 58% of the height) stay calm and dark; the moon sits high in the centre above the logo area; the neon fruit signs, the party lights and the villas frame the outer sides; the band just above the reels stays calm, because two women's heads and shoulders rise there at the left and right corners; the top 12% is calm night sky, where the logo goes; the bottom 35% is the terrace and the glowing pool, simple and darker, where the buttons go. Crisp and sharp everywhere: clean shapes, high clarity, no haze, no fog, no bokeh, no depth-of-field blur, no film grain. Premium AAA slot game background, crisp stylised 3D illustration with clean shapes and juicy saturated colours, like a top mobile game. No text, no logo, no letters in the neon, no people, no characters, no UI. Avoid: candy, sweets, lanterns, fireflies, orchards, fruit trees, haze, bokeh, red-and-white stripes, horror.
 ```
 
 ### fg-tropical.png · 1:1 · transparent · attach bg-day-landscape
@@ -303,10 +303,10 @@ The frame, the buy badge and the message plaque are blank on purpose. The game w
 
 The materials are **glossy white glazed ceramic, hand-painted Mediterranean majolica tiles, glossy coloured lacquer and polished gold**.
 
-### ui-frame.png · 4:3 · magenta · ChatGPT recommended
-The game marks the 40 lines on the two side bands.
+### ui-frame.png · 16:9 · magenta · ChatGPT recommended
+The game marks the 20 lines on the two side bands.
 ```text
-An ornate premium frame around a slot game's reel window, in the style of a glamorous Riviera beach club: a frame of glossy white glazed ceramic set with a band of hand-painted Mediterranean majolica tiles (turquoise, lemon yellow and lime green fruit-and-leaf motifs on white), edged inside and out with thin polished gold mouldings. The left and right sides of the frame are a little wider than the top and bottom, and each holds a plain, smooth vertical band of polished gold running its full height, where small markers will be placed. On each of the four corners sits a small cluster of two glossy tropical leaves, a glossy lime and the green crown of a pineapple. The middle of the top edge is a plain, straight gold ledge with no crest, because the game's logo will sit there. The frame is symmetrical left to right. The inner opening is a clean, sharp-cornered rectangle with proportions of exactly 5 wide to 4 high, filled with flat pure magenta (#FF00FF); everything outside the frame is flat pure magenta too. Straight front view, no perspective. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no numbers, no cast shadow. Nothing on the frame is pink, purple, magenta or see-through.
+An ornate premium frame around a slot game's reel window, in the style of a glamorous Riviera beach club: a frame of glossy white glazed ceramic set with a band of hand-painted Mediterranean majolica tiles (turquoise, lemon yellow and lime green fruit-and-leaf motifs on white), edged inside and out with thin polished gold mouldings. The left and right sides of the frame are a little wider than the top and bottom, and each holds a plain, smooth vertical band of polished gold running its full height, where small markers will be placed. On each of the four corners sits a small cluster of two glossy tropical leaves, a glossy lime and the green crown of a pineapple. The middle of the top edge is a plain, straight gold ledge with no crest, because the game's logo will sit there. The frame is symmetrical left to right. The inner opening is a clean, sharp-cornered rectangle with proportions of exactly 5 wide to 3 high, filled with flat pure magenta (#FF00FF); everything outside the frame is flat pure magenta too. Straight front view, no perspective. Match the style and lighting of the attached image. Premium AAA slot game art in a crisp, glossy stylised 3D style: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. No text, no numbers, no cast shadow. Nothing on the frame is pink, purple, magenta or see-through.
 ```
 
 ### ui-buy-badge.png · 1:1 · transparent · the feature buy
@@ -450,7 +450,7 @@ Hero key art for the game's lobby tile: the two women from the first and second 
 **Kept crisp:** symbols are shrunk once, with a high-quality filter and a light sharpen, to twice the largest cell size, so they stay sharp on high-density screens. Backgrounds are served at their full size and never stretched past it.
 
 **Made in code, not art:**
-- the 40 line markers on the frame and the glowing line ribbons;
+- the 20 line markers on the frame and the glowing line ribbons;
 - the glitter on the sea, the ripples in the pool, the sway of the leaves;
 - the neon flicker and the fireworks of the Neon Night;
 - the sunset time-lapse into the free spins;
