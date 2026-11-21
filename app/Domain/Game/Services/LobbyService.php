@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Game\Services;
 
+use App\Domain\Game\Engines\EngineRegistry;
 use App\Domain\Game\Models\Bet;
 use App\Domain\Game\Models\Game;
 use App\Domain\Game\Models\GameCategory;
 use App\Domain\Launch\Models\PlaySession;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 /** What a player's lobby shows: the operator's games as tiles, by category, plus recent and popular. */
 final class LobbyService
@@ -17,7 +19,10 @@ final class LobbyService
 
     private const POPULAR = 10;
 
-    public function __construct(private readonly GameCatalogue $catalogue) {}
+    public function __construct(
+        private readonly GameCatalogue $catalogue,
+        private readonly EngineRegistry $engines,
+    ) {}
 
     /** @return array<string, mixed> */
     public function forSession(PlaySession $session): array
@@ -38,6 +43,8 @@ final class LobbyService
             ])
             ->values();
         $codes = $tiles->pluck('code')->all();
+        $maxMultipliers = $this->maxMultipliers($codes);
+        $tiles = $tiles->map(fn (array $tile): array => $tile + ['max_multiplier' => $maxMultipliers[$tile['code']] ?? null]);
 
         $categories = GameCategory::query()
             ->where('is_active', true)
@@ -53,6 +60,28 @@ final class LobbyService
             'recent' => array_values(array_intersect($this->recent($session), $codes)),
             'popular' => array_values(array_intersect($this->popular($session), $codes)),
         ];
+    }
+
+    /**
+     * The most a bet can win in each game, as a multiple of the stake ("win up to 5,000×"):
+     * null where the engine has no cap (crash) or the game's settings can't be read.
+     *
+     * @param  list<string>  $codes
+     * @return array<string, string|null>
+     */
+    private function maxMultipliers(array $codes): array
+    {
+        $multipliers = [];
+        foreach (Game::query()->whereIn('code', $codes)->get() as $game) {
+            try {
+                $max = $this->engines->forGame($game)->maxMultiplier($game);
+            } catch (Throwable) {
+                $max = '0';
+            }
+            $multipliers[$game->code] = bccomp($max, '0', 4) > 0 ? $max : null;
+        }
+
+        return $multipliers;
     }
 
     /** @return list<string> the player's last distinct games, newest first */

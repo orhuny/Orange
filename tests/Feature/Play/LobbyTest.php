@@ -103,7 +103,10 @@ it('lists the operator\'s playable games by category, with recent and popular', 
         ->and($tiles['crash']['frame_url'])->toBe(url('/crash').'?game=crash')
         ->and($tiles['crash']['rtp'])->toBe('0.9700')
         ->and($tiles['rocket']['playable'])->toBeFalse()
-        ->and($tiles['dice']['playable'])->toBeTrue();
+        ->and($tiles['dice']['playable'])->toBeTrue()
+        // "Win up to …": dice's top multiplier is RTP over its smallest chance; crash points are uncapped.
+        ->and($tiles['dice']['max_multiplier'])->toBe('9900.0000')
+        ->and($tiles['crash']['max_multiplier'])->toBeNull();
 });
 
 it('serves lobby data only to lobby sessions', function (): void {
