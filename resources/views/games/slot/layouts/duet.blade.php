@@ -14,7 +14,7 @@
      width, each hostess's upper body over a top corner of the frame. --}}
         body.layout-duet .stage {
             --ar: 1.6667; --gap: 0px; --reach: 0; --spin: clamp(78px, 12vh, 118px);
-            --hk: 1.16; /* a hostess's height, of the reels' */
+            --hk: 1.14; /* a hostess's height, of the reels' */
             --hw: calc(var(--bh) * var(--hk) * .46); /* her column's width */
             --barh: calc(var(--spin) + 10px);
             --topk: .2; /* room above the reels for the logo, of their height */
@@ -114,7 +114,7 @@
         .duet { position: relative; z-index: 4; align-self: stretch; pointer-events: none; }
         .duet.left { grid-area: left; margin-right: calc(var(--bh) * var(--el) * -.5); }
         .duet.right { grid-area: right; margin-left: calc(var(--bh) * var(--er) * -.5); }
-        .hostess { position: absolute; left: 0; right: 0; bottom: calc(var(--bh) * .06); height: calc(var(--bh) * var(--hk)); }
+        .hostess { position: absolute; left: 0; right: 0; bottom: calc(var(--bh) * .13); height: calc(var(--bh) * var(--hk)); }
         /* Every pose stands on the same line, its feet (--fy of its height) on the podium, its body's
            centre (--cx of its width) in the middle of the column. */
         .hostess-fig { position: absolute; left: 50%; bottom: 0; height: calc(100% * var(--k, 1)); aspect-ratio: var(--ar); z-index: 1;
@@ -124,8 +124,14 @@
         .duet.right .hostess-body { animation-delay: -2.2s; animation-duration: 6.2s; }
         .hostess-body .pose { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 16px rgba(0, 40, 70, .35)); }
         @keyframes hostess-sway { from { transform: rotate(-.8deg) scale(1, 1); } to { transform: rotate(.9deg) scale(1.006, .994); } }
-        .podium { position: absolute; z-index: 0; left: 50%; bottom: 0; width: calc(var(--bh) * var(--hk) * .5); translate: -50% 52%;
+        /* The podium: its white top runs from 2% to 34% of its height, so the feet line (the bottom
+           of .hostess) falls at 22%, just in front of the top's middle: she stands on it, not at its edge. */
+        .podium { position: absolute; z-index: 0; left: 50%; bottom: 0; width: calc(var(--bh) * var(--hk) * .5); translate: -50% 78%;
                   filter: drop-shadow(0 12px 14px rgba(0, 40, 70, .35)); }
+        /* Her shadow on the podium's top, under her feet. */
+        .hostess::before { content: ''; position: absolute; z-index: 1; left: 50%; bottom: 0; width: calc(var(--bh) * var(--hk) * .3); height: calc(var(--bh) * .045);
+                           translate: -50% 45%; border-radius: 50%; pointer-events: none;
+                           background: radial-gradient(closest-side, rgba(40, 30, 40, .42), rgba(40, 30, 40, .22) 55%, transparent); }
         .hostess-peek { display: none; }
         body.free .hostess-body .pose { filter: drop-shadow(0 0 18px rgba(255, 70, 190, .45)) drop-shadow(0 14px 16px rgba(0, 0, 0, .45)); }
 
