@@ -19,7 +19,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from artlib import (Out, cut_pieces, dusted, fit, fit_width, frame_pieces, frame_window,  # noqa: E402
@@ -456,6 +456,55 @@ def ph_thumbnail(art_bg, logo):
     return im
 
 
+# ---- The streams of light in the backgrounds ------------------------------------------------
+
+def flow_mask(im):
+    """Where a background's falling streams of light are, small (480 × 270, or 270 × 480): the
+    kit's shader runs light down them. A stream is bright and warm, and narrow and long: it
+    stays bright when spread vertically and dims when spread sideways. Only blobs much taller
+    than wide, and tall enough to be seen falling, are kept."""
+    w, h = (480, 270) if im.width >= im.height else (270, 480)
+    small = im.convert('RGB').resize((w, h), Image.LANCZOS)
+    r, _, b = small.split()
+    warm = ImageChops.subtract(r, b).point(lambda v: min(255, 60 + v * 3))
+    bright = small.convert('L').point(lambda v: 0 if v < 150 else min(255, (v - 150) * 3))
+    wb = ImageChops.multiply(bright, warm)
+    down = wb.resize((w, max(1, h // 12)), Image.BOX).resize((w, h), Image.BILINEAR)
+    side = wb.resize((max(1, w // 10), h), Image.BOX).resize((w, h), Image.BILINEAR)
+    narrow = Image.new('L', (w, h))
+    dp, sp, np_ = down.load(), side.load(), narrow.load()
+    for y in range(h):
+        for x in range(w):
+            a = dp[x, y]
+            np_[x, y] = 0 if a < 40 else max(0, min(255, int((a / (sp[x, y] + 12) - 1.15) * 400)))
+    mask = ImageChops.multiply(narrow, wb.point(lambda q: min(255, q * 2)))
+    mask = mask.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.5)).point(lambda q: 0 if q < 25 else min(255, q * 2))
+    mp = mask.load()
+    seen = bytearray(w * h)
+    kept = Image.new('L', (w, h))
+    kp = kept.load()
+    for y0 in range(h):
+        for x0 in range(w):
+            if seen[y0 * w + x0] or mp[x0, y0] < 40:
+                continue
+            seen[y0 * w + x0] = 1
+            queue, blob = [(x0, y0)], []
+            while queue:
+                x, y = queue.pop()
+                blob.append((x, y))
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and mp[nx, ny] >= 40:
+                        seen[ny * w + nx] = 1
+                        queue.append((nx, ny))
+            xs = [p[0] for p in blob]
+            ys = [p[1] for p in blob]
+            tall, wide = max(ys) - min(ys) + 1, max(xs) - min(xs) + 1
+            if tall >= h * 0.05 and tall >= wide * 1.8:
+                for x, y in blob:
+                    kp[x, y] = mp[x, y]
+    return kept.filter(ImageFilter.GaussianBlur(1))
+
+
 # ---- The Titan ------------------------------------------------------------------------------
 
 def host_pose(im, points):
@@ -549,11 +598,14 @@ def main():
         target = art['scenery'] if name.startswith('fg-') else art['fx']
         target[key] = cut_pieces(out, sheet.convert('RGB') if glow else dusted(sheet), prefix, area, scale, glow=glow)
 
+    art['flow'] = {}
     for kind in ('day', 'night'):
+        art['flow'][kind] = {}
         for shape in ('landscape', 'portrait'):
             size = (1920, 1080) if shape == 'landscape' else (1080, 1920)
             bg = load(f'bg-{kind}-{shape}', ph_background(kind == 'night', shape == 'portrait')).convert('RGB')
             out.save(bg.resize(size, Image.LANCZOS), f'bg-{kind}-{shape}.webp', quality=82)
+            art['flow'][kind][shape] = out.save(flow_mask(bg).convert('RGB'), f'flow/bg-{kind}-{shape}.webp', quality=80)
     art['scenery']['crystals'] = out.save(fit(trimmed(dusted(load('fg-crystals', ph_rock(True)))), 900), 'fg-crystals.webp')
     art['pedestal'] = out.save(fit(trimmed(dusted(load('fg-pedestal', ph_rock(False)))), 900), 'pedestal.webp')
 

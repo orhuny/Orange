@@ -38,9 +38,12 @@ export function createKit(api) {
 
     /**
      * The nebula drifts: soft clouds of gold, rose and teal light (crimson and gold in the
-     * Eclipse) slide slowly over the background, and stars twinkle at three depths. Drawn at a
-     * quarter of the pixels at about 30 fps and screened over the background; none without
-     * WebGL or with reduced motion.
+     * Eclipse) slide slowly over the background, and stars twinkle at three depths. The streams
+     * of light pouring off the floating islands run: streaks of their own colour fall down them
+     * (kitArt.flow: each background and a mask of where its streams are, found by the art
+     * build), mapped as the page's background is (centred, covering). Drawn at a quarter of the
+     * pixels at about 30 fps and screened over the background; none without WebGL or with
+     * reduced motion.
      */
     function nebula() {
         if (reducedMotion) return;
@@ -52,6 +55,8 @@ export function createKit(api) {
         const vs = 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }';
         const fs = `precision mediump float;
             uniform vec2 res; uniform float t; uniform float eclipse;
+            uniform sampler2D bgDay; uniform sampler2D bgNight; uniform sampler2D flowDay; uniform sampler2D flowNight;
+            uniform vec2 img; uniform float flowOn;
             float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
             float noise(vec2 p) {
                 vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -75,6 +80,18 @@ export function createKit(api) {
                 vec3 night = mix(vec3(1.0, 0.25, 0.18), vec3(1.0, 0.7, 0.3), smoothstep(0.3, 0.8, m));
                 vec3 col = mix(day, night, eclipse) * cloud * 0.55;
                 col += vec3(1.0, 0.95, 0.85) * (stars(uv, 60.0, 0.15) * 0.8 + stars(uv, 110.0, 0.08) * 0.55 + stars(uv, 190.0, 0.04) * 0.4);
+                // The streams: thin streaks, long down and narrow across, falling (y is up here).
+                vec2 iuv = (gl_FragCoord.xy - res * 0.5) / img + 0.5;
+                if (flowOn > 0.5 && iuv.x > 0.0 && iuv.x < 1.0 && iuv.y > 0.0 && iuv.y < 1.0) {
+                    float fm = mix(texture2D(flowDay, iuv).r, texture2D(flowNight, iuv).r, eclipse);
+                    if (fm > 0.02) {
+                        vec3 src = mix(texture2D(bgDay, iuv).rgb, texture2D(bgNight, iuv).rgb, eclipse);
+                        float a = noise(vec2(iuv.x * 260.0, iuv.y * 7.0 + t * 1.7));
+                        float b = noise(vec2(iuv.x * 170.0 + 7.3, iuv.y * 4.5 + t * 1.15));
+                        float streak = pow(clamp(a * 0.65 + b * 0.55, 0.0, 1.0), 2.6);
+                        col += (src * 1.3 + vec3(0.35, 0.25, 0.1)) * fm * streak * 1.5;
+                    }
+                }
                 gl_FragColor = vec4(col, 1.0);
             }`;
         const shader = (type, src) => {
@@ -106,6 +123,46 @@ export function createKit(api) {
         const uRes = gl.getUniformLocation(prog, 'res');
         const uT = gl.getUniformLocation(prog, 't');
         const uEclipse = gl.getUniformLocation(prog, 'eclipse');
+        const uImg = gl.getUniformLocation(prog, 'img');
+        const uFlowOn = gl.getUniformLocation(prog, 'flowOn');
+        ['bgDay', 'bgNight', 'flowDay', 'flowNight'].forEach((name, unit) => gl.uniform1i(gl.getUniformLocation(prog, name), unit));
+        gl.uniform1f(uFlowOn, 0);
+
+        // The backgrounds and their stream masks for the screen's shape; reloaded when it turns.
+        let shape = null;
+        let loaded = 0;
+        const textures = [0, 1, 2, 3].map(() => gl.createTexture());
+        const flowArt = (s) => {
+            const fl = art.flow;
+            return fl ? [fl.day?.[s], fl.night?.[s], fl.day?.[`mask${s === 'landscape' ? 'Landscape' : 'Portrait'}`],
+                fl.night?.[`mask${s === 'landscape' ? 'Landscape' : 'Portrait'}`]] : [];
+        };
+        const loadFlow = () => {
+            const now = innerWidth >= innerHeight ? 'landscape' : 'portrait';
+            if (now === shape) return;
+            shape = now;
+            loaded = 0;
+            gl.uniform1f(uFlowOn, 0);
+            const urls = flowArt(now);
+            if (urls.length !== 4 || urls.some((u) => !u)) return;
+            urls.forEach((url, unit) => {
+                const im = new Image();
+                im.onload = () => {
+                    if (shape !== now) return;
+                    gl.activeTexture(gl.TEXTURE0 + unit);
+                    gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
+                    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, im);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                    loaded += 1;
+                    if (loaded === 4) gl.uniform1f(uFlowOn, 1);
+                };
+                im.src = url;
+            });
+        };
         const fitGl = () => {
             c.width = Math.max(1, Math.round(innerWidth / 2));
             c.height = Math.max(1, Math.round(innerHeight / 2));
@@ -113,6 +170,11 @@ export function createKit(api) {
             c.style.height = '100%';
             gl.viewport(0, 0, c.width, c.height);
             gl.uniform2f(uRes, c.width, c.height);
+            // As the page's background: the image's size on the canvas when it covers it, centred.
+            const [iw, ih] = innerWidth >= innerHeight ? [1920, 1080] : [1080, 1920];
+            const k = Math.max(c.width / iw, c.height / ih);
+            gl.uniform2f(uImg, iw * k, ih * k);
+            loadFlow();
         };
         fitGl();
         addEventListener('resize', fitGl);

@@ -9,7 +9,7 @@
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
     $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'tiers', 'fragments', 'fx', 'banners', 'host', 'hostWing', 'hostBee',
-        'hostReactions', 'effects', 'pace', 'text', 'kitArt']));
+        'hostReactions', 'effects', 'pace', 'text', 'kitArt', 'music']));
     // How much more often the ante brings free spins: measured per model (docs/slots/*-maths.md).
     $anteOften = (string) ($theme['text']['anteOften'] ?? 'about 1.75× as often');
     // The intro's two medallions beside the logo: the gold multiplier and the rarest one.
@@ -708,6 +708,10 @@
 
     <section class="play">
         <aside @class(['side', 'with-host' => $host && $layout === 'classic'])>
+            @if ($layout === 'throne')
+                {{-- The logo heads the cards, so the host has the right side to himself. --}}
+                <img class="logo logo-side" src="{{ $theme['logo'] }}" alt="{{ $game?->name ?? 'Slot' }}">
+            @endif
             @if ($host && $layout === 'classic')
                 <div class="host" aria-hidden="true">
                     @include('games.slot.host-figs')
@@ -768,9 +772,8 @@
             </div>
         </div>
         @if ($layout === 'throne')
-            {{-- The logo, and the host standing full-length on his rock, facing the grid. --}}
+            {{-- The host standing full-length on his rock, facing the grid. --}}
             <aside class="throne">
-                <img class="logo logo-throne" src="{{ $theme['logo'] }}" alt="">
                 @if ($host)
                     <div class="host" aria-hidden="true">
                         @if (! empty($theme['pedestal']))

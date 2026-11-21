@@ -62,9 +62,10 @@ export function startSlot(cfg) {
 
     // ---- Sound -------------------------------------------------------------------------------
 
-    // Sound effects only, while a spin plays (spin, landing, wins, free spins…). There is no
-    // background music: the pack's ambience is never started.
-    const sound = { ctx: null, pack: null, on: readPref('sound', true) };
+    // Sound effects while a spin plays (spin, landing, wins, free spins…). Background music only
+    // where the theme asks for it (theme.music): the pack's ambience, from the first sound the
+    // browser lets the page make, until the sound is switched off; paused in a hidden tab.
+    const sound = { ctx: null, pack: null, music: null, on: readPref('sound', true) };
     function audio() {
         if (!sound.on) return null;
         if (!sound.ctx) {
@@ -77,7 +78,8 @@ export function startSlot(cfg) {
             master.connect(sound.ctx.destination);
             sound.pack = factory(sound.ctx, master);
         }
-        if (sound.ctx.state === 'suspended') sound.ctx.resume();
+        if (sound.ctx.state === 'suspended' && !document.hidden) sound.ctx.resume();
+        music();
         return sound.pack;
     }
     function sfx(name, arg) {
@@ -87,7 +89,24 @@ export function startSlot(cfg) {
         sound.on = on;
         writePref('sound', on);
         $('sound-btn').setAttribute('aria-pressed', String(on));
+        if (!on) {
+            sound.music?.stop();
+            sound.music = null;
+        } else {
+            audio(); // a tap on the button: the music may start
+        }
     }
+    /** Starts the theme's music once there is sound, in the arrangement of the moment. */
+    function music() {
+        if (!theme.music || !sound.on || sound.music || !sound.pack?.ambience) return;
+        sound.music = sound.pack.ambience();
+        sound.music.intensity?.(document.body.classList.contains('free') ? 1 : 0);
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (!sound.ctx) return;
+        if (document.hidden) sound.ctx.suspend?.();
+        else if (sound.on) sound.ctx.resume?.();
+    });
 
     // ---- Timing --------------------------------------------------------------------------------
 
@@ -815,6 +834,7 @@ export function startSlot(cfg) {
                 button: 'Start', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0,
             });
             document.body.classList.add('free');
+            sound.music?.intensity?.(1);
             await kit?.freeSpins?.(true, p);
             let awarded = base.awarded;
             let fsWin = 0n;
@@ -835,6 +855,7 @@ export function startSlot(cfg) {
             await dialog(plaque('total-win', `<div class="huge">${shown(fsWin)}</div><p class="note">${free.length} free spins</p>`),
                 { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });
             document.body.classList.remove('free');
+            sound.music?.intensity?.(0);
             $('fs-hud').hidden = true;
             await kit?.freeSpins?.(false, p);
         }
@@ -1068,6 +1089,7 @@ export function startSlot(cfg) {
                     $('overlay').hidden = true;
                     beesAway();
                     document.body.classList.remove('free');
+                    sound.music?.intensity?.(0);
                     $('fs-hud').hidden = true;
                     render(state.cells);
                 }

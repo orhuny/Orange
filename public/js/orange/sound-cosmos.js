@@ -12,10 +12,10 @@
  *   pack.sfx('win', { chain: 1, x: 6, lead: 1.4 }); // a tumble paying 6× the bet, its shatter 1.4 s on:
  *                                       // the bigger the win, the more it celebrates ('pop' too)
  *   pack.sfx('big', 'mega');            // big | mega | epic | max, each bigger
- *   const bg = pack.ambience();         // continuous background, until bg.stop()
+ *   const bg = pack.ambience();         // the humming music, continuous until bg.stop()
  *   bg.intensity(1);                    // 0 the nebula · 1 free spins in the Eclipse
  *
- * The page plays effects only (no background music); ambience() is there for the shared shape.
+ * ambience() is the background music: a man humming with echo (the theme turns it on: theme.php 'music').
  */
 (function () {
     'use strict';
@@ -42,11 +42,21 @@
         74, 0, 0, 77, 76, 0, 74, 0, 79, 0, 0, 77, 76, 0, 72, 0,
         74, 0, 76, 0, 77, 0, 76, 0, 73, 0, 0, 0, 74, 0, 0, 0,
     ];
-    const ARP = [0, 2, 1, 3, 2, 1, 2, 3, 0, 2, 1, 3, 2, 3, 1, 2];
-    const BASS = { 0: 0, 10: 7 };
+    // The man's hum over the eight bars, [sixteenth it starts on, note, length in sixteenths]:
+    // low and slow, sliding from note to note, with a breath at the end of each phrase.
+    const HUM = [
+        [0, 50, 12], [12, 53, 4],
+        [16, 53, 8], [24, 50, 8],
+        [32, 48, 12], [44, 45, 4],
+        [48, 48, 10],
+        [64, 50, 8], [72, 53, 4], [76, 55, 4],
+        [80, 53, 8], [88, 50, 8],
+        [96, 50, 10], [106, 48, 6],
+        [112, 52, 8], [120, 45, 8],
+    ];
     // Sixteenth length: ~80 bpm in the nebula, ~96 bpm in the Eclipse.
     const STEP = [0.19, 0.155];
-    const LEVEL = { sfx: 2.0, ambience: 1.5 };
+    const LEVEL = { sfx: 2.0, ambience: 0.38 }; // the music sits about 10 dB under the effects (around -30 dB RMS)
     const OO = [330, 760, 2400];
     const AH = [730, 1150, 2650];
     const FORMANT = [[1, 5], [0.55, 7], [0.22, 9]];
@@ -615,8 +625,71 @@
             }
         }
 
-        // ---- The background music (unused by the page: effects only) ----
+        // ---- The background music: a man humming in the dark, with echo ----
 
+        /**
+         * A man's hum, "mmm": a buzzing voice (a saw and a softer triangle a hair apart) through
+         * a closed mouth: everything above the low harmonics muffled, the nasal resonance around
+         * 270 Hz lifted, a faint buzz at 2.4 kHz. It slides up from `from` (the last note), swells
+         * in, gains a slow vibrato as it holds, and fades. `send` takes it to the echo.
+         */
+        function hum(freq, { at, dur, bus, send, gain = 0.06, from = null, wet = 0.45 }) {
+            if (freq >= nyquist) return;
+            const v = ctx.createGain();
+            const lp = ctx.createBiquadFilter();
+            const nasal = ctx.createBiquadFilter();
+            const buzz = ctx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = Math.min(nyquist, 760);
+            lp.Q.value = 0.6;
+            nasal.type = 'peaking';
+            nasal.frequency.value = 270;
+            nasal.Q.value = 1.4;
+            nasal.gain.value = 9;
+            buzz.type = 'peaking';
+            buzz.frequency.value = Math.min(nyquist, 2400);
+            buzz.Q.value = 3;
+            buzz.gain.value = 4;
+            const lfo = ctx.createOscillator();
+            const depth = ctx.createGain();
+            lfo.frequency.value = 4.8 + Math.random() * 0.8;
+            depth.gain.setValueAtTime(0.0001, at);
+            depth.gain.linearRampToValueAtTime(freq * 0.004, at + Math.min(1.2, dur * 0.6));
+            lfo.connect(depth);
+            for (const [type, level, cents] of [['sawtooth', 1, -4], ['triangle', 0.6, 5]]) {
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = type;
+                o.detune.value = cents;
+                o.frequency.setValueAtTime(from ?? freq, at);
+                if (from && from !== freq) o.frequency.exponentialRampToValueAtTime(freq, at + 0.28);
+                depth.connect(o.frequency);
+                g.gain.value = level;
+                o.connect(g).connect(lp);
+                o.start(at);
+                o.stop(at + dur + 0.95);
+            }
+            lp.connect(nasal).connect(buzz).connect(v);
+            v.gain.setValueAtTime(0.0001, at);
+            v.gain.exponentialRampToValueAtTime(gain, at + 0.42);
+            v.gain.setValueAtTime(gain, at + Math.max(0.45, dur - 0.1));
+            v.gain.exponentialRampToValueAtTime(0.0001, at + dur + 0.9);
+            out(v, bus, wet);
+            if (send) {
+                const s = ctx.createGain();
+                s.gain.value = 0.7;
+                v.connect(s).connect(send);
+            }
+            lfo.start(at);
+            lfo.stop(at + dur + 0.95);
+        }
+
+        /**
+         * The music: a man humming a slow, low tune in D minor over a deep hummed drone, every
+         * phrase answered by its echo (a long feedback delay, darker each time round) in the
+         * vastness of the reverb, over the faint hum of space. In the Eclipse a second voice
+         * hums a fifth above him, the war drums keep a heartbeat and crystal bells ring the tune.
+         */
         function ambience() {
             const nodes = [];
             const keep = (n) => (nodes.push(n), n);
@@ -626,53 +699,83 @@
             const wet = keep(ctx.createGain());
             for (const g of [dry, wet]) {
                 g.gain.setValueAtTime(0.0001, t0);
-                g.gain.exponentialRampToValueAtTime(LEVEL.ambience, t0 + 2);
+                g.gain.exponentialRampToValueAtTime(LEVEL.ambience, t0 + 3);
             }
             dry.connect(glue()).connect(master);
             wet.connect(reverb());
             const bus = { dry, wet };
 
+            // The echo: what goes in comes back 0.48 s later, and again, each repeat softer and
+            // darker, into the music's bus (and its reverb).
+            const echoIn = keep(ctx.createGain());
+            const delay = keep(ctx.createDelay(2));
+            const feedback = keep(ctx.createGain());
+            const darker = keep(ctx.createBiquadFilter());
+            const thinner = keep(ctx.createBiquadFilter());
+            const echoOut = keep(ctx.createGain());
+            delay.delayTime.value = 0.48;
+            feedback.gain.value = 0.44;
+            darker.type = 'lowpass';
+            darker.frequency.value = 1500;
+            thinner.type = 'highpass';
+            thinner.frequency.value = 160;
+            echoOut.gain.value = 0.75;
+            echoIn.connect(delay);
+            delay.connect(darker).connect(thinner).connect(feedback).connect(delay);
+            thinner.connect(echoOut);
+            out(echoOut, bus, 0.5);
+
             // Under the music: the hum of space, a dark wash whose filter drifts slowly.
-            const hum = keep(ctx.createBufferSource());
-            const humFilter = keep(ctx.createBiquadFilter());
-            const humGain = keep(ctx.createGain());
+            const space = keep(ctx.createBufferSource());
+            const spaceFilter = keep(ctx.createBiquadFilter());
+            const spaceGain = keep(ctx.createGain());
             const drift = keep(ctx.createOscillator());
             const driftDepth = keep(ctx.createGain());
-            hum.buffer = white;
-            hum.loop = true;
-            humFilter.type = 'lowpass';
-            humFilter.frequency.value = 380;
-            humFilter.Q.value = 0.8;
+            space.buffer = white;
+            space.loop = true;
+            spaceFilter.type = 'lowpass';
+            spaceFilter.frequency.value = 380;
+            spaceFilter.Q.value = 0.8;
             drift.frequency.value = 0.06;
             driftDepth.gain.value = 160;
-            drift.connect(driftDepth).connect(humFilter.frequency);
-            humGain.gain.value = 0.01;
-            hum.connect(humFilter).connect(humGain);
-            out(humGain, bus, 0.4);
-            hum.start(t0);
+            drift.connect(driftDepth).connect(spaceFilter.frequency);
+            spaceGain.gain.value = 0.008;
+            space.connect(spaceFilter).connect(spaceGain);
+            out(spaceGain, bus, 0.4);
+            space.start(t0);
             drift.start(t0);
 
+            const length = BARS.length * 16; // the tune spans the eight bars, then starts again
             let level = 0;
             let step = 0;
-            let next = t0 + 0.3;
+            let next = t0 + 0.4;
+            let last = null;
             let stopped = false;
 
             function playStep(at) {
                 const s = step % 16;
                 const bar = BARS[Math.floor(step / 16) % BARS.length];
                 const barLength = STEP[level] * 16;
-                if (s === 0) {
-                    pad(bar.chord.map((n) => midi(n - 12)), { at, bus, gain: 0.03, dur: barLength * 1.1, attack: barLength * 0.35, bright: 650 });
-                    if (level >= 1) choir(bar.chord.map(midi), { at, bus, gain: 0.04, dur: barLength * 1.05, attack: barLength * 0.4 });
+                // Every second bar: the deep drone, hummed on the root, two bars long; a faint pad under it.
+                if (s === 0 && Math.floor(step / 16) % 2 === 0) {
+                    hum(midi(bar.root + 12), { at, dur: barLength * 2, bus, send: echoIn, gain: 0.045, wet: 0.35 });
+                    pad(bar.chord.map((n) => midi(n - 12)), { at, bus, gain: 0.014, dur: barLength * 2.1, attack: barLength * 0.6, bright: 520 });
                 }
-                if (s in BASS) bass(midi(bar.root + BASS[s]), { at, bus, gain: 0.07, dur: barLength * 0.4 });
-                if (s % 2 === 0 || level >= 1) {
-                    shimmer(midi(bar.chord[ARP[s]] + 12), { at, bus, gain: s % 4 === 0 ? 0.028 : 0.02, dur: 1, wet: 0.4 });
+                // The tune: each note slides up or down from the last.
+                const note = HUM.find(([start]) => start === step % length);
+                if (note) {
+                    const [, n, len] = note;
+                    const f = midi(n);
+                    hum(f, { at, dur: len * STEP[level], bus, send: echoIn, gain: 0.07, from: last });
+                    if (level >= 1) hum(midi(n + 7), { at, dur: len * STEP[level], bus, send: echoIn, gain: 0.04, from: last ? last * Math.pow(2, 7 / 12) : null, wet: 0.55 });
+                    last = f;
                 }
+                if (s === 0 && level >= 1) bass(midi(bar.root), { at, bus, gain: 0.06, dur: barLength * 0.45 });
+                // The Eclipse: the war drums' heartbeat and the crystal tune, an eighth at a time.
                 if (level >= 1 && (s === 0 || s === 6 || s === 10)) drum({ at, bus, gain: 0.12, freq: 52 });
                 if (level >= 1 && s % 2 === 0) {
-                    const note = TUNE[(step / 2) % TUNE.length];
-                    if (note) crystal(midi(note + 12), { at, bus, gain: 0.024, dur: 1.1 });
+                    const bell = TUNE[(step / 2) % TUNE.length];
+                    if (bell) crystal(midi(bell + 12), { at, bus, gain: 0.02, dur: 1.1 });
                 }
             }
 
@@ -710,7 +813,7 @@
                         if (typeof n.stop === 'function') n.stop(t + 0.6);
                     } catch (_) { /* already stopped */ }
                 }
-                setTimeout(() => { dry.disconnect(); wet.disconnect(); }, 700);
+                setTimeout(() => { dry.disconnect(); wet.disconnect(); echoOut.disconnect(); }, 700);
             }
 
             return { stop, schedule, intensity };

@@ -156,6 +156,16 @@
   "free-spins": "banners/free-spins.webp",
   "total-win": "banners/total-win.webp"
  },
+ "flow": {
+  "day": {
+   "landscape": "flow/bg-day-landscape.webp",
+   "portrait": "flow/bg-day-portrait.webp"
+  },
+  "night": {
+   "landscape": "flow/bg-night-landscape.webp",
+   "portrait": "flow/bg-night-portrait.webp"
+  }
+ },
  "pedestal": "pedestal.webp",
  "frame": {
   "src": "frame.webp",

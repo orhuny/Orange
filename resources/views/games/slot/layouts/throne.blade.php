@@ -2,41 +2,49 @@
      styles: slot.blade.php includes it inside its <style>, before the theme's own style.
 
      Landscape, three columns centred together:
-     - left, the feature cards (buy, super buy, ante), centred on the grid; in free spins they
-       make way for what the theme's kit puts there (Stones of the Titan: the Eclipse);
-     - middle, the grid in its frame, with the tumble-win plaque on the frame's top edge;
-     - right, the logo, and under it the host standing full-length on his rock, facing the grid
-       and overlapping the frame a little.
-     A bar of plain figures runs underneath: the tools and BALANCE / BET at the left, the WIN in
-     the middle under the grid, − SPIN + at the right under the host.
+     - left, the logo over the feature cards (buy, super buy, ante), centred on the grid; in free
+       spins the cards make way for what the theme's kit puts there (Stones of the Titan: the
+       Eclipse);
+     - middle, the grid in its frame, as large as the screen allows: the tumble-win plaque sits
+       in the frame's top band, and the bar tucks over its bottom band;
+     - right, the host alone, standing full-length on his rock (--hk of the grid's height), his
+       body's centre a fixed distance from the grid's right edge: every pose stands over the
+       frame's right border and the space beyond, never over the grid.
+     A bar of plain figures runs underneath: the tools under the cards, the WIN centred under
+     the grid, and BALANCE − SPIN + BET together at the right, under the host.
 
-     --bh is the grid's height, as in the classic layout; --tk is the host's column, of it.
+     --bh is the grid's height, as in the classic layout. The host's span from the grid's right
+     edge is .74 of his height: the widest a pose reaches either side of his body's centre.
      Portrait: the classic portrait, with the plaque above the grid and the host's head and
      shoulders over the frame's top-right corner. --}}
         body.layout-throne .stage {
-            --side: clamp(148px, 12vw, 228px); --tk: .62; --reach: 0; --spin: clamp(78px, 12vh, 118px);
+            --side: clamp(140px, 11vw, 210px); --reach: 0; --spin: clamp(78px, 12vh, 118px);
+            --hk: 1.2; /* the host's height, of the grid's */
             --barh: calc(var(--spin) + 10px);
             --plq: .13; /* the plaque's height, of the grid's */
-            --topk: max(var(--et), .06) + var(--plq) * .72;
-            --bh: min(calc((100dvh - var(--barh) - 18px) / (1 + var(--topk) + var(--eb))),
-                      calc((100vw - var(--side) - var(--gap) * 2 - 28px) / (var(--fwk) + var(--tk))), 900px);
-            --group: calc(var(--side) + var(--gap) * 2 + var(--bh) * (var(--fwk) + var(--tk)));
+            --topk: calc(max(var(--et), .06) + .02); /* one calc: the shared .frame padding multiplies it */
+            --ebk: calc(var(--eb) * .35); /* the bottom band shown above the bar */
+            --bh: min(calc((100dvh - var(--barh) - 18px) / (1 + var(--topk) + var(--ebk))),
+                      calc((100vw - var(--side) - var(--gap) - 24px) / (var(--el) + var(--ar) + var(--hk) * .74)), 900px);
+            --group: calc(var(--side) + var(--gap) + var(--bh) * (var(--el) + var(--ar) + var(--hk) * .74));
         }
         @supports (width: round(down, 10.5px, 1px)) {
             body.layout-throne .stage {
-                --bh: round(down, min(calc((100dvh - var(--barh) - 18px) / (1 + var(--topk) + var(--eb))),
-                                      calc((100vw - var(--side) - var(--gap) * 2 - 28px) / (var(--fwk) + var(--tk))), 900px), 5px);
+                --bh: round(down, min(calc((100dvh - var(--barh) - 18px) / (1 + var(--topk) + var(--ebk))),
+                                      calc((100vw - var(--side) - var(--gap) - 24px) / (var(--el) + var(--ar) + var(--hk) * .74)), 900px), 5px);
             }
         }
         /* One row, as tall as the frame and centred: the throne column stretches to the frame's height. */
-        .layout-throne .play { display: grid; grid-template-columns: var(--side) auto calc(var(--bh) * var(--tk)); align-items: center; justify-content: center;
-                               align-content: center; column-gap: var(--gap); }
+        .layout-throne .play { display: grid; grid-template-columns: var(--side) auto calc(var(--bh) * (var(--hk) * .74 - var(--er)) - var(--gap));
+                               align-items: center; justify-content: center; align-content: center; column-gap: var(--gap); }
         .layout-throne .logo-frame { display: none; }
-        .layout-throne .frame { padding-top: calc(var(--bh) * (var(--topk))); padding-bottom: calc(var(--bh) * var(--eb) * .5); }
+        .layout-throne .frame { padding-top: calc(var(--bh) * (var(--topk))); padding-bottom: calc(var(--bh) * (var(--ebk))); }
 
         /* ---- The feature cards: tall art cards (--card-buy / --card-ante from the theme), the
            words and the switch on top. In free spins they fade away. ---- */
         .layout-throne .side { align-self: center; gap: clamp(10px, 1.6vh, 18px); transition: opacity .5s ease; }
+        .logo-side { display: none; }
+        .layout-throne .logo-side { display: block; width: 130%; max-height: calc(var(--bh) * .34); margin: 0 -15% clamp(0px, .4vh, 6px); object-fit: contain; }
         .layout-throne .side > .feature { border: 0; border-radius: 0; padding: 14% 9% 12%; box-shadow: none;
                                           background: var(--card-buy, linear-gradient(180deg, #1a1426, #07040c)) center / 100% 100% no-repeat;
                                           filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .5)); }
@@ -51,8 +59,8 @@
         .layout-throne .ante { grid-template-columns: 1fr; justify-items: center; text-align: center; }
         body.layout-throne.free .side > .feature { opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .4s ease, visibility 0s .4s; }
 
-        /* ---- The tumble-win plaque, on the frame's top edge (art: --tumble-art) ---- */
-        .tumble { position: absolute; z-index: 7; left: 50%; bottom: calc(100% + var(--bh) * var(--et) * .55); translate: -50% 0;
+        /* ---- The tumble-win plaque, in the frame's top band (art: --tumble-art) ---- */
+        .tumble { position: absolute; z-index: 7; left: 50%; bottom: calc(100% + var(--bh) * max(.03, var(--et) - var(--plq) - .03)); translate: -50% 0;
                   height: calc(var(--bh) * var(--plq)); aspect-ratio: var(--tumble-ar, 4.2); display: grid; place-content: center; justify-items: center; gap: 1%;
                   background: var(--tumble-art, linear-gradient(180deg, #2a1d3a, #0b0612)) center / 100% 100% no-repeat; pointer-events: none;
                   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .55)); }
@@ -62,39 +70,41 @@
         .tumble.lit b { color: transparent; background: linear-gradient(180deg, #fffbe6, #ffe07a 48%, #ffad2e); -webkit-background-clip: text; background-clip: text;
                         filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .7)) drop-shadow(0 0 10px rgba(255, 200, 90, .5)); }
 
-        /* ---- The throne: the logo, and the host full-length on his rock ---- */
-        .throne { position: relative; z-index: 4; align-self: stretch; margin-left: calc(var(--bh) * -.07); pointer-events: none; }
-        .logo-throne { position: absolute; z-index: 3; left: 50%; top: calc(var(--bh) * -.02); width: calc(var(--bh) * var(--tk) * 1.08); max-height: calc(var(--bh) * .3);
-                       translate: -50% 0; object-fit: contain; }
-        body.free .logo-throne { opacity: .9; }
-        .throne .host { position: absolute; left: 0; right: 0; top: calc(var(--bh) * .16); bottom: calc(var(--bh) * (var(--eb) * .5 + .08)); margin: 0; flex: none; z-index: 1;
+        /* ---- The throne: the host full-length on his rock, from the grid's right edge on ---- */
+        .throne { position: relative; z-index: 4; align-self: stretch; margin-left: calc(-1 * (var(--bh) * var(--er) + var(--gap))); pointer-events: none; }
+        .throne .host { position: absolute; left: 0; right: 0; bottom: calc(var(--bh) * .02); height: calc(var(--bh) * var(--hk)); margin: 0; flex: none; z-index: 1;
                         animation: host-hover 4.2s ease-in-out infinite; }
-        /* Every pose stands on the same line: its feet (--fy of its height) on the rock. */
-        .throne .host-fig { left: 50%; bottom: 0; height: calc(100% * var(--k, 1)); aspect-ratio: var(--ar);
+        /* Every pose stands on the same line, its feet (--fy of its height) on the rock, its
+           body's centre (--cx of its width) .405 of his height from the grid's edge. */
+        .throne .host-fig { left: calc(var(--bh) * var(--hk) * .405); bottom: 0; height: calc(100% * var(--k, 1)); aspect-ratio: var(--ar);
                             translate: calc(var(--cx) * -100%) calc((1 - var(--fy, 1)) * 100%); transform-origin: calc(var(--cx) * 100%) calc(var(--fy, 1) * 100%); }
         .throne .host-body { transform-origin: calc(var(--cx) * 100%) calc(var(--fy, 1) * 100%); animation-duration: 6.5s; }
         .throne .host-body .pose { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .5)); }
-        .throne .pedestal { position: absolute; z-index: 0; left: 50%; bottom: 0; width: min(110%, calc(var(--bh) * .72)); translate: -50% 30%; }
+        .throne .pedestal { position: absolute; z-index: 0; left: calc(var(--bh) * var(--hk) * .405); bottom: 0; width: calc(var(--bh) * var(--hk) * .62); translate: -50% 30%; }
 
-        /* ---- The bar: plain figures, no pills ---- */
-        .layout-throne .bar { grid-template-columns: auto auto minmax(0, 1fr) auto minmax(0, 1fr) auto auto auto;
-                              grid-template-areas: "tools bal . win . minus spin plus" "tools betm . win . minus spin plus";
-                              column-gap: 0; row-gap: 2px; align-items: center;
+        /* ---- The bar: plain figures, no pills ----
+           Its columns follow the cards-grid-host group above it: the tools under the cards, the
+           WIN centred in what is left, and BALANCE − SPIN + BET together at the right, under
+           the host, the balance right beside the spin button. */
+        .layout-throne .bar { grid-template-columns: calc(var(--side) + var(--gap) + var(--bh) * var(--el)) minmax(0, 1fr) auto auto auto auto auto;
+                              grid-template-areas: "tools win bal minus spin plus betm";
+                              column-gap: 0; align-items: center;
                               padding: 0 max(14px, calc((100vw - var(--group)) / 2)) max(8px, env(safe-area-inset-bottom));
                               background: linear-gradient(180deg, transparent, rgba(4, 2, 10, .78) 40%); }
-        .layout-throne .tools { margin-right: clamp(10px, 1.4vw, 22px); display: grid; grid-template-columns: repeat(3, max-content); gap: 6px; }
+        .layout-throne .tools { justify-self: start; display: grid; grid-template-columns: repeat(3, max-content); gap: 6px; }
         .layout-throne .bar .meter { min-height: 0; min-width: 0; display: flex; align-items: baseline; gap: .55em; padding: 0; border: 0; border-radius: 0;
                                      background: none; box-shadow: none; text-align: left; }
         .layout-throne .bar .meter small { font-size: clamp(11px, 1vw, 14px); letter-spacing: .1em; }
         .layout-throne .bar .meter span, .layout-throne .bar .meter > b { font-size: clamp(14px, 1.45vw, 21px); }
-        .layout-throne .bal { justify-self: start; align-self: end; }
-        .layout-throne .bet .meter { grid-area: betm; justify-self: start; align-self: start; margin: 0; }
-        .layout-throne .winm { justify-self: center; align-items: baseline; margin: 0; min-width: 0; padding: 0; }
+        .layout-throne .bal { justify-self: end; margin: 0; }
+        .layout-throne .bet .meter { grid-area: betm; justify-self: start; margin: 0 0 0 clamp(10px, 1.2vw, 20px); }
+        .layout-throne .winm { justify-self: center; align-items: baseline; margin: 0 clamp(10px, 1.2vw, 20px); min-width: 0; padding: 0; }
         .layout-throne .winm small { font-size: clamp(18px, 2.2vw, 34px) !important; letter-spacing: .04em; }
         .layout-throne .winm #win { font-size: clamp(26px, 3.4vw, 52px); }
         .layout-throne .perch { display: none; }
         .layout-throne .winm.lit { box-shadow: none; }
         .layout-throne #bet-minus, .layout-throne #bet-plus { margin: 0 clamp(8px, 1vw, 16px); align-self: center; }
+        .layout-throne .bal { margin-right: clamp(10px, 1.2vw, 20px); }
         .layout-throne .spin { margin-top: 0; }
 
         /* Phones on their side: the tools in a row, everything a little smaller. */
@@ -109,7 +119,7 @@
         }
 
         @media (orientation: portrait) {
-            .throne { display: none; }
+            .throne, .layout-throne .logo-side { display: none; }
             .layout-throne .play { display: grid; grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); }
             .layout-throne .side { flex-direction: row; align-self: auto; gap: 6px; }
             .layout-throne .side > .feature { padding: 9% 5% 8%; }
@@ -126,7 +136,8 @@
                                                    translate: none; transform-origin: 60% 100%; }
             .layout-throne .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools"; }
             .layout-throne .bar .meter { display: grid; gap: 2px; text-align: center; }
-            .layout-throne .bet .meter { min-width: 3.6em; }
+            .layout-throne .bet .meter { min-width: 3.6em; margin: 0; }
+            .layout-throne #bet-minus, .layout-throne #bet-plus, .layout-throne .bal, .layout-throne .winm { margin: 0; }
             .layout-throne .bet .meter > b { white-space: nowrap; overflow-wrap: normal; }
             .layout-throne .winm small { font-size: 11px !important; }
             .layout-throne .winm #win { font-size: 22px; }

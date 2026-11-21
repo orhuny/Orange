@@ -43,6 +43,8 @@ $meteors = array_map($img, (array) ($art['meteors'] ?? []));
 return [
     'layout' => 'throne',
     'sound' => 'cosmos',
+    // Background music: the pack's ambience, a man humming with echo (sound-cosmos.js).
+    'music' => true,
     'kit' => 'cosmos',
     'logo' => $img((string) ($art['logo'] ?? '')),
     'backgrounds' => [
@@ -125,5 +127,13 @@ return [
         'stardust' => $list($fx, 'stardust'),
         'asteroids' => $list((array) ($art['scenery'] ?? []), 'asteroids'),
         'eclipseRing' => $img((string) ($art['eclipse_ring'] ?? '')),
+        // The backgrounds and where their streams of light fall (the build script finds them),
+        // for the shader that makes the streams flow.
+        'flow' => [
+            'day' => ['landscape' => $img('bg-day-landscape.webp'), 'portrait' => $img('bg-day-portrait.webp'),
+                'maskLandscape' => $img((string) ($art['flow']['day']['landscape'] ?? '')), 'maskPortrait' => $img((string) ($art['flow']['day']['portrait'] ?? ''))],
+            'night' => ['landscape' => $img('bg-night-landscape.webp'), 'portrait' => $img('bg-night-portrait.webp'),
+                'maskLandscape' => $img((string) ($art['flow']['night']['landscape'] ?? '')), 'maskPortrait' => $img((string) ($art['flow']['night']['portrait'] ?? ''))],
+        ],
     ],
 ];
