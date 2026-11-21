@@ -5,11 +5,11 @@
     $theme = require resource_path("views/games/slot/themes/{$themeKey}/theme.php");
     $described = $game ? $engines->for('slot')->verifier()->describe($game) : null;
     // The page needs the paytable and rules, not the weight tables (those are on /v1/fairness/{code}).
-    $rules = $described ? array_intersect_key($described, array_flip(['rtp', 'grid', 'paytable', 'scatter_pays', 'free_spins', 'max_win', 'costs', 'features'])) : null;
+    $rules = $described ? array_intersect_key($described, array_flip(['rtp', 'grid', 'lines', 'paytable', 'scatter_pays', 'free_spins', 'wilds', 'max_win', 'costs', 'features'])) : null;
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
     $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'tiers', 'fragments', 'fx', 'banners', 'host', 'hostWing', 'hostBee',
-        'hostReactions', 'effects', 'pace', 'text', 'kitArt', 'music']));
+        'hostReactions', 'effects', 'pace', 'text', 'kitArt', 'music', 'wilds', 'hosts', 'idle', 'lineColours']));
     // How much more often the ante brings free spins: measured per model (docs/slots/*-maths.md).
     $anteOften = (string) ($theme['text']['anteOften'] ?? 'about 1.75× as often');
     // The intro's two medallions beside the logo: the gold multiplier and the rarest one.
@@ -23,13 +23,16 @@
         // A full-length host (the throne layout): where the soles of the feet are, of the image's height.
         .(isset($p['feet']) ? "; --fy: {$p['feet']}" : '');
     // The screen's arrangement: "classic" (the host above the feature panels, the logo on the
-    // frame) or "throne" (feature cards on the left, a tumble-win plaque on the frame, the host
-    // full-length on the right under the logo). See games/slot/layouts/.
+    // frame), "throne" (feature cards on the left, a tumble-win plaque on the frame, the host
+    // full-length on the right under the logo) or "duet" (a paylines game: two hostesses
+    // full-length either side of the reels, theme.hosts). See games/slot/layouts/.
     $layout = (string) ($theme['layout'] ?? 'classic');
     // A super buy, where the model has one (the game may still switch it off: features.super).
     $hasSuper = array_key_exists('super', (array) ($rules['features'] ?? []));
     // Her worker bees fly only beside her (they leave her palm).
     $hostBee = $host ? ($theme['hostBee'] ?? null) : null;
+    // The duet's hostesses: who stands on which side.
+    $duet = $layout === 'duet' ? array_intersect_key(['marina' => 'left', 'bella' => 'right'], (array) ($theme['hosts'] ?? [])) : [];
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
     // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
@@ -768,9 +771,37 @@
                         @include('games.slot.host-figs')
                     </div>
                 @endif
+                @if ($layout === 'duet')
+                    {{-- Free spins: Amore, the heart that fills with every kiss (the kit runs it). --}}
+                    <div id="amore" class="amore" hidden>
+                        <svg class="amore-fill" viewBox="0 0 100 90" aria-hidden="true">
+                            <defs><clipPath id="amore-heart"><path d="M50 88C22 66 3 48 3 28 3 13 14 3 28 3c9 0 17 5 22 13C55 8 63 3 72 3c14 0 25 10 25 25 0 20-19 38-47 60Z"/></clipPath></defs>
+                            <rect id="amore-level" x="0" y="90" width="100" height="90" clip-path="url(#amore-heart)"/>
+                        </svg>
+                        <img src="{{ $theme['amoreArt'] ?? '' }}" alt="">
+                        <b id="amore-x" aria-live="polite">×1</b><small>AMORE</small>
+                    </div>
+                    {{-- Portrait: each hostess's upper body over a top corner of the frame. --}}
+                    @foreach ($duet as $who => $side)
+                        <div class="hostess-peek {{ $side }}" data-host="{{ $who }}" aria-hidden="true">
+                            @include('games.slot.hostess-figs', ['poses' => $theme['hosts'][$who]])
+                        </div>
+                    @endforeach
+                @endif
                 <canvas id="fxc" class="fxc"></canvas>
             </div>
         </div>
+        @foreach ($duet as $who => $side)
+            {{-- A hostess full-length on her podium, beside the reels. --}}
+            <aside class="duet {{ $side }}" aria-hidden="true">
+                <div class="hostess" data-host="{{ $who }}">
+                    @if (! empty($theme['podium']))
+                        <img class="podium" src="{{ $theme['podium'] }}" alt="">
+                    @endif
+                    @include('games.slot.hostess-figs', ['poses' => $theme['hosts'][$who]])
+                </div>
+            </aside>
+        @endforeach
         @if ($layout === 'throne')
             {{-- The host standing full-length on his rock, facing the grid. --}}
             <aside class="throne">

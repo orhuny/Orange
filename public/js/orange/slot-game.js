@@ -7,7 +7,7 @@
  */
 import { createGameBridge } from './bridge.js';
 import {
-    COLS, ROWS, MULTIPLIER, SCATTER, affordable, costsFrom, money, plan, playableSteps, stake, starTier, toUnits, winAmount, winTier,
+    COLS, ROWS, MULTIPLIER, SCATTER, WILD, affordable, costsFrom, money, plan, playableSteps, setGrid, stake, starTier, toUnits, winAmount, winTier,
 } from './slot-timeline.js';
 
 const TIERS = { big: 'BIG WIN', mega: 'MEGA WIN', epic: 'EPIC WIN', max: 'MAX WIN' };
@@ -25,6 +25,9 @@ export function startSlot(cfg) {
     const board = $('board');
     const fx = $('fx');
     const theme = cfg.theme;
+    // A paylines game (rules.lines, e.g. Tutti Frutti): reels that spin and stop, lines that pay.
+    const LINES = Array.isArray(cfg.rules?.lines) ? cfg.rules.lines : null;
+    if (cfg.rules?.grid) setGrid(Number(cfg.rules.grid.columns), Number(cfg.rules.grid.rows));
     const features = cfg.rules?.features ?? { ante: false, buy: false };
     // What each mode's stake buys, from the game's rules: a super buy has its own price per game.
     const COSTS = costsFrom(cfg.rules?.costs);
@@ -42,7 +45,7 @@ export function startSlot(cfg) {
         busy: false,
         auto: 0,
         autoStopOnFeature: true,
-        cells: idleGrid(),
+        cells: idleGrid(theme.idle),
         els: [],
         fairness: null,
         result: null,
@@ -57,6 +60,9 @@ export function startSlot(cfg) {
      * - multipliers(spin): plays a spin's multipliers (or tide) instead of the comets;
      * - freeSpins(on, plan): free spins start (true) or end (false); plan.tideStart is a super buy's;
      * - celebrate(tier, dialog, layer): a big win, with the shared celebration.
+     * A paylines game's kit may also answer: react(kind) and spinStart() / rest() (its own hosts),
+     * tease(column) (-1 when it ends), lineWin(spin, cells), kisses(spin, lines) (a promise),
+     * amore(spin) (a promise: a free spin's wilds join the amore) and amoreMultiplies(spin).
      */
     let kit = null;
 
@@ -131,7 +137,11 @@ export function startSlot(cfg) {
         const el = document.createElement('div');
         el.className = 'sym';
         el.dataset.s = cell.s;
-        if (cell.s === MULTIPLIER) {
+        if (cell.s === WILD) {
+            const art = theme.wilds?.[cell.v] ?? theme.wilds?.[1] ?? '';
+            el.innerHTML = `<div class="kiss" role="img" aria-label="Wild${cell.v > 1 ? `, ${cell.v}× multiplier` : ''}"><img src="${art}" alt="" draggable="false">`
+                + `${cell.v > 1 ? `<i>×${cell.v}</i>` : ''}<b data-word="WILD">WILD</b></div>`;
+        } else if (cell.s === MULTIPLIER) {
             el.innerHTML = `<div class="star" aria-label="${cell.v}× multiplier"><img src="${theme.stars?.[starTier(cell.v, theme.tiers ?? undefined)] ?? ''}" alt="" draggable="false"><b>${cell.v}×</b></div>`;
         } else if (cell.s === SCATTER) {
             // The basket says what it is, like the stars show their value; the word is text, so it stays crisp at any size.
@@ -216,6 +226,199 @@ export function startSlot(cfg) {
     function settle(el, cell) {
         el.style.transform = at(cell);
         el.getAnimations?.().forEach((a) => a.cancel());
+    }
+
+    // ---- Reels: a paylines game's columns spin, then stop one by one ---------------------------
+    // While the bet is out, each column scrolls a strip of the game's symbols. Then the columns
+    // stop left to right, each dropping its symbols in with a bounce. With two scatters down,
+    // each column after them spins on a little longer (the tease, kit.tease).
+
+    const REEL_SYMBOLS = 'ABCDEFGHI';
+    let reelStrips = [];
+
+    function reelsOut() {
+        sfx('spin');
+        state.els.filter(Boolean).forEach((el) => {
+            const i = state.els.indexOf(el);
+            el.classList.remove('win');
+            animate(el, [{ transform: at(i), opacity: 1 }, { transform: at(i, 0.45), opacity: 0 }], 170, { easing: 'ease-in' }).then(() => el.remove());
+        });
+        state.els = [];
+        reelStrips.forEach((strip) => strip?.remove());
+        reelStrips = [];
+        for (let col = 0; col < COLS; col++) {
+            const strip = document.createElement('div');
+            strip.className = 'reel-strip';
+            strip.style.left = `${(col * 100) / COLS}%`;
+            strip.style.width = `${100 / COLS}%`;
+            const run = document.createElement('div');
+            run.className = 'reel-run';
+            const letters = Array.from({ length: 6 }, () => REEL_SYMBOLS[Math.floor(Math.random() * REEL_SYMBOLS.length)]);
+            for (const letter of [...letters, ...letters]) {
+                const img = document.createElement('img');
+                img.src = theme.symbols[letter]?.img ?? '';
+                img.alt = '';
+                img.draggable = false;
+                run.append(img);
+            }
+            // Twelve symbols, a row each: the run is 12 / ROWS of the board, and one loop moves it six rows.
+            run.style.height = `${(12 / ROWS) * 100}%`;
+            strip.append(run);
+            board.append(strip);
+            run.animate?.([{ transform: 'translateY(-50%)' }, { transform: 'translateY(0)' }],
+                { duration: reducedMotion ? 2400 : 330, iterations: Infinity, easing: 'linear', delay: -Math.random() * 330 });
+            reelStrips.push(strip);
+        }
+        return wait(170);
+    }
+
+    async function reelsIn(cells) {
+        board.querySelectorAll('.sym').forEach((e) => e.remove());
+        state.cells = cells;
+        state.els = new Array(cells.length);
+        const landings = [];
+        let scatters = 0;
+        let teased = false;
+        for (let col = 0; col < COLS; col++) {
+            const tease = !state.quick && !reducedMotion && scatters >= 2;
+            if (tease) {
+                teased = true;
+                kit?.tease?.(col);
+                sfx('tease', col);
+            }
+            await wait(col === 0 ? 140 : tease ? 1000 : 170);
+            const strip = reelStrips[col];
+            reelStrips[col] = null;
+            if (strip) animate(strip, [{ opacity: 1 }, { opacity: 0 }], 120).then(() => strip.remove());
+            for (let row = 0; row < ROWS; row++) {
+                const i = col * ROWS + row;
+                const el = symbolEl(cells[i]);
+                el.style.transform = at(i, -ROWS);
+                board.append(el);
+                state.els[i] = el;
+                landings.push(animate(el, [
+                    { transform: at(i, -ROWS) },
+                    { transform: at(i, 0.1), offset: 0.72 },
+                    { transform: at(i, -0.04), offset: 0.88 },
+                    { transform: at(i) },
+                ], 320, { easing: 'cubic-bezier(.35,.1,.55,1)' }).then(() => settle(el, i)));
+            }
+            setTimeout(() => sfx('land', col), dur(230));
+            for (let row = 0; row < ROWS; row++) {
+                if (cells[col * ROWS + row].s !== SCATTER) continue;
+                const n = ++scatters;
+                setTimeout(() => sfx('scatter', n), dur(250));
+            }
+        }
+        reelStrips = [];
+        await Promise.all(landings);
+        if (teased) kit?.tease?.(-1);
+        if (cells.some((c) => c.s === WILD)) sfx('star');
+    }
+
+    // ---- Lines: each paying line glows across the reels and its run of symbols bounces --------
+
+    const LINE_COLOURS = theme.lineColours ?? Array.from({ length: 20 }, (_, i) => `hsl(${(i * 137) % 360} 95% 62%)`);
+    const SVG = 'http://www.w3.org/2000/svg';
+
+    /** The line numbers down both sides of the frame, each by the row its line starts or ends on. */
+    function lineMarks() {
+        if (!LINES) return;
+        const wrap = board.parentElement;
+        for (const side of ['left', 'right']) {
+            const column = document.createElement('div');
+            column.className = `line-marks ${side}`;
+            column.setAttribute('aria-hidden', 'true');
+            const end = side === 'left' ? 0 : COLS - 1;
+            const byRow = new Map();
+            LINES.forEach((rows, i) => byRow.set(rows[end], [...(byRow.get(rows[end]) ?? []), i + 1]));
+            for (const [row, numbers] of byRow) {
+                numbers.forEach((n, k) => {
+                    const mark = document.createElement('i');
+                    mark.className = 'line-mark';
+                    mark.dataset.line = String(n);
+                    mark.textContent = String(n);
+                    mark.style.top = `${((row + (k + 1) / (numbers.length + 1)) / ROWS) * 100}%`;
+                    mark.style.setProperty('--line', LINE_COLOURS[(n - 1) % LINE_COLOURS.length]);
+                    column.append(mark);
+                });
+            }
+            wrap.append(column);
+        }
+    }
+
+    function drawLine(svg, l) {
+        const points = l.path.map((cell) => `${Math.floor(cell / ROWS) + 0.5},${(cell % ROWS) + 0.5}`).join(' ');
+        for (const cls of ['glow', 'core']) {
+            const line = document.createElementNS(SVG, 'polyline');
+            line.setAttribute('points', points);
+            line.setAttribute('class', cls);
+            line.style.stroke = LINE_COLOURS[(l.line - 1) % LINE_COLOURS.length];
+            svg.append(line);
+        }
+        document.querySelectorAll(`.line-mark[data-line="${l.line}"]`).forEach((m) => m.classList.add('on'));
+    }
+
+    function unmarkLines() {
+        document.querySelectorAll('.line-mark.on').forEach((m) => m.classList.remove('on'));
+    }
+
+    async function showLines(spin) {
+        const runs = [...new Set(spin.lines.flatMap((l) => l.run))];
+        const amore = spin.free ? (spin.amore ?? 1) : 1;
+        const svg = document.createElementNS(SVG, 'svg');
+        svg.setAttribute('class', 'lines-svg');
+        svg.setAttribute('viewBox', `0 0 ${COLS} ${ROWS}`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        fx.append(svg);
+        spin.lines.forEach((l) => drawLine(svg, l));
+        animate(svg, [{ opacity: 0 }, { opacity: 1 }], 200);
+        runs.forEach((c) => state.els[c]?.classList.add('win'));
+        sfx('win', { chain: 0, x: (spin.lineWin * amore) / 100, lead: 0.2 });
+        hostReact('win');
+        kit?.lineWin?.(spin, runs);
+        const kissed = spin.lines.filter((l) => l.multiplier > 1);
+        if (kissed.length && kit?.kisses) await kit.kisses(spin, kissed);
+        floatText(shown(winAmount(state.bet, spin.lineWin * amore)), runs);
+        if (amore > 1) {
+            sfx('multiply', amore);
+            floatText(`×${amore}`, [0, COLS * ROWS - 1], 'mult');
+            kit?.amoreMultiplies?.(spin);
+        }
+        if (!spin.free) showWin(winAmount(state.bet, spin.lineWin));
+        shake(Math.min(6, 2 + spin.lines.length * 0.4));
+        await wait(1050);
+        // Then each line on its own, with what it pays.
+        if (spin.lines.length > 1 && !state.quick) {
+            for (const l of spin.lines.slice(0, 10)) {
+                svg.replaceChildren();
+                unmarkLines();
+                drawLine(svg, l);
+                runs.forEach((c) => state.els[c]?.classList.toggle('win', l.run.includes(c)));
+                floatText(shown(winAmount(state.bet, l.pays * amore)), l.run, 'line-win');
+                sfx('line', l.line);
+                await wait(600);
+                if (state.quick) break;
+            }
+        }
+        runs.forEach((c) => state.els[c]?.classList.remove('win'));
+        unmarkLines();
+        animate(svg, [{ opacity: 1 }, { opacity: 0 }], 200).then(() => svg.remove());
+    }
+
+    async function playLineSpin(spin, alreadyCleared) {
+        if (!alreadyCleared) await reelsOut();
+        await reelsIn(spin.start);
+        // A free spin's kisses join the amore before it pays.
+        if (spin.free && spin.wildCells.length && kit?.amore) await kit.amore(spin);
+        if (spin.lines.length) await showLines(spin);
+        if (spin.scatterWin > 0) floatText(shown(winAmount(state.bet, spin.scatterWin)), spin.scatters, 'scatter-win');
+        const triggers = spin.free ? spin.retrigger > 0 : spin.awarded > 0;
+        if (triggers) {
+            sfx(spin.free ? 'retrigger' : 'scatter', spin.scatters.length);
+            await highlightScatters(spin.scatters);
+        }
+        showWin(winAmount(state.bet, spin.runningTotal));
     }
 
     function centre(cells) {
@@ -797,6 +1000,7 @@ export function startSlot(cfg) {
     }
 
     async function playSpin(spin, alreadyCleared) {
+        if (LINES) return playLineSpin(spin, alreadyCleared);
         if (!alreadyCleared) await dropOut();
         tumbleShow(0n);
         await dropIn(spin.start);
@@ -1056,12 +1260,12 @@ export function startSlot(cfg) {
         // here: it changes when the wallet has taken the stake (balance_after_stake, below).
 
         try {
-            const clearing = dropOut();
+            const clearing = LINES ? reelsOut() : dropOut();
             const result = await placeBet(amount, mode);
             await clearing;
 
             if (!result.success || !result.outcome) {
-                await dropIn(state.cells);
+                await (LINES ? reelsIn(state.cells) : dropIn(state.cells));
                 toast(errorText(result.error));
                 stopAuto();
             } else {
@@ -1082,7 +1286,7 @@ export function startSlot(cfg) {
                     } catch (_) { /* an old cached bridge.js that doesn't know it yet */ }
                 }
                 try {
-                    await playOutcome(plan(result.outcome), true);
+                    await playOutcome(plan(result.outcome, LINES), true);
                 } catch (e) {
                     // Never leave the game stuck mid-animation: the bet is settled either way.
                     console.error(e);
@@ -1091,6 +1295,8 @@ export function startSlot(cfg) {
                     document.body.classList.remove('free');
                     sound.music?.intensity?.(0);
                     $('fs-hud').hidden = true;
+                    reelStrips.forEach((strip) => strip?.remove());
+                    reelStrips = [];
                     render(state.cells);
                 }
                 showWin(payout);
@@ -1288,6 +1494,7 @@ export function startSlot(cfg) {
     }
 
     function rules() {
+        if (LINES) return linesRules();
         const r = cfg.rules;
         const bet = toUnits(state.bet);
         const amount = (x) => shown((bet * BigInt(Math.round(Number(x) * 100))) / 100n);
@@ -1312,6 +1519,35 @@ export function startSlot(cfg) {
             ${state.limits?.max_win ? `<li>Your casino pays at most ${shown(state.limits.max_win)} ${state.currency} per bet.</li>` : ''}</ul>
             <h3>Provably fair</h3>
             <p class="note">Every spin, tumble and free spin is drawn from your seed pair before anything moves. Rotate your seeds to reveal the server seed and verify any bet at ${cfg.verifyUrl}.</p>
+            ${f ? `<p class="mono">Last bet: server seed hash ${f.server_seed_hash} · client seed ${f.client_seed} · nonce ${f.nonce}</p>` : ''}`,
+        { button: 'Close', cls: 'wide' });
+    }
+
+    /** A paylines game's paytable and rules. */
+    function linesRules() {
+        const r = cfg.rules;
+        const bet = toUnits(state.bet);
+        const amount = (x) => shown((bet * BigInt(Math.round(Number(x) * 100))) / 100n);
+        const counts = [...new Set((r.paytable ?? []).flatMap((p) => Object.keys(p.pays)))].sort((a, b) => b - a);
+        const rows = (r.paytable ?? []).map((p) => `<tr><td><img src="${theme.symbols[p.symbol]?.img}" alt="${p.name}"></td>
+            ${counts.map((n) => `<td>${p.pays[n] ? amount(p.pays[n]) : '—'}</td>`).join('')}</tr>`).join('');
+        const scatter = Object.entries(r.scatter_pays ?? {}).map(([n, x]) => `${n} → ${amount(x)}`).join(' · ');
+        const award = Object.entries(r.free_spins?.awarded_by_count ?? {}).map(([n, spins]) => `${n} → ${spins}`).join(' · ');
+        const multipliers = (r.wilds?.base_game ?? []).filter((v) => v > 1).map((v) => `${v}×`).join(', ');
+        const f = state.fairness;
+        dialog(`<h2>Paytable</h2><p class="note">Pays at your bet of ${shown(state.bet)} ${state.currency}, on ${LINES.length} fixed lines, left to right.</p>
+            <table class="pays"><thead><tr><th></th>${counts.map((n) => `<th>${n}×</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
+            <p><img class="inline" src="${theme.wilds?.[1] ?? ''}" alt=""> <strong>Wild</strong>: stands in for every fruit on reels 2 to 5. Some carry ${multipliers}; the multipliers on a line add up.</p>
+            <p><img class="inline" src="${theme.symbols.S?.img}" alt=""> <strong>Scatter</strong>, anywhere: ${scatter} (× the bet). Free spins: ${award}; ${r.free_spins?.retrigger_scatters} or more in free spins add ${r.free_spins?.retrigger_awarded}.</p>
+            <h3>How it plays</h3>
+            <ul><li>A line pays when the same fruit lands on it from the leftmost reel, the peach from 2, the others from 3. Each line pays its best run; the wins of all lines add up.</li>
+            ${(theme.text?.multipliers ?? []).map((line) => `<li>${line}</li>`).join('')}
+            ${features.buy ? `<li>Buy free spins: ${(Number(COSTS.buy) / 100).toLocaleString('en')}× the bet starts the feature at once.</li>` : ''}
+            <li>Maximum win: ${Number(r.max_win).toLocaleString()}× the bet; the round ends when it is reached.</li>
+            <li>Return to player: ${(Number(r.rtp) * 100).toFixed(2)}%.</li>
+            ${state.limits?.max_win ? `<li>Your casino pays at most ${shown(state.limits.max_win)} ${state.currency} per bet.</li>` : ''}</ul>
+            <h3>Provably fair</h3>
+            <p class="note">Every spin and free spin is drawn from your seed pair before anything moves. Rotate your seeds to reveal the server seed and verify any bet at ${cfg.verifyUrl}.</p>
             ${f ? `<p class="mono">Last bet: server seed hash ${f.server_seed_hash} · client seed ${f.client_seed} · nonce ${f.nonce}</p>` : ''}`,
         { button: 'Close', cls: 'wide' });
     }
@@ -1630,6 +1866,7 @@ export function startSlot(cfg) {
 
     /** A win ('win'), a big win ('big') or free spins ('free'): its pose, a hop and sparkles. */
     function hostReact(kind) {
+        kit?.react?.(kind);
         if (!hostFigs.length) return;
         const [pose, keep, sparks] = HOST_REACTIONS[kind];
         if (hostShow(pose)) {
@@ -1670,6 +1907,7 @@ export function startSlot(cfg) {
 
     /** A spin starts: she stops waiting, and calls back a bee that is out. */
     function hostSpin() {
+        kit?.spinStart?.();
         clearTimeout(hostWait);
         if (hostPose === 'waiting') hostShow('idle');
         beeShoo();
@@ -1677,6 +1915,7 @@ export function startSlot(cfg) {
 
     /** The game is idle again: she waits after a while, and now and then sends a bee out. */
     function hostRest() {
+        kit?.rest?.();
         clearTimeout(hostWait);
         if (hostFigs.length) hostWait = setTimeout(() => { if (!state.busy) hostShow('waiting'); }, HOST_WAIT_MS);
         beeWanderLater();
@@ -1714,7 +1953,7 @@ export function startSlot(cfg) {
     /** What a theme's kit gets (see `kit`). */
     function kitApi() {
         return {
-            state, theme, cfg, $, board, fx, stage, canvas, reducedMotion, COLS, ROWS, MULTIPLIER, SCATTER,
+            state, theme, cfg, $, board, fx, stage, canvas, reducedMotion, COLS, ROWS, MULTIPLIER, SCATTER, WILD, LINES,
             rand, easeOut, linear, dur, wait, animate, sfx, emit, sprite, gridPoint, cellBox, cellOnScreen, centre, shake, floatText,
             hostShow, hostReact, hostTip, hostPoint, shown, winAmount, starTier: (v) => starTier(v, theme.tiers ?? undefined),
         };
@@ -2066,6 +2305,7 @@ export function startSlot(cfg) {
     $('sound-btn').setAttribute('aria-pressed', String(sound.on));
     kit = cfg.kit?.(kitApi()) ?? null;
     fitCanvas();
+    lineMarks();
     scenery();
     kit?.scenery?.();
     setTimeout(() => {
@@ -2249,7 +2489,7 @@ export function startSlot(cfg) {
     return { state, spin };
 }
 
-/** A pleasant resting board before the first spin (decoration only, never an outcome). */
-function idleGrid() {
-    return [...'GEHFA' + 'IBEGC' + 'DHSFI' + 'FCIEB' + 'AGDHE' + 'HEFIG'].map((s) => ({ s, v: 0 }));
+/** A pleasant resting board before the first spin (decoration only, never an outcome): the theme's, or the tumbling games'. */
+function idleGrid(letters = 'GEHFAIBEGCDHSFIFCIEBAGDHEHEFIG') {
+    return [...letters].slice(0, COLS * ROWS).map((s) => ({ s, v: s === WILD ? 1 : 0 }));
 }

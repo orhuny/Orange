@@ -4,6 +4,8 @@ Audience: whoever generates the art for Tutti Frutti. Every prompt below is comp
 
 **Name:** Tutti Frutti (code `tutti-frutti`), the user's choice, confirmed on 2026-11-21. Only `txt-logo` carries the name.
 
+**Status (2026-11-21): delivered and in the game.** All 54 files are in `storage/app/art/tutti-frutti/round1/`; `python -I scripts/art/process-tutti-frutti.py` builds them into `public/images/tutti-frutti/` (about 10 minutes). To redo an asset, regenerate it with its prompt below, replace the file there, and rerun the script. A regenerated pose of Marina or Bella keeps its measured points only if it is drawn the same way (`HOSTS` in the script).
+
 **The game:** a **lines** game. Five reels and three rows, 20 fixed lines (the classic shape), and fruit that matches along a line from the left pays. That makes it our first slot that isn't pay-anywhere.
 
 ## The look in one paragraph

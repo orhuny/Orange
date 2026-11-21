@@ -29,6 +29,7 @@ Audience: anyone adding or changing a game's art. How a game uses its art: [addi
 | Sugar Orchard | slot, theme `sugar-orchard` | `public/images/sugar-orchard/` (symbols in `symbols/`) | `process-sugar-orchard.py` (Pillow) | [sugar-orchard-prompts.md](sugar-orchard-prompts.md) |
 | Trident of Poseidon | slot, theme `trident-of-poseidon` | `public/images/trident-of-poseidon/` (symbols in `symbols/`, Poseidon in `host/`) | `process-trident-of-poseidon.py` (Pillow, helpers in `artlib.py`) | [trident-of-poseidon-prompts.md](trident-of-poseidon-prompts.md) |
 | Stones of the Titan | slot, theme `stones-of-the-titan` | `public/images/stones-of-the-titan/` (symbols in `symbols/`, the Titan in `host/`) | `process-stones-of-the-titan.py` (Pillow, helpers in `artlib.py`; draws a placeholder for every file not yet delivered, listed in `art.json` `placeholders`) | [stones-of-the-titan-prompts.md](stones-of-the-titan-prompts.md) |
+| Tutti Frutti | slot (paylines), theme `tutti-frutti`, layout `duet` | `public/images/tutti-frutti/` (symbols in `symbols/`, Marina and Bella in `host/`) | `process-tutti-frutti.py` (Pillow, helpers in `artlib.py`; every file must be delivered; turns the white juice into a tintable liquid) | [tutti-frutti-prompts.md](tutti-frutti-prompts.md) |
 
 Deep Dive's thumbnail is only in the admin panel. If you have its source, save it as `public/images/deep-dive/thumbnail.jpg`.
 
@@ -49,6 +50,6 @@ Deep Dive's thumbnail is only in the admin panel. If you have its source, save i
   - Cut-outs come on flat magenta `#FF00FF`.
   - Sugar Orchard's light effects come on black and are blended as light.
   - Trident of Poseidon's cut-outs come as transparent PNGs (water, pearls and foam are partly see-through); only its frame comes on magenta.
-  - Name the files as the prompts doc does, in `storage/app/art/{game}/`. Sugar Orchard's round 3 goes in `round3/`, Trident of Poseidon's and Stones of the Titan's round 1 in `round1/`.
+  - Name the files as the prompts doc does, in `storage/app/art/{game}/`. Sugar Orchard's round 3 goes in `round3/`; Trident of Poseidon's, Stones of the Titan's and Tutti Frutti's round 1 in `round1/`.
 - **Every served file is used by its game.** Remove what nothing references, unless its build script makes it.
 - **Referencing art:** use `asset('images/{game}/…')`, with `?v=` and the file's `filemtime` where the file may change. Then players get a new file without clearing their cache.

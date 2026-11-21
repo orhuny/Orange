@@ -63,6 +63,7 @@ beforeAll(async () => {
     await import('../../public/js/orange/sound-orchard.js');
     await import('../../public/js/orange/sound-tides.js');
     await import('../../public/js/orange/sound-cosmos.js');
+    await import('../../public/js/orange/sound-riviera.js');
 });
 
 beforeEach(() => {
@@ -173,12 +174,12 @@ describe('marsh music', () => {
     });
 });
 
-// The slot skins' packs: Sugar Orchard ("orchard"), Trident of Poseidon ("tides") and Stones of the
-// Titan ("cosmos"). The slot page plays the same effects on each, so all answer to the same calls.
+// The slot skins' packs: Sugar Orchard ("orchard"), Trident of Poseidon ("tides"), Stones of the
+// Titan ("cosmos") and Tutti Frutti ("riviera"). The slot page plays the same effects on each, so all answer to the same calls.
 const SLOT_EFFECTS = ['spin', 'land', 'win', 'buzz', 'flame', 'pop', 'scatter', 'star', 'stars', 'multiply', 'retrigger',
     'fsStart', 'fsEnd', 'big', 'tick', 'bigEnd', 'click', 'intro'];
 
-describe.each(['orchard', 'tides', 'cosmos'])('%s slot sound pack', (packName) => {
+describe.each(['orchard', 'tides', 'cosmos', 'riviera'])('%s slot sound pack', (packName) => {
     let pack;
 
     beforeEach(() => {
@@ -262,6 +263,14 @@ describe.each(['orchard', 'tides', 'cosmos'])('%s slot sound pack', (packName) =
 describe('cosmos slot sound pack, its own effects', () => {
     it.each(['crush', 'eclipse'])('plays the %s effect', (name) => {
         window.OrangeSound.cosmos(ctx, ctx.createGain()).sfx(name, 10);
+
+        expect(ctx.started.length).toBeGreaterThan(0);
+    });
+});
+
+describe('riviera slot sound pack, its own effects', () => {
+    it.each(['tease', 'line', 'splash', 'kiss', 'amore', 'firework'])('plays the %s effect', (name) => {
+        window.OrangeSound.riviera(ctx, ctx.createGain()).sfx(name, 3);
 
         expect(ctx.started.length).toBeGreaterThan(0);
     });

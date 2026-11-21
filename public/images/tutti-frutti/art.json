@@ -1,0 +1,260 @@
+{
+ "symbols": {
+  "A": "symbols/peach.webp",
+  "B": "symbols/pineapple.webp",
+  "C": "symbols/dragonfruit.webp",
+  "D": "symbols/pomegranate.webp",
+  "E": "symbols/mango.webp",
+  "F": "symbols/lime.webp",
+  "G": "symbols/blueberries.webp",
+  "H": "symbols/fig.webp",
+  "I": "symbols/lychee.webp",
+  "S": "symbols/cocktail.webp"
+ },
+ "wilds": {
+  "1": "symbols/kiss-pink.webp",
+  "2": "symbols/kiss-aqua.webp",
+  "3": "symbols/kiss-lime.webp",
+  "5": "symbols/kiss-gold.webp"
+ },
+ "fx": {
+  "twinkle": "fx/twinkle.webp",
+  "heart-trail": "fx/heart-trail.webp",
+  "heart-burst": "fx/heart-burst.webp",
+  "sunburst": "fx/sunburst.webp",
+  "firework": "fx/firework.webp",
+  "sweep": "fx/sweep.webp",
+  "splash": "fx/splash.webp",
+  "droplets": [
+   "fx/drop-1.webp",
+   "fx/drop-2.webp",
+   "fx/drop-3.webp",
+   "fx/drop-4.webp",
+   "fx/drop-5.webp",
+   "fx/drop-6.webp",
+   "fx/drop-7.webp",
+   "fx/drop-8.webp",
+   "fx/drop-9.webp",
+   "fx/drop-10.webp",
+   "fx/drop-11.webp",
+   "fx/drop-12.webp",
+   "fx/drop-13.webp",
+   "fx/drop-14.webp",
+   "fx/drop-15.webp",
+   "fx/drop-16.webp",
+   "fx/drop-17.webp",
+   "fx/drop-18.webp",
+   "fx/drop-19.webp",
+   "fx/drop-20.webp",
+   "fx/drop-21.webp",
+   "fx/drop-22.webp",
+   "fx/drop-23.webp",
+   "fx/drop-24.webp",
+   "fx/drop-25.webp",
+   "fx/drop-26.webp",
+   "fx/drop-27.webp",
+   "fx/drop-28.webp",
+   "fx/drop-29.webp",
+   "fx/drop-30.webp",
+   "fx/drop-31.webp",
+   "fx/drop-32.webp",
+   "fx/drop-33.webp",
+   "fx/drop-34.webp",
+   "fx/drop-35.webp",
+   "fx/drop-36.webp",
+   "fx/drop-37.webp",
+   "fx/drop-38.webp",
+   "fx/drop-39.webp"
+  ],
+  "confetti": [
+   "fx/confetti-1.webp",
+   "fx/confetti-2.webp",
+   "fx/confetti-3.webp",
+   "fx/confetti-4.webp",
+   "fx/confetti-5.webp",
+   "fx/confetti-6.webp",
+   "fx/confetti-7.webp",
+   "fx/confetti-8.webp",
+   "fx/confetti-9.webp",
+   "fx/confetti-10.webp",
+   "fx/confetti-11.webp",
+   "fx/confetti-12.webp",
+   "fx/confetti-13.webp",
+   "fx/confetti-14.webp",
+   "fx/confetti-15.webp",
+   "fx/confetti-16.webp",
+   "fx/confetti-17.webp",
+   "fx/confetti-18.webp",
+   "fx/confetti-19.webp",
+   "fx/confetti-20.webp",
+   "fx/confetti-21.webp",
+   "fx/confetti-22.webp",
+   "fx/confetti-23.webp",
+   "fx/confetti-24.webp",
+   "fx/confetti-25.webp",
+   "fx/confetti-26.webp",
+   "fx/confetti-27.webp",
+   "fx/confetti-28.webp",
+   "fx/confetti-29.webp",
+   "fx/confetti-30.webp",
+   "fx/confetti-31.webp",
+   "fx/confetti-32.webp",
+   "fx/confetti-33.webp",
+   "fx/confetti-34.webp",
+   "fx/confetti-35.webp",
+   "fx/confetti-36.webp",
+   "fx/confetti-37.webp",
+   "fx/confetti-38.webp",
+   "fx/confetti-39.webp",
+   "fx/confetti-40.webp",
+   "fx/confetti-41.webp",
+   "fx/confetti-42.webp",
+   "fx/confetti-43.webp",
+   "fx/confetti-44.webp",
+   "fx/confetti-45.webp",
+   "fx/confetti-46.webp",
+   "fx/confetti-47.webp",
+   "fx/confetti-48.webp",
+   "fx/confetti-49.webp",
+   "fx/confetti-50.webp",
+   "fx/confetti-51.webp"
+  ]
+ },
+ "banners": {
+  "big-win": "banners/big-win.webp",
+  "mega-win": "banners/mega-win.webp",
+  "epic-win": "banners/epic-win.webp",
+  "max-win": "banners/max-win.webp",
+  "free-spins": "banners/free-spins.webp",
+  "total-win": "banners/total-win.webp"
+ },
+ "tropical": "fg-tropical.webp",
+ "podium": "podium.webp",
+ "frame": {
+  "src": "frame.webp",
+  "window": {
+   "x0": 0.0952,
+   "y0": 0.079,
+   "x1": 0.9048,
+   "y1": 0.9424
+  },
+  "pieces": {
+   "left": "frame-left.webp",
+   "right": "frame-right.webp",
+   "fill": "frame-fill.webp",
+   "px": {
+    "w": 1575,
+    "h": 886,
+    "x0": 150,
+    "x1": 1425,
+    "y0": 70,
+    "y1": 835,
+    "cut_l": 737,
+    "cut_r": 851
+   }
+  }
+ },
+ "spin": "spin.webp",
+ "plaque": "plaque.webp",
+ "buy": "buy-badge.webp",
+ "amore": "amore-heart.webp",
+ "logo": "logo.webp",
+ "hosts": {
+  "marina": {
+   "idle": {
+    "src": "host/marina-idle.webp",
+    "cx": 0.4313,
+    "ar": 0.3931,
+    "feet": 0.9987,
+    "k": 1.0
+   },
+   "cheer": {
+    "src": "host/marina-cheer.webp",
+    "cx": 0.4272,
+    "ar": 0.4192,
+    "feet": 0.9987,
+    "k": 1.0073
+   },
+   "shake": {
+    "src": "host/marina-shake.webp",
+    "cx": 0.5229,
+    "ar": 0.3857,
+    "feet": 0.9987,
+    "k": 0.9987
+   },
+   "dance": {
+    "src": "host/marina-dance.webp",
+    "cx": 0.4668,
+    "ar": 0.4309,
+    "feet": 0.9987,
+    "k": 0.9967
+   },
+   "party": {
+    "src": "host/marina-party.webp",
+    "cx": 0.3425,
+    "ar": 0.5985,
+    "feet": 0.9993,
+    "k": 0.994
+   },
+   "waiting": {
+    "src": "host/marina-waiting.webp",
+    "cx": 0.4561,
+    "ar": 0.3821,
+    "feet": 0.9987,
+    "k": 1.0046
+   }
+  },
+  "bella": {
+   "idle": {
+    "src": "host/bella-idle.webp",
+    "cx": 0.5157,
+    "ar": 0.4494,
+    "feet": 0.9993,
+    "k": 1.0
+   },
+   "wink": {
+    "src": "host/bella-wink.webp",
+    "cx": 0.5523,
+    "ar": 0.6118,
+    "feet": 0.9993,
+    "finger": {
+     "x": 0.078,
+     "y": 0.1438
+    },
+    "k": 0.9993
+   },
+   "kiss": {
+    "src": "host/bella-kiss.webp",
+    "cx": 0.426,
+    "ar": 0.4206,
+    "feet": 0.9987,
+    "palm": {
+     "x": 0.09,
+     "y": 0.1449
+    },
+    "k": 0.983
+   },
+   "dance": {
+    "src": "host/bella-dance.webp",
+    "cx": 0.6315,
+    "ar": 0.4947,
+    "feet": 0.9987,
+    "k": 0.9928
+   },
+   "party": {
+    "src": "host/bella-party.webp",
+    "cx": 0.5242,
+    "ar": 0.5772,
+    "feet": 0.9987,
+    "k": 0.9902
+   },
+   "waiting": {
+    "src": "host/bella-waiting.webp",
+    "cx": 0.4177,
+    "ar": 0.3396,
+    "feet": 0.9987,
+    "k": 1.0
+   }
+  }
+ }
+}

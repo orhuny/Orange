@@ -5,12 +5,25 @@
  *
  * Cells are numbered column by column, row 0 at the top: cell = column × rows + row, as on
  * the server. A plain ES module (no build step).
+ *
+ * Two kinds of game: tumbling "pay anywhere" slots (6 × 5) and paylines slots (Tutti Frutti,
+ * 5 × 3: a spin's `lines` instead of tumbles). The page sets the grid from the game's rules
+ * (setGrid); importers see the new size, as ES module exports are live.
  */
 
-export const COLS = 6;
-export const ROWS = 5;
+export let COLS = 6;
+export let ROWS = 5;
 export const SCATTER = 'S';
 export const MULTIPLIER = 'M';
+export const WILD = 'W';
+
+/** The game's grid (rules.grid). Before anything is planned or drawn. */
+export function setGrid(cols, rows) {
+    if (Number.isInteger(cols) && Number.isInteger(rows) && cols > 0 && rows > 0) {
+        COLS = cols;
+        ROWS = rows;
+    }
+}
 
 /** "12.50" → 1250 (hundredths). */
 export function hundredths(x) {
@@ -24,10 +37,21 @@ export function formatX(h) {
     return `${Math.floor(h / 100)}.${String(h % 100).padStart(2, '0')}`;
 }
 
-/** A grid string and its multiplier values → cells [{ s, v }]. */
-export function parseGrid(grid, mults = []) {
+/** A grid string and its multiplier values (or a lines game's wild values) → cells [{ s, v }]. */
+export function parseGrid(grid, mults = [], wilds = []) {
     let next = 0;
-    return [...grid].map((s) => ({ s, v: s === MULTIPLIER ? (mults[next++] ?? 0) : 0 }));
+    let nextWild = 0;
+    return [...grid].map((s) => ({ s, v: s === MULTIPLIER ? (mults[next++] ?? 0) : s === WILD ? (wilds[nextWild++] ?? 1) : 0 }));
+}
+
+/**
+ * A paylines game's line: the cells it crosses (one per column, rules.lines[n - 1] gives the
+ * row on each) and the first `count` of them, the run that pays.
+ */
+export function lineCells(lines, number, count = COLS) {
+    const rows = lines?.[number - 1] ?? [];
+    const path = rows.map((row, col) => col * ROWS + row);
+    return { path, run: path.slice(0, count) };
 }
 
 /**
@@ -77,13 +101,44 @@ export function cellsOf(cells, symbol) {
 }
 
 /**
- * The whole animation plan of a bet. Amounts stay in hundredths of the bet.
+ * The whole animation plan of a bet. Amounts stay in hundredths of the bet. A paylines game
+ * passes its lines (rules.lines): its spins have `lines` instead of tumbles.
  *
  * @returns {{ mode: string, spins: object[], total: number, freeSpins: number, maxWin: boolean }}
  */
-export function plan(outcome) {
+export function plan(outcome, lines = null) {
     let running = 0;
     const spins = (outcome.spins ?? []).map((spin, index) => {
+        if (Array.isArray(spin.lines)) {
+            const cells = parseGrid(spin.grid, [], spin.wilds);
+            const win = hundredths(spin.win_x);
+            running += win;
+            return {
+                index,
+                free: index > 0,
+                start: cells,
+                steps: [],
+                end: cells,
+                // Each paying line: its number, symbol, run and multiplier (the sum of its wilds'),
+                // what it pays before the amore, and the cells it crosses (path) and pays on (run).
+                lines: spin.lines.map((l) => ({
+                    line: l.line, symbol: l.symbol, count: l.count, multiplier: l.multiplier, pays: hundredths(l.win_x), ...lineCells(lines, l.line, l.count),
+                })),
+                lineWin: hundredths(spin.line_win_x ?? '0'),
+                scatters: cellsOf(cells, SCATTER),
+                scatterWin: hundredths(spin.scatter_win_x ?? '0'),
+                multiplier: 0,
+                tide: null,
+                // Free spins: the amore after this spin's wilds joined it (null in the base game).
+                amore: spin.amore ?? null,
+                multiplierCells: [],
+                wildCells: cellsOf(cells, WILD),
+                win,
+                runningTotal: running,
+                awarded: spin.free_spins_awarded ?? 0,
+                retrigger: spin.retrigger ?? 0,
+            };
+        }
         let cells = parseGrid(spin.grid, spin.mults);
         const start = cells;
         let spinLine = 0;
