@@ -159,102 +159,626 @@
  "buy": "buy-badge.webp",
  "amore": "amore-heart.webp",
  "logo": "logo.webp",
- "hosts": {
-  "marina": {
-   "idle": {
-    "src": "host/marina-idle.webp",
-    "cx": 0.4313,
-    "ar": 0.3931,
-    "feet": 0.9987,
-    "k": 1.0
-   },
-   "cheer": {
-    "src": "host/marina-cheer.webp",
-    "cx": 0.4272,
-    "ar": 0.4192,
-    "feet": 0.9987,
-    "k": 1.0073
-   },
-   "shake": {
-    "src": "host/marina-shake.webp",
-    "cx": 0.5229,
-    "ar": 0.3857,
-    "feet": 0.9987,
-    "k": 0.9987
-   },
-   "dance": {
-    "src": "host/marina-dance.webp",
-    "cx": 0.4668,
-    "ar": 0.4309,
-    "feet": 0.9987,
-    "k": 0.9967
-   },
-   "party": {
-    "src": "host/marina-party.webp",
-    "cx": 0.3425,
-    "ar": 0.5985,
-    "feet": 0.9993,
-    "k": 0.994
-   },
-   "waiting": {
-    "src": "host/marina-waiting.webp",
-    "cx": 0.4561,
-    "ar": 0.3821,
-    "feet": 0.9987,
-    "k": 1.0046
+ "girls": {
+  "bella": {
+   "faces": "left",
+   "colour": "#ff2d9a",
+   "fruit": "C",
+   "card": "cards/bella.webp",
+   "poses": {
+    "idle": {
+     "src": "host/bella-idle.webp",
+     "cx": 0.5157,
+     "ar": 0.4494,
+     "feet": 0.9993,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/bella-win.webp",
+     "cx": 0.5523,
+     "ar": 0.6118,
+     "feet": 0.9993,
+     "k": 0.9993
+    },
+    "kiss": {
+     "src": "host/bella-kiss.webp",
+     "cx": 0.426,
+     "ar": 0.4206,
+     "feet": 0.9987,
+     "palm": {
+      "x": 0.09,
+      "y": 0.1449
+     },
+     "k": 0.983
+    },
+    "tease": {
+     "src": "host/bella-tease.webp",
+     "cx": 0.3631,
+     "ar": 0.4376,
+     "feet": 0.9987,
+     "k": 0.9895
+    },
+    "dance": {
+     "src": "host/bella-dance.webp",
+     "cx": 0.6315,
+     "ar": 0.4947,
+     "feet": 0.9987,
+     "k": 0.9928
+    },
+    "party": {
+     "src": "host/bella-party.webp",
+     "cx": 0.5242,
+     "ar": 0.5772,
+     "feet": 0.9987,
+     "k": 0.9902
+    },
+    "waiting": {
+     "src": "host/bella-waiting.webp",
+     "cx": 0.4177,
+     "ar": 0.3396,
+     "feet": 0.9987,
+     "k": 1.0
+    }
    }
   },
-  "bella": {
-   "idle": {
-    "src": "host/bella-idle.webp",
-    "cx": 0.5157,
-    "ar": 0.4494,
-    "feet": 0.9993,
-    "k": 1.0
-   },
-   "wink": {
-    "src": "host/bella-wink.webp",
-    "cx": 0.5523,
-    "ar": 0.6118,
-    "feet": 0.9993,
-    "finger": {
-     "x": 0.078,
-     "y": 0.1438
+  "marina": {
+   "faces": "right",
+   "colour": "#22d3ee",
+   "fruit": "S",
+   "card": "cards/marina.webp",
+   "poses": {
+    "idle": {
+     "src": "host/marina-idle.webp",
+     "cx": 0.4313,
+     "ar": 0.3931,
+     "feet": 0.9987,
+     "k": 1.0
     },
-    "k": 0.9993
-   },
-   "kiss": {
-    "src": "host/bella-kiss.webp",
-    "cx": 0.426,
-    "ar": 0.4206,
-    "feet": 0.9987,
-    "palm": {
-     "x": 0.09,
-     "y": 0.1449
+    "win": {
+     "src": "host/marina-win.webp",
+     "cx": 0.4272,
+     "ar": 0.4192,
+     "feet": 0.9987,
+     "k": 1.0073
     },
-    "k": 0.983
-   },
-   "dance": {
-    "src": "host/bella-dance.webp",
-    "cx": 0.6315,
-    "ar": 0.4947,
-    "feet": 0.9987,
-    "k": 0.9928
-   },
-   "party": {
-    "src": "host/bella-party.webp",
-    "cx": 0.5242,
-    "ar": 0.5772,
-    "feet": 0.9987,
-    "k": 0.9902
-   },
-   "waiting": {
-    "src": "host/bella-waiting.webp",
-    "cx": 0.4177,
-    "ar": 0.3396,
-    "feet": 0.9987,
-    "k": 1.0
+    "kiss": {
+     "src": "host/marina-kiss.webp",
+     "cx": 0.4368,
+     "ar": 0.4762,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.9042,
+      "y": 0.1376
+     },
+     "k": 1.0007
+    },
+    "tease": {
+     "src": "host/marina-tease.webp",
+     "cx": 0.5229,
+     "ar": 0.3857,
+     "feet": 0.9987,
+     "k": 0.9987
+    },
+    "dance": {
+     "src": "host/marina-dance.webp",
+     "cx": 0.4668,
+     "ar": 0.4309,
+     "feet": 0.9987,
+     "k": 0.9967
+    },
+    "party": {
+     "src": "host/marina-party.webp",
+     "cx": 0.3425,
+     "ar": 0.5985,
+     "feet": 0.9993,
+     "k": 0.994
+    },
+    "waiting": {
+     "src": "host/marina-waiting.webp",
+     "cx": 0.4561,
+     "ar": 0.3821,
+     "feet": 0.9987,
+     "k": 1.0046
+    }
+   }
+  },
+  "aurora": {
+   "faces": "left",
+   "colour": "#ff8a65",
+   "fruit": "A",
+   "card": "cards/aurora.webp",
+   "poses": {
+    "idle": {
+     "src": "host/aurora-idle.webp",
+     "cx": 0.4907,
+     "ar": 0.4048,
+     "feet": 0.9987,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/aurora-win.webp",
+     "cx": 0.5271,
+     "ar": 0.4737,
+     "feet": 0.9987,
+     "k": 1.0066
+    },
+    "kiss": {
+     "src": "host/aurora-kiss.webp",
+     "cx": 0.4365,
+     "ar": 0.444,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.1647,
+      "y": 0.1489
+     },
+     "k": 1.004
+    },
+    "tease": {
+     "src": "host/aurora-tease.webp",
+     "cx": 0.5737,
+     "ar": 0.3654,
+     "feet": 0.9987,
+     "k": 1.0026
+    },
+    "dance": {
+     "src": "host/aurora-dance.webp",
+     "cx": 0.5489,
+     "ar": 0.5129,
+     "feet": 0.9993,
+     "k": 1.0033
+    },
+    "party": {
+     "src": "host/aurora-party.webp",
+     "cx": 0.5675,
+     "ar": 0.5834,
+     "feet": 0.9993,
+     "k": 1.0033
+    },
+    "waiting": {
+     "src": "host/aurora-waiting.webp",
+     "cx": 0.4994,
+     "ar": 0.3976,
+     "feet": 0.9993,
+     "k": 1.0013
+    }
+   }
+  },
+  "stella": {
+   "faces": "left",
+   "colour": "#ffd23f",
+   "fruit": "B",
+   "card": "cards/stella.webp",
+   "poses": {
+    "idle": {
+     "src": "host/stella-idle.webp",
+     "cx": 0.5175,
+     "ar": 0.462,
+     "feet": 0.9987,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/stella-win.webp",
+     "cx": 0.5075,
+     "ar": 0.4613,
+     "feet": 0.9987,
+     "k": 1.0073
+    },
+    "kiss": {
+     "src": "host/stella-kiss.webp",
+     "cx": 0.4602,
+     "ar": 0.4803,
+     "feet": 0.9987,
+     "palm": {
+      "x": 0.1266,
+      "y": 0.179
+     },
+     "k": 0.998
+    },
+    "tease": {
+     "src": "host/stella-tease.webp",
+     "cx": 0.606,
+     "ar": 0.4518,
+     "feet": 0.9993,
+     "k": 1.0033
+    },
+    "dance": {
+     "src": "host/stella-dance.webp",
+     "cx": 0.5732,
+     "ar": 0.5412,
+     "feet": 0.9987,
+     "k": 1.0113
+    },
+    "party": {
+     "src": "host/stella-party.webp",
+     "cx": 0.5512,
+     "ar": 0.5892,
+     "feet": 0.9993,
+     "k": 1.0127
+    },
+    "waiting": {
+     "src": "host/stella-waiting.webp",
+     "cx": 0.5225,
+     "ar": 0.3963,
+     "feet": 0.9993,
+     "k": 1.006
+    }
+   }
+  },
+  "rosa": {
+   "faces": "left",
+   "colour": "#e0193f",
+   "fruit": "D",
+   "card": "cards/rosa.webp",
+   "poses": {
+    "idle": {
+     "src": "host/rosa-idle.webp",
+     "cx": 0.372,
+     "ar": 0.3974,
+     "feet": 0.9987,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/rosa-win.webp",
+     "cx": 0.3548,
+     "ar": 0.4392,
+     "feet": 0.9987,
+     "k": 1.0073
+    },
+    "kiss": {
+     "src": "host/rosa-kiss.webp",
+     "cx": 0.3848,
+     "ar": 0.4306,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.0891,
+      "y": 0.1257
+     },
+     "k": 1.0013
+    },
+    "tease": {
+     "src": "host/rosa-tease.webp",
+     "cx": 0.43,
+     "ar": 0.4083,
+     "feet": 0.9993,
+     "k": 1.0007
+    },
+    "dance": {
+     "src": "host/rosa-dance.webp",
+     "cx": 0.3397,
+     "ar": 0.4638,
+     "feet": 0.9987,
+     "k": 1.0053
+    },
+    "party": {
+     "src": "host/rosa-party.webp",
+     "cx": 0.3302,
+     "ar": 0.5731,
+     "feet": 0.9993,
+     "k": 1.0099
+    },
+    "waiting": {
+     "src": "host/rosa-waiting.webp",
+     "cx": 0.3694,
+     "ar": 0.4046,
+     "feet": 0.9987,
+     "k": 1.0
+    }
+   }
+  },
+  "gemma": {
+   "faces": "left",
+   "colour": "#ff9a1f",
+   "fruit": "E",
+   "card": "cards/gemma.webp",
+   "poses": {
+    "idle": {
+     "src": "host/gemma-idle.webp",
+     "cx": 0.3191,
+     "ar": 0.4299,
+     "feet": 0.9987,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/gemma-win.webp",
+     "cx": 0.3703,
+     "ar": 0.5721,
+     "feet": 0.9987,
+     "k": 1.0
+    },
+    "kiss": {
+     "src": "host/gemma-kiss.webp",
+     "cx": 0.4472,
+     "ar": 0.4145,
+     "feet": 0.9987,
+     "palm": {
+      "x": 0.0867,
+      "y": 0.1424
+     },
+     "k": 0.9895
+    },
+    "tease": {
+     "src": "host/gemma-tease.webp",
+     "cx": 0.4089,
+     "ar": 0.4178,
+     "feet": 0.9993,
+     "k": 0.9928
+    },
+    "dance": {
+     "src": "host/gemma-dance.webp",
+     "cx": 0.311,
+     "ar": 0.5146,
+     "feet": 0.9993,
+     "k": 0.9941
+    },
+    "party": {
+     "src": "host/gemma-party.webp",
+     "cx": 0.3327,
+     "ar": 0.5662,
+     "feet": 0.9993,
+     "k": 0.9987
+    },
+    "waiting": {
+     "src": "host/gemma-waiting.webp",
+     "cx": 0.3179,
+     "ar": 0.3978,
+     "feet": 0.9987,
+     "k": 0.998
+    }
+   }
+  },
+  "jade": {
+   "faces": "left",
+   "colour": "#8fe03a",
+   "fruit": "F",
+   "card": "cards/jade.webp",
+   "poses": {
+    "idle": {
+     "src": "host/jade-idle.webp",
+     "cx": 0.5152,
+     "ar": 0.4153,
+     "feet": 0.998,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/jade-win.webp",
+     "cx": 0.5274,
+     "ar": 0.4905,
+     "feet": 0.998,
+     "k": 0.9987
+    },
+    "kiss": {
+     "src": "host/jade-kiss.webp",
+     "cx": 0.4177,
+     "ar": 0.4225,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.1771,
+      "y": 0.1331
+     },
+     "k": 0.9876
+    },
+    "tease": {
+     "src": "host/jade-tease.webp",
+     "cx": 0.5607,
+     "ar": 0.3333,
+     "feet": 0.9993,
+     "k": 0.9967
+    },
+    "dance": {
+     "src": "host/jade-dance.webp",
+     "cx": 0.5401,
+     "ar": 0.4954,
+     "feet": 0.9993,
+     "k": 1.0046
+    },
+    "party": {
+     "src": "host/jade-party.webp",
+     "cx": 0.5794,
+     "ar": 0.528,
+     "feet": 0.9987,
+     "k": 0.9823
+    },
+    "waiting": {
+     "src": "host/jade-waiting.webp",
+     "cx": 0.4322,
+     "ar": 0.3601,
+     "feet": 0.9993,
+     "k": 1.0007
+    }
+   }
+  },
+  "celeste": {
+   "faces": "left",
+   "colour": "#3f6bff",
+   "fruit": "G",
+   "card": "cards/celeste.webp",
+   "poses": {
+    "idle": {
+     "src": "host/celeste-idle.webp",
+     "cx": 0.4689,
+     "ar": 0.3997,
+     "feet": 0.9987,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/celeste-win.webp",
+     "cx": 0.4296,
+     "ar": 0.4137,
+     "feet": 0.9987,
+     "k": 0.998
+    },
+    "kiss": {
+     "src": "host/celeste-kiss.webp",
+     "cx": 0.3597,
+     "ar": 0.4285,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.0908,
+      "y": 0.1358
+     },
+     "k": 0.9974
+    },
+    "tease": {
+     "src": "host/celeste-tease.webp",
+     "cx": 0.5687,
+     "ar": 0.3445,
+     "feet": 0.9987,
+     "k": 0.998
+    },
+    "dance": {
+     "src": "host/celeste-dance.webp",
+     "cx": 0.4576,
+     "ar": 0.461,
+     "feet": 0.9987,
+     "k": 0.9954
+    },
+    "party": {
+     "src": "host/celeste-party.webp",
+     "cx": 0.5491,
+     "ar": 0.5612,
+     "feet": 0.9993,
+     "k": 0.9829
+    },
+    "waiting": {
+     "src": "host/celeste-waiting.webp",
+     "cx": 0.4573,
+     "ar": 0.3544,
+     "feet": 0.9987,
+     "k": 1.0
+    }
+   }
+  },
+  "luna": {
+   "faces": "left",
+   "colour": "#9b3cff",
+   "fruit": "H",
+   "card": "cards/luna.webp",
+   "poses": {
+    "idle": {
+     "src": "host/luna-idle.webp",
+     "cx": 0.4032,
+     "ar": 0.3373,
+     "feet": 0.9993,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/luna-win.webp",
+     "cx": 0.3528,
+     "ar": 0.4336,
+     "feet": 0.9987,
+     "k": 0.9921
+    },
+    "kiss": {
+     "src": "host/luna-kiss.webp",
+     "cx": 0.4753,
+     "ar": 0.4397,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.1101,
+      "y": 0.1147
+     },
+     "k": 0.9934
+    },
+    "tease": {
+     "src": "host/luna-tease.webp",
+     "cx": 0.3365,
+     "ar": 0.3748,
+     "feet": 0.9987,
+     "k": 0.9947
+    },
+    "dance": {
+     "src": "host/luna-dance.webp",
+     "cx": 0.3971,
+     "ar": 0.438,
+     "feet": 0.9993,
+     "k": 0.9928
+    },
+    "party": {
+     "src": "host/luna-party.webp",
+     "cx": 0.5546,
+     "ar": 0.5937,
+     "feet": 0.9987,
+     "k": 0.9875
+    },
+    "waiting": {
+     "src": "host/luna-waiting.webp",
+     "cx": 0.3988,
+     "ar": 0.3636,
+     "feet": 0.9993,
+     "k": 1.0072
+    }
+   }
+  },
+  "perla": {
+   "faces": "left",
+   "colour": "#ffd6e4",
+   "fruit": "I",
+   "card": "cards/perla.webp",
+   "poses": {
+    "idle": {
+     "src": "host/perla-idle.webp",
+     "cx": 0.3465,
+     "ar": 0.3743,
+     "feet": 0.9993,
+     "k": 1.0
+    },
+    "win": {
+     "src": "host/perla-win.webp",
+     "cx": 0.3206,
+     "ar": 0.436,
+     "feet": 0.9993,
+     "k": 0.9947
+    },
+    "kiss": {
+     "src": "host/perla-kiss.webp",
+     "cx": 0.4631,
+     "ar": 0.4155,
+     "feet": 0.9993,
+     "palm": {
+      "x": 0.0968,
+      "y": 0.1367
+     },
+     "k": 0.9848
+    },
+    "tease": {
+     "src": "host/perla-tease.webp",
+     "cx": 0.3508,
+     "ar": 0.349,
+     "feet": 0.9993,
+     "k": 0.9967
+    },
+    "dance": {
+     "src": "host/perla-dance.webp",
+     "cx": 0.3811,
+     "ar": 0.5173,
+     "feet": 0.9987,
+     "k": 0.9941
+    },
+    "party": {
+     "src": "host/perla-party.webp",
+     "cx": 0.4478,
+     "ar": 0.5789,
+     "feet": 0.9993,
+     "k": 0.9954
+    },
+    "waiting": {
+     "src": "host/perla-waiting.webp",
+     "cx": 0.3449,
+     "ar": 0.3758,
+     "feet": 0.9987,
+     "k": 0.9993
+    }
    }
   }
- }
+ },
+ "girl_frame": {
+  "src": "girl-frame.webp",
+  "window": {
+   "x0": 0.1597,
+   "y0": 0.1381,
+   "x1": 0.8347,
+   "y1": 0.8598
+  }
+ },
+ "girl_button": "girl-button.webp"
 }

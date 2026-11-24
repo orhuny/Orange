@@ -123,6 +123,8 @@
         .hostess-body { width: 100%; height: 100%; transform-origin: calc(var(--cx) * 100%) 100%; animation: hostess-sway 5.5s ease-in-out infinite alternate; }
         .duet.right .hostess-body { animation-delay: -2.2s; animation-duration: 6.2s; }
         .hostess-body .pose { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 16px rgba(0, 40, 70, .35)); }
+        /* A girl drawn facing away from the reels on her side is mirrored (slot-kit-riviera.js sets --cx to match). */
+        .hostess-fig.mirror .pose { scale: -1 1; }
         @keyframes hostess-sway { from { transform: rotate(-.8deg) scale(1, 1); } to { transform: rotate(.9deg) scale(1.006, .994); } }
         /* The podium: its white top runs from 2% to 34% of its height, so the feet line (the bottom
            of .hostess) falls at 22%, just in front of the top's middle: she stands on it, not at its edge. */

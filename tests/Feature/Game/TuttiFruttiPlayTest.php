@@ -134,14 +134,20 @@ it('offers every measured max win, each with its RTP, and rejects any other', fu
         ->toThrow(InvalidGameConfig::class);
 });
 
-it('serves its page in the duet layout: the reels, both hostesses, Amore, the kit and the sound', function (): void {
+it('serves its page in the duet layout: the reels, the girls and their picker, Amore, the kit and the sound', function (): void {
     tuttiSetup();
     get('/games/slot?game=tutti-frutti')->assertOk()
         ->assertSee('<body class="layout-duet">', false)
         ->assertSee('<aside class="duet left"', false)
         ->assertSee('<aside class="duet right"', false)
-        ->assertSee('host/marina-idle.webp', false)
-        ->assertSee('host/bella-kiss.webp', false)
+        // The girl picker: all 10 girls, Bella and Marina by default, the picker's button.
+        ->assertSee('host\/marina-idle.webp', false)
+        ->assertSee('host\/bella-kiss.webp', false)
+        ->assertSee('host\/luna-tease.webp', false)
+        ->assertSee('cards\/perla.webp', false)
+        ->assertSee('"pair":{"right":"bella","left":"marina"}', false)
+        ->assertSee('id="girls-btn"', false)
+        ->assertSee('data-host="right"', false)
         ->assertSee('id="amore"', false)
         ->assertSee('slot-kit-riviera.js', false)
         ->assertSee('sound-riviera.js', false)

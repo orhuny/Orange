@@ -2,6 +2,8 @@
 
 Audience: whoever generates the art for Tutti Frutti's girl picker. Every prompt is complete once you paste in the girl's lines from the tables; nothing else changes.
 
+**Status (2026-11-24): delivered and in the game.** All 70 files are in `storage/app/art/tutti-frutti/round2/`. `python -I scripts/art/process-tutti-frutti.py --only-girls` rebuilds just the girls and the picker's art (about 5 minutes); each girl's kiss hand is measured by eye in `GIRLS` in that script, so a regenerated kiss pose needs its point checked.
+
 ## The feature
 
 The player chooses who stands beside the reels from **10 girls**: Bella and Marina, who are already in the game, and 8 new ones.

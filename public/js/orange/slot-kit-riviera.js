@@ -3,13 +3,13 @@
  * slot page (slot-game.js, see `kit` there for the hooks). Everything here is show: the outcome
  * was decided on the server and the page only plays it back.
  *
- * - The hostesses (the "duet" layout): Marina on the left, Bella on the right, each with her
- *   own poses (.hostess-fig, theme.hosts). A line win: Marina cheers and Bella winks; the tease:
- *   Marina shakes her shaker; a multiplier kiss: Bella blows it; free spins: both start the
- *   party; a big win: both dance; a minute without a spin: both tease the player.
+ * - The girls (the "duet" layout): the player picks two of ten (theme.girls; Bella and Marina by
+ *   default) in the picker. Her girl stands on the right, her friend on the left. A line win:
+ *   both cheer; the tease: her friend gets nervous; a multiplier kiss: her girl blows it; free
+ *   spins: both start the party; a big win: both dance; a minute without a spin: both tease.
  * - The juice: each fruit on a paying line bursts with juice in its own colour (one white
  *   splash, tinted per fruit) and drops fly off it under gravity.
- * - The kisses: hearts fly from Bella's hand to every multiplier kiss on a paying line.
+ * - The kisses: hearts fly from her girl's hand to every multiplier kiss on a paying line.
  * - Amore (free spins): every kiss that lands flies into the heart, which fills and beats.
  * - The scene: the sea glitters by day; in the Neon Night heart fireworks burst over the bay.
  * - Big wins: a glittering wave sweeps the screen, confetti and fruit rain, hearts burst.
@@ -24,81 +24,206 @@ export function createKit(api) {
     const motion = () => !reducedMotion && !state.quick;
     const calm = () => !document.hidden && !state.busy && $('overlay').hidden;
 
-    // ---- The hostesses ---------------------------------------------------------------------------
+    // ---- The girls -------------------------------------------------------------------------------
+    // The player picks two of the theme's girls (theme.girls): her girl stands on the right and
+    // blows the kisses, her friend on the left cheers and gets nervous on the tease. Every girl
+    // has the same roles (idle, win, kiss, tease, dance, party, waiting); one she lacks shows her
+    // idle. A girl is mirrored on the side where she would face away from the reels. The pick is
+    // kept in this browser (localStorage) and is only for show: it never touches a bet.
 
-    const figs = [...document.querySelectorAll('.hostess-fig')];
-    const hostOf = (fig) => fig.closest('[data-host]')?.dataset.host;
+    const GIRLS = theme.girls ?? {};
+    const NAMES = Object.keys(GIRLS);
+    const SIDES = ['right', 'left'];
+    const PICK = 'orange.slot.tutti-frutti.girls';
+    const pair = loadPair();
+    let figs = [];
+    const sideOf = (fig) => fig.closest('[data-host]')?.dataset.host;
     const back = {};
     let waiting = 0;
-    const has = (who, pose) => figs.some((fig) => hostOf(fig) === who && fig.dataset.pose === pose);
 
-    function show(who, pose) {
-        if (!has(who, pose)) pose = 'idle';
+    function loadPair() {
+        const fallback = { right: 'bella', left: 'marina', ...theme.pair };
+        let saved = null;
+        try {
+            saved = JSON.parse(localStorage.getItem(PICK) ?? 'null');
+        } catch (_) { /* private mode */ }
+        const right = NAMES.includes(saved?.right) ? saved.right : fallback.right;
+        let left = NAMES.includes(saved?.left) && saved.left !== right ? saved.left : fallback.left;
+        if (left === right) left = NAMES.find((n) => n !== right) ?? left;
+        return { right, left };
+    }
+
+    function savePair() {
+        try {
+            localStorage.setItem(PICK, JSON.stringify(pair));
+        } catch (_) { /* private mode */ }
+    }
+
+    /** Whether the girl on `side` is drawn facing away from the reels there (she faces right on the right, or left on the left). */
+    const mirrored = (side) => (GIRLS[pair[side]]?.faces === 'left') === (side === 'left');
+
+    /** Puts the picked girl's poses on her side: the full-length figure and the portrait peek. */
+    function dress(side) {
+        const girl = GIRLS[pair[side]];
+        if (!girl) return;
+        const flip = mirrored(side);
+        for (const holder of document.querySelectorAll(`[data-host="${side}"]`)) {
+            holder.querySelectorAll('.hostess-fig').forEach((fig) => fig.remove());
+            for (const [role, pose] of Object.entries(girl.poses ?? {})) {
+                const fig = document.createElement('div');
+                fig.className = `hostess-fig${role === 'idle' ? ' on' : ''}${flip ? ' mirror' : ''}`;
+                fig.dataset.pose = role;
+                fig.style.cssText = `--cx: ${flip ? 1 - pose.cx : pose.cx}; --ar: ${pose.ar}; --k: ${pose.k ?? 1}; --fy: ${pose.feet ?? 1}`;
+                fig.innerHTML = `<div class="hostess-body"><img class="pose" src="${pose.src}" alt="" decoding="async"></div>`;
+                holder.append(fig);
+            }
+        }
+        figs = [...document.querySelectorAll('.hostess-fig')];
+    }
+
+    const has = (side, role) => Boolean(GIRLS[pair[side]]?.poses?.[role]);
+
+    function show(side, role) {
+        if (!has(side, role)) role = 'idle';
         for (const fig of figs) {
-            if (hostOf(fig) === who) fig.classList.toggle('on', fig.dataset.pose === pose);
+            if (sideOf(fig) === side) fig.classList.toggle('on', fig.dataset.pose === role);
         }
     }
 
     /** She takes a pose for `keep` ms (longer if she is asked again meanwhile), with a little hop. */
-    function strike(who, pose, keep) {
-        if (!has(who, pose)) return;
-        show(who, pose);
-        clearTimeout(back[who]);
-        back[who] = setTimeout(() => show(who, 'idle'), dur(keep));
+    function strike(side, role, keep) {
+        if (!has(side, role)) return;
+        show(side, role);
+        clearTimeout(back[side]);
+        back[side] = setTimeout(() => show(side, 'idle'), dur(keep));
         if (!motion()) return;
         for (const fig of figs) {
-            if (hostOf(fig) !== who || fig.dataset.pose !== pose) continue;
+            if (sideOf(fig) !== side || fig.dataset.pose !== role) continue;
             fig.querySelector('.pose')?.animate?.([
                 { translate: '0 0' }, { translate: '0 -3.5%', offset: 0.4 }, { translate: '0 .4%', offset: 0.8 }, { translate: '0 0' },
             ], { duration: dur(560), easing: 'ease-out' });
         }
     }
 
-    /** The point of a pose (theme.hosts[who][pose][name]) on screen, from whichever copy is laid out. */
-    function point(who, pose, name) {
-        const p = theme.hosts?.[who]?.[pose]?.[name];
+    /** A named point of the pose a girl shows (e.g. her kiss hand) on screen, from whichever copy is laid out. */
+    function point(side, role, name) {
+        const p = GIRLS[pair[side]]?.poses?.[role]?.[name];
         if (!p) return null;
+        const x = mirrored(side) ? 1 - p.x : p.x;
         for (const fig of figs) {
-            if (hostOf(fig) !== who || fig.dataset.pose !== pose) continue;
+            if (sideOf(fig) !== side || fig.dataset.pose !== role) continue;
             const r = fig.getBoundingClientRect();
-            if (r.width > 0) return { x: r.left + p.x * r.width, y: r.top + p.y * r.height };
+            if (r.width > 0) return { x: r.left + x * r.width, y: r.top + p.y * r.height };
         }
         return null;
     }
 
     function react(kind) {
-        if (kind === 'win') {
-            strike('marina', 'cheer', 2200);
-            strike('bella', 'wink', 2000);
-        } else if (kind === 'big') {
-            strike('marina', 'dance', 4600);
-            strike('bella', 'dance', 4600);
-        } else if (kind === 'free') {
-            strike('marina', 'party', 3600);
-            strike('bella', 'party', 3600);
-        }
+        const role = { win: 'win', big: 'dance', free: 'party' }[kind];
+        if (!role) return;
+        const keep = { win: 2100, big: 4600, free: 3600 }[kind];
+        for (const side of SIDES) strike(side, role, keep);
+        if (kind === 'free') girlsButton?.classList.add('away');
     }
 
     function spinStart() {
         clearTimeout(waiting);
-        for (const who of ['marina', 'bella']) {
-            if (figs.some((fig) => hostOf(fig) === who && fig.dataset.pose === 'waiting' && fig.classList.contains('on'))) show(who, 'idle');
+        if (girlsButton) girlsButton.disabled = true;
+        for (const side of SIDES) {
+            if (figs.some((fig) => sideOf(fig) === side && fig.dataset.pose === 'waiting' && fig.classList.contains('on'))) show(side, 'idle');
         }
     }
 
     function rest() {
         clearTimeout(waiting);
+        if (girlsButton) girlsButton.disabled = false;
         waiting = setTimeout(() => {
             if (state.busy) return;
-            show('marina', 'waiting');
-            show('bella', 'waiting');
+            for (const side of SIDES) show(side, 'waiting');
         }, 60_000);
     }
 
-    /** Two scatters are down: Marina shakes her shaker while the next column spins on. */
+    /** Two scatters are down: her friend gets nervous while the next column spins on. */
     function tease(column) {
         if (column < 0) return;
-        strike('marina', 'shake', 1500);
+        strike('left', 'tease', 1500);
+    }
+
+    // ---- The picker: choose your girls ---------------------------------------------------------------
+
+    const girlsButton = $('girls-btn');
+    girlsButton?.addEventListener('click', openPicker);
+
+    function openPicker() {
+        if (state.busy || !NAMES.length || typeof HTMLDialogElement === 'undefined') return;
+        sfx('click');
+        let slot = 'right';
+        const frame = theme.girlFrame ?? {};
+        const w = frame.window ?? { x0: 0, y0: 0, x1: 1, y1: 1 };
+        const dlg = document.createElement('dialog');
+        dlg.className = 'girls-dialog';
+        dlg.setAttribute('aria-label', 'Choose your girls');
+        dlg.style.cssText = `--frame: url('${frame.src ?? ''}'); --wx0: ${w.x0 * 100}%; --wy0: ${w.y0 * 100}%; --wx1: ${(1 - w.x1) * 100}%; --wy1: ${(1 - w.y1) * 100}%`;
+        dlg.innerHTML = `<h2>CHOOSE YOUR GIRLS</h2>
+            <div class="girl-slots" role="tablist">
+                <button type="button" class="girl-slot" role="tab" data-slot="right"><small>YOUR GIRL</small><b></b></button>
+                <button type="button" class="girl-slot" role="tab" data-slot="left"><small>HER FRIEND</small><b></b></button>
+            </div>
+            <div class="girl-grid">${NAMES.map((n) => {
+                const g = GIRLS[n];
+                return `<button type="button" class="girl-card" data-girl="${n}" style="--girl: ${g.colour}" aria-label="${g.name}">
+                    <span class="girl-photo"><img src="${g.card}" alt="" loading="lazy" decoding="async"></span>
+                    <span class="girl-name">${g.name}</span><em class="girl-badge"></em></button>`;
+            }).join('')}</div>
+            <p class="girl-note">Just for fun: your choice never changes the odds.</p>
+            <button type="button" class="girl-done">Let's play</button>`;
+        document.body.append(dlg);
+
+        const refresh = () => {
+            for (const tab of dlg.querySelectorAll('.girl-slot')) {
+                tab.classList.toggle('on', tab.dataset.slot === slot);
+                tab.setAttribute('aria-selected', String(tab.dataset.slot === slot));
+                tab.querySelector('b').textContent = GIRLS[pair[tab.dataset.slot]]?.name ?? '';
+                tab.style.setProperty('--girl', GIRLS[pair[tab.dataset.slot]]?.colour ?? '#ff3fa4');
+            }
+            for (const card of dlg.querySelectorAll('.girl-card')) {
+                const n = card.dataset.girl;
+                const as = n === pair.right ? 'right' : n === pair.left ? 'left' : '';
+                card.classList.toggle('picked', as !== '');
+                card.classList.toggle('active', as === slot);
+                card.querySelector('.girl-badge').textContent = as === 'right' ? '♥ YOUR GIRL' : as === 'left' ? 'HER FRIEND' : '';
+            }
+        };
+        const pick = (n) => {
+            if (pair[slot] === n) return;
+            const other = slot === 'right' ? 'left' : 'right';
+            const swap = pair[other] === n;
+            if (swap) pair[other] = pair[slot];
+            pair[slot] = n;
+            savePair();
+            dress(slot);
+            if (swap) dress(other);
+            sfx('kiss');
+            strike(slot, 'win', 1600);
+            if (slot === 'right') slot = 'left';
+            refresh();
+        };
+        dlg.addEventListener('click', (e) => {
+            if (e.target === dlg) return dlg.close();
+            const tab = e.target.closest('.girl-slot');
+            if (tab) {
+                slot = tab.dataset.slot;
+                sfx('click');
+                return refresh();
+            }
+            const card = e.target.closest('.girl-card');
+            if (card) return pick(card.dataset.girl);
+            if (e.target.closest('.girl-done')) dlg.close();
+        });
+        dlg.addEventListener('close', () => dlg.remove(), { once: true });
+        refresh();
+        dlg.showModal();
+        dlg.querySelector('.girl-done').focus();
     }
 
     // ---- Juice -------------------------------------------------------------------------------------
@@ -203,14 +328,14 @@ export function createKit(api) {
             .then(() => img.remove());
     }
 
-    /** Bella blows a kiss: a heart flies to every multiplier kiss on the paying lines, which bursts. */
+    /** Her girl blows a kiss: a heart flies to every multiplier kiss on the paying lines, which bursts. */
     async function kisses(spin, lines) {
         const cells = [...new Set(lines.flatMap((l) => l.run).filter((c) => state.cells[c]?.s === WILD && state.cells[c].v > 1))];
-        strike('bella', 'kiss', 1800);
+        strike('right', 'kiss', 1800);
         sfx('kiss', cells.length);
         if (!motion() || !cells.length) return;
         await wait(260);
-        const from = point('bella', 'kiss', 'palm');
+        const from = point('right', 'kiss', 'palm');
         const flights = cells.map((c, i) => {
             const to = cellOnScreen(c);
             if (!from) return Promise.resolve();
@@ -279,6 +404,8 @@ export function createKit(api) {
     }
 
     async function freeSpins(on) {
+        // Amore takes the picker button's corner while the free spins play.
+        girlsButton?.classList.toggle('away', on);
         if (meter) {
             meter.hidden = !on;
             setAmore(1, on);
@@ -388,6 +515,8 @@ export function createKit(api) {
     }
 
     // ---- Start-up ------------------------------------------------------------------------------------
+
+    for (const side of SIDES) dress(side);
 
     function preload() {
         [art.splash, ...(art.droplets ?? []), art.heartTrail, art.heartBurst, art.firework, art.twinkle, art.sweep].forEach((url) => url && sprite(url));

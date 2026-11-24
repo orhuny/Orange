@@ -917,7 +917,8 @@ export function startSlot(cfg) {
         const length = dur(520);
         cancelAnimationFrame(el.rollRaf);
         const step = (now) => {
-            const f = Math.min(1, (now - started) / length);
+            // A frame's time can be a hair before `started`: never count below where it began.
+            const f = Math.min(1, Math.max(0, (now - started) / length));
             el.textContent = f >= 1 ? shown(to) : shown((a + (b - a) * easeOut(f)).toFixed(2));
             if (f < 1) el.rollRaf = requestAnimationFrame(step);
         };

@@ -11,9 +11,11 @@ declare(strict_types=1);
  *
  * The art is built by scripts/art/process-tutti-frutti.py into public/images/tutti-frutti/,
  * with art.json. The screen is the "duet" layout (resources/views/games/slot/layouts/duet.blade.php):
- * two hostesses, Marina on the left and Bella on the right, full-length beside the reels. The
- * shared host code isn't used (`host` is empty): the kit, public/js/orange/slot-kit-riviera.js,
- * plays both hostesses, the juice, the kisses and Amore. Every URL carries the file's mtime, so
+ * two girls full-length beside the reels, picked by the player from 10 (`girls`): her girl on
+ * the right, who blows the kisses, and her friend on the left; Bella and Marina by default
+ * (`pair`). The shared host code isn't used (`host` is empty): the kit,
+ * public/js/orange/slot-kit-riviera.js, plays the girls and their picker, the juice, the kisses
+ * and Amore. Every URL carries the file's mtime, so
  * a rebuilt file reaches players at once.
  */
 
@@ -39,12 +41,17 @@ foreach ($names as $letter => [$name, $colour]) {
 }
 $frame = (array) ($art['frame'] ?? []);
 $wilds = array_map($img, (array) ($art['wilds'] ?? []));
-/** @var array<string, array<string, array<string, mixed>>> $hosts */
-$hosts = [];
-foreach ((array) ($art['hosts'] ?? []) as $who => $poses) {
-    foreach ((array) $poses as $pose => $meta) {
-        $hosts[$who][$pose] = ['src' => $img((string) $meta['src'])] + (array) $meta;
+// The girls the player picks from (the kit's picker), in the picker's order: which way each
+// faces, her colour, her fruit, her card and her poses by role.
+/** @var array<string, array<string, mixed>> $girls */
+$girls = [];
+foreach ((array) ($art['girls'] ?? []) as $name => $girl) {
+    $poses = [];
+    foreach ((array) ($girl['poses'] ?? []) as $role => $meta) {
+        $poses[$role] = ['src' => $img((string) $meta['src'])] + (array) $meta;
     }
+    $girls[$name] = ['name' => ucfirst((string) $name), 'faces' => $girl['faces'] ?? 'left', 'colour' => $girl['colour'] ?? '#ff3fa4',
+        'fruit' => $girl['fruit'] ?? 'A', 'card' => $img((string) ($girl['card'] ?? '')), 'poses' => $poses];
 }
 
 return [
@@ -87,9 +94,13 @@ return [
         '#ff2d9a', '#22d3ee', '#a3e635', '#ffb020', '#8b5cf6', '#ff5a5f', '#14e0a8', '#ffd84d', '#4f7dff', '#ff7ad1',
         '#5eead4', '#f97316', '#c084fc', '#84cc16', '#fb7185', '#38bdf8', '#facc15', '#e879f9', '#2dd4bf', '#f43f5e',
     ],
-    // The duet: both hostesses, { who: { pose: { src, cx, ar, k, feet, palm?, finger? } } }.
+    // The duet: the girls, { name: { name, faces, colour, fruit, card, poses: { role: { src, cx, ar, k,
+    // feet, palm? } } } }, and the pair a player starts with: her girl (right) and her friend (left).
     'host' => [],
-    'hosts' => $hosts,
+    'girls' => $girls,
+    'pair' => ['right' => 'bella', 'left' => 'marina'],
+    'girlFrame' => ['src' => $img((string) ($art['girl_frame']['src'] ?? '')), 'window' => $art['girl_frame']['window'] ?? ['x0' => 0, 'y0' => 0, 'x1' => 1, 'y1' => 1]],
+    'girlButton' => $img((string) ($art['girl_button'] ?? '')),
     'podium' => $img((string) ($art['podium'] ?? '')),
     'buyArt' => $img((string) ($art['buy'] ?? '')),
     'amoreArt' => $img((string) ($art['amore'] ?? '')),

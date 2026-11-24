@@ -1,9 +1,10 @@
 """Builds Tutti Frutti's served art from the raw deliveries.
 
-    python -I scripts/art/process-tutti-frutti.py [--out DIR]
+    python -I scripts/art/process-tutti-frutti.py [--out DIR] [--only-girls]
 
 Reads storage/app/art/tutti-frutti/round1/ (named as in docs/art/tutti-frutti-prompts.md) and
-writes public/images/tutti-frutti/ plus art.json, which the theme reads
+round2/ (the girls, docs/art/tutti-frutti-girls-prompts.md), and writes
+public/images/tutti-frutti/ plus art.json, which the theme reads
 (resources/views/games/slot/themes/tutti-frutti/theme.php). Every file must be delivered: the
 script stops on a missing one.
 
@@ -15,8 +16,11 @@ What it does:
   tints with each fruit's colour (liquid());
 - the sheets (fx-droplets, fx-confetti) are cut into single pieces;
 - the frame is keyed off its magenta; its window is exactly 5:3, the reels' shape;
-- each hostess's poses are trimmed and measured: the soles, the body's centre at the feet,
-  the size next to her idle pose, and the points the page sends effects from (HOSTS);
+- the 10 girls the player picks from (GIRLS): each one's poses under the same role names
+  (idle, win, kiss, tease, dance, party, waiting), trimmed and measured (the soles, the body's
+  centre at the feet, the size next to her idle pose, the kiss hand), which way she faces (the
+  page mirrors her on the side where she must turn), and her picker card;
+- --only-girls rebuilds just the girls and the picker's art, keeping the rest of art.json;
 - backgrounds are served at 2560 px on their long side, never stretched past it.
 Pillow only (scripts/art/artlib.py)."""
 
@@ -31,7 +35,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from artlib import Out, cut_pieces, dusted, fit, fit_width, frame_pieces, frame_window, light, pieces, resized, square, trimmed, unmagenta  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
-RAW = REPO / 'storage' / 'app' / 'art' / 'tutti-frutti' / 'round1'
+ART = REPO / 'storage' / 'app' / 'art' / 'tutti-frutti'
+R1, R2 = 'round1', 'round2'
 OUT = Path(sys.argv[sys.argv.index('--out') + 1]) if '--out' in sys.argv else REPO / 'public' / 'images' / 'tutti-frutti'
 
 SYMBOLS = {  # model letter -> (source, served name)
@@ -50,27 +55,46 @@ SYMBOL_SIZE = 384
 BG_SIZE = 2560
 GRID_ASPECT = 5 / 3  # the reels: 5 square cells by 3, as the frame's window is drawn
 
-# Each hostess's poses: source, and named points in the source's pixels (measured by eye on the
-# 1024 x 1536 deliveries). palm: where Bella's blown kiss leaves her hand; finger: her flick.
-HOSTS = {
-    'marina': {
-        'idle': ('char-marina-idle', {}), 'cheer': ('char-marina-cheer', {}), 'shake': ('char-marina-shake', {}),
-        'dance': ('char-marina-dance', {}), 'party': ('char-marina-party', {}), 'waiting': ('char-marina-waiting', {}),
-    },
-    'bella': {
-        'idle': ('char-bella-idle', {}), 'wink': ('char-bella-wink', {'finger': (102, 220)}), 'kiss': ('char-bella-kiss', {'palm': (265, 232)}),
-        'dance': ('char-bella-dance', {}), 'party': ('char-bella-party', {}), 'waiting': ('char-bella-waiting', {}),
-    },
+# The girls the player picks from, in the picker's order: which way she faces (her body turned
+# toward that side of the image), her colour, her fruit (a model letter; S, the cocktail, for
+# Marina), and per role the round and source of the pose and its points in the source's pixels
+# (measured by eye on the 1024 x 1536 deliveries). palm: where her blown kiss leaves her hand.
+ROLES = ['idle', 'win', 'kiss', 'tease', 'dance', 'party', 'waiting']
+
+
+def _new_girl(name, palm):
+    return {role: (R2, f'char-{name}-{role}', {'palm': palm} if role == 'kiss' else {}) for role in ROLES}
+
+
+GIRLS = {
+    'bella': ('left', '#ff2d9a', 'C', {
+        'idle': (R1, 'char-bella-idle', {}), 'win': (R1, 'char-bella-wink', {}), 'kiss': (R1, 'char-bella-kiss', {'palm': (265, 232)}),
+        'tease': (R2, 'char-bella-tease', {}), 'dance': (R1, 'char-bella-dance', {}), 'party': (R1, 'char-bella-party', {}),
+        'waiting': (R1, 'char-bella-waiting', {}),
+    }),
+    'marina': ('right', '#22d3ee', 'S', {
+        'idle': (R1, 'char-marina-idle', {}), 'win': (R1, 'char-marina-cheer', {}), 'kiss': (R2, 'char-marina-kiss', {'palm': (787, 213)}),
+        'tease': (R1, 'char-marina-shake', {}), 'dance': (R1, 'char-marina-dance', {}), 'party': (R1, 'char-marina-party', {}),
+        'waiting': (R1, 'char-marina-waiting', {}),
+    }),
+    'aurora': ('left', '#ff8a65', 'A', _new_girl('aurora', (259, 233))),
+    'stella': ('left', '#ffd23f', 'B', _new_girl('stella', (245, 282))),
+    'rosa': ('left', '#e0193f', 'D', _new_girl('rosa', (231, 198))),
+    'gemma': ('left', '#ff9a1f', 'E', _new_girl('gemma', (237, 226))),
+    'jade': ('left', '#8fe03a', 'F', _new_girl('jade', (308, 212))),
+    'celeste': ('left', '#3f6bff', 'G', _new_girl('celeste', (252, 213))),
+    'luna': ('left', '#9b3cff', 'H', _new_girl('luna', (231, 185))),
+    'perla': ('left', '#ffd6e4', 'I', _new_girl('perla', (245, 220))),
 }
 HOST_HEIGHT = 1300  # served height of the tallest pose
 
 out = Out(OUT)
 
 
-def load(name):
-    path = RAW / f'{name}.png'
+def load(name, round_=R1):
+    path = ART / round_ / f'{name}.png'
     if not path.exists():
-        sys.exit(f'missing {path}: deliver it (docs/art/tutti-frutti-prompts.md)')
+        sys.exit(f'missing {path}: deliver it (docs/art/tutti-frutti-prompts.md, tutti-frutti-girls-prompts.md)')
     return Image.open(path)
 
 
@@ -130,26 +154,41 @@ def host_pose(im, points):
     return shown, meta
 
 
-def build_hosts():
-    """host/: both hostesses. art.json hosts: { who: { pose: { src, cx, ar, k, feet, palm?, finger? } } };
-    k: the pose's height next to her idle's (every pose is drawn at the same scale)."""
-    hosts = {}
-    for who, poses in HOSTS.items():
-        measured = {pose: host_pose(load(name), points) for pose, (name, points) in poses.items()}
+def build_girls(art):
+    """host/ and cards/: every girl. art.json girls: { name: { faces, colour, fruit, card, poses:
+    { role: { src, cx, ar, k, feet, palm? } } } }, in the picker's order; k: the pose's height next
+    to her idle's (every pose is drawn at the same scale). Also the picker's frame and button."""
+    for folder in ('host', 'cards'):
+        if (OUT / folder).exists():
+            shutil.rmtree(OUT / folder)
+    girls = {}
+    for name, (faces, colour, fruit, poses) in GIRLS.items():
+        measured = {role: host_pose(load(source, round_), points) for role, (round_, source, points) in poses.items()}
         tallest = max(meta['h'] for _, meta in measured.values())
         k = min(1.0, HOST_HEIGHT / tallest)
         base = measured['idle'][1]['h']
-        hosts[who] = {}
-        for pose, (shown, meta) in measured.items():
+        served = {}
+        for role, (shown, meta) in measured.items():
             if k < 1:
                 shown = resized(shown, (round(shown.width * k), round(shown.height * k)))
             meta['k'] = round(meta.pop('h') / base, 4)
-            hosts[who][pose] = {'src': out.save(crisp(shown), f'host/{who}-{pose}.webp', quality=88), **meta}
-        print(who, ', '.join(f"{pose} (cx {p['cx']}, k {p['k']}, feet {p['feet']})" for pose, p in hosts[who].items()))
-    return hosts
+            served[role] = {'src': out.save(crisp(shown), f'host/{name}-{role}.webp', quality=88), **meta}
+        card = out.save(crisp(square(dusted(load(f'card-{name}', R2)), 400, pad=1.02)), f'cards/{name}.webp', quality=88)
+        girls[name] = {'faces': faces, 'colour': colour, 'fruit': fruit, 'card': card, 'poses': served}
+        print(name, faces, ', '.join(f"{role} (cx {p['cx']}, k {p['k']})" for role, p in served.items()))
+    art['girls'] = girls
+    frame = trimmed(dusted(load('ui-girl-frame', R2)))
+    art['girl_frame'] = {'src': out.save(fit(frame, 520), 'girl-frame.webp', quality=88), 'window': frame_window(frame)}
+    art['girl_button'] = out.save(crisp(square(dusted(load('ui-girl-button', R2)), 240, pad=1.0)), 'girl-button.webp')
+    art.pop('hosts', None)
 
 
 def main():
+    if '--only-girls' in sys.argv:
+        art = json.loads((OUT / 'art.json').read_text())
+        build_girls(art)
+        (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
+        return
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
@@ -193,7 +232,7 @@ def main():
     thumb.paste(logo, (36, 28), logo)
     out.save(thumb, 'thumbnail.jpg')
 
-    art['hosts'] = build_hosts()
+    build_girls(art)
     (OUT / 'art.json').write_text(json.dumps(art, indent=1) + '\n', newline='\n')
     print('frame window', art['frame']['window'], 'pieces', art['frame']['pieces']['px'])
     print(f"{len(art['fx']['droplets'])} drops, {len(art['fx']['confetti'])} confetti pieces")

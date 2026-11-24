@@ -9,7 +9,7 @@
     $v = fn (string $path): string => asset($path).'?v='.filemtime(public_path($path));
     // What the script needs of the theme (@json splits its argument on commas: pass one variable).
     $pageTheme = array_intersect_key($theme, array_flip(['sound', 'symbols', 'stars', 'tiers', 'fragments', 'fx', 'banners', 'host', 'hostWing', 'hostBee',
-        'hostReactions', 'effects', 'pace', 'text', 'kitArt', 'music', 'wilds', 'hosts', 'idle', 'lineColours']));
+        'hostReactions', 'effects', 'pace', 'text', 'kitArt', 'music', 'wilds', 'girls', 'pair', 'girlFrame', 'idle', 'lineColours']));
     // How much more often the ante brings free spins: measured per model (docs/slots/*-maths.md).
     $anteOften = (string) ($theme['text']['anteOften'] ?? 'about 1.75× as often');
     // The intro's two medallions beside the logo: the gold multiplier and the rarest one.
@@ -31,8 +31,8 @@
     $hasSuper = array_key_exists('super', (array) ($rules['features'] ?? []));
     // Her worker bees fly only beside her (they leave her palm).
     $hostBee = $host ? ($theme['hostBee'] ?? null) : null;
-    // The duet's hostesses: who stands on which side.
-    $duet = $layout === 'duet' ? array_intersect_key(['marina' => 'left', 'bella' => 'right'], (array) ($theme['hosts'] ?? [])) : [];
+    // The duet: the two sides the player's girls stand on (the kit puts her picks there).
+    $duet = $layout === 'duet' ? ['left', 'right'] : [];
 
     // The frame image around the grid: the grid fills the frame's window exactly. In widths
     // and heights of the grid: where the image starts (fl, ft), its size (fw, fh), and the
@@ -781,24 +781,26 @@
                         <img src="{{ $theme['amoreArt'] ?? '' }}" alt="">
                         <b id="amore-x" aria-live="polite">×1</b><small>AMORE</small>
                     </div>
-                    {{-- Portrait: each hostess's upper body over a top corner of the frame. --}}
-                    @foreach ($duet as $who => $side)
-                        <div class="hostess-peek {{ $side }}" data-host="{{ $who }}" aria-hidden="true">
-                            @include('games.slot.hostess-figs', ['poses' => $theme['hosts'][$who]])
-                        </div>
+                    {{-- The girl picker's button (slot-kit-riviera.js), on the frame's top-right corner. --}}
+                    @if (! empty($theme['girlButton']))
+                        <button id="girls-btn" class="girls-btn" type="button" aria-label="Choose your girls" title="Choose your girls"
+                                style="--girl-button: url('{{ $theme['girlButton'] }}')"></button>
+                    @endif
+                    {{-- Portrait: each girl's upper body over a top corner of the frame (the kit fills them). --}}
+                    @foreach ($duet as $side)
+                        <div class="hostess-peek {{ $side }}" data-host="{{ $side }}" aria-hidden="true"></div>
                     @endforeach
                 @endif
                 <canvas id="fxc" class="fxc"></canvas>
             </div>
         </div>
-        @foreach ($duet as $who => $side)
-            {{-- A hostess full-length on her podium, beside the reels. --}}
+        @foreach ($duet as $side)
+            {{-- A girl full-length on her podium, beside the reels: the kit puts the player's pick here. --}}
             <aside class="duet {{ $side }}" aria-hidden="true">
-                <div class="hostess" data-host="{{ $who }}">
+                <div class="hostess" data-host="{{ $side }}">
                     @if (! empty($theme['podium']))
                         <img class="podium" src="{{ $theme['podium'] }}" alt="">
                     @endif
-                    @include('games.slot.hostess-figs', ['poses' => $theme['hosts'][$who]])
                 </div>
             </aside>
         @endforeach
