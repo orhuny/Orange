@@ -62,7 +62,8 @@ export function startSlot(cfg) {
      * - celebrate(tier, dialog, layer): a big win, with the shared celebration.
      * A paylines game's kit may also answer: react(kind) and spinStart() / rest() (its own hosts),
      * tease(column) (-1 when it ends), lineWin(spin, cells), kisses(spin, lines) (a promise),
-     * amore(spin) (a promise: a free spin's wilds join the amore) and amoreMultiplies(spin).
+     * amore(spin) (a promise: a free spin's wilds join the amore), amoreMultiplies(spin) and
+     * freeSpinsEnd(plan) (a promise, after the last free spin and before the total).
      */
     let kit = null;
 
@@ -1056,6 +1057,8 @@ export function startSlot(cfg) {
                     await dialog(plaque('free-spins', `<div class="huge">+${spin.retrigger}</div>`), { cls: 'plaque', rays: true, autoMs: 1800 });
                 }
             }
+            // A theme may close the free spins with its own moment (Tutti Frutti: a kiss to the player).
+            await kit?.freeSpinsEnd?.(p);
             sfx('fsEnd');
             await dialog(plaque('total-win', `<div class="huge">${shown(fsWin)}</div><p class="note">${free.length} free spins</p>`),
                 { button: 'Collect', cls: 'plaque', rays: true, autoMs: state.auto > 0 || state.turbo ? 2500 : 0 });

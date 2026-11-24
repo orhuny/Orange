@@ -15,6 +15,10 @@
         .riviera-sky { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .riviera-sky img { position: absolute; translate: -50% -50%; mix-blend-mode: screen; }
         .stage { z-index: 1; }
+        /* The farewell kiss (slot-kit-riviera.js): glossy lips flying out of the screen. */
+        .farewell-kiss { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; will-change: transform, opacity;
+                         filter: drop-shadow(0 10px 18px rgba(120, 0, 40, .45)) drop-shadow(0 0 22px rgba(255, 80, 160, .45)); }
+        .farewell-kiss svg, .farewell-kiss img { display: block; width: 100%; height: auto; }
         /* ---- The girl picker (slot-kit-riviera.js) ---- */
         .girls-btn { position: absolute; z-index: 9; right: calc(var(--bh) * (var(--er) - .1)); bottom: calc(100% + var(--bh) * .03); width: calc(var(--bh) * .17);
                      aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: var(--girl-button) center / contain no-repeat;

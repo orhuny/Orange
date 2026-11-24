@@ -180,6 +180,11 @@ def build_girls(art):
     frame = trimmed(dusted(load('ui-girl-frame', R2)))
     art['girl_frame'] = {'src': out.save(fit(frame, 520), 'girl-frame.webp', quality=88), 'window': frame_window(frame)}
     art['girl_button'] = out.save(crisp(square(dusted(load('ui-girl-button', R2)), 240, pad=1.0)), 'girl-button.webp')
+    # Optional: the farewell kiss's painted lips (without them the page draws its own).
+    if (ART / R2 / 'fx-kiss-lips.png').exists():
+        art['kiss_lips'] = out.save(crisp(fit(trimmed(dusted(load('fx-kiss-lips', R2))), 1400)), 'fx/kiss-lips.webp', quality=90)
+    else:
+        art.pop('kiss_lips', None)
     art.pop('hosts', None)
 
 

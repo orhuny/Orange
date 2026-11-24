@@ -209,6 +209,15 @@ A round premium game button seen straight on: a domed disc of glossy hot-pink la
 
 ---
 
+## The farewell kiss (optional) · 3:2 · transparent · attach sym-a-peach
+
+When the free spins end, her girl blows a kiss: a pair of lips flies from her hand, fills the screen with a smack and zooms past the camera. The game draws the lips itself; this painted version replaces them once it is in `round2/` and the girls are rebuilt (`--only-girls`).
+
+### fx-kiss-lips.png
+```text
+A big, glossy pair of puckered lips blowing a kiss toward the viewer, seen straight on, as a stand-alone 3D object like a kiss emoji: full, plump lips in shiny ruby-red lipstick, a softly parted dark centre line, crisp white highlights on the lower lip and the cupid's bow, soft depth and a gentle pink glow around the edges, a few tiny sparkles. Only the lips: no face, no skin, no teeth, no text. Large and centred, filling about 85% of the width. Premium AAA slot game art in a crisp, glossy stylised 3D style like a top mobile game: bold clean shapes, saturated colours, crisp specular highlights, tack-sharp edges, no blur, high detail. Match the finish of the attached image. No cast shadow, no frame. On a transparent background, exported as a PNG with transparency. The whole pair of lips is in frame with a clear margin.
+```
+
 ## What I do when the art arrives
 
 **The build script** (`scripts/art/process-tutti-frutti.py`) learns the roster:

@@ -11,6 +11,7 @@
  *   splash, tinted per fruit) and drops fly off it under gravity.
  * - The kisses: hearts fly from her girl's hand to every multiplier kiss on a paying line.
  * - Amore (free spins): every kiss that lands flies into the heart, which fills and beats.
+ * - The farewell: when the free spins end, her girl blows a kiss that zooms out of the screen.
  * - The scene: the sea glitters by day; in the Neon Night heart fireworks burst over the bay.
  * - Big wins: a glittering wave sweeps the screen, confetti and fruit rain, hearts burst.
  *
@@ -427,6 +428,85 @@ export function createKit(api) {
         setAmore(spin.amore, false);
     }
 
+    // ---- The farewell kiss: the free spins end with her girl blowing a kiss to the player ------------
+    // A big glossy pair of lips flies from her hand toward the screen, lands with a smack and a
+    // burst of hearts, then zooms past the camera and is gone. Drawn in code (SVG), so it stays
+    // crisp at full screen.
+
+    // The lips: a painted image when the art has one (kitArt.kissLips), else drawn here.
+    const LIPS = art.kissLips ? `<img src="${art.kissLips}" alt="" decoding="async">` : `<svg viewBox="0 0 200 130" aria-hidden="true">
+        <defs>
+            <linearGradient id="lips-up" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#b8002c"/><stop offset=".45" stop-color="#ff2d5e"/><stop offset=".8" stop-color="#e0063e"/><stop offset="1" stop-color="#8f0022"/>
+            </linearGradient>
+            <radialGradient id="lips-low" cx=".5" cy=".3" r=".75">
+                <stop offset="0" stop-color="#ff6a92"/><stop offset=".35" stop-color="#f0124a"/><stop offset=".8" stop-color="#b3002e"/><stop offset="1" stop-color="#7a001c"/>
+            </radialGradient>
+            <filter id="lips-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.4"/></filter>
+            <filter id="lips-edge" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation=".5"/></filter>
+        </defs>
+        <g filter="url(#lips-edge)">
+            <path fill="#4d0012" d="M6 70C24 66 44 62 66 64c14 1 24 4 34 4s20-3 34-4c22-2 42 2 60 6-18 2-40 0-60 2-14 1-24 4-34 4s-20-3-34-4C46 70 24 70 6 72Z"/>
+            <path fill="url(#lips-up)" d="M6 70C22 52 44 30 70 24c14-3 24 4 30 12 6-8 16-15 30-12 26 6 48 28 64 46-18-4-38-8-60-6-14 1-24 4-34 4s-20-3-34-4C44 62 24 66 6 70Z"/>
+            <path fill="url(#lips-low)" d="M6 72c18-2 40 0 60 0 14 1 24 4 34 4s20-3 34-4c20 0 42-2 60 0-12 28-46 52-94 52S18 100 6 72Z"/>
+        </g>
+        <g fill="none" stroke="#ff9db8" stroke-opacity=".28" stroke-width="1.3" stroke-linecap="round">
+            <path d="M56 34c-3 9-3 18-1 26M74 28c-2 10-2 20 0 30M126 28c2 10 2 20 0 30M144 34c3 9 3 18 1 26"/>
+            <path d="M46 82c-1 9 2 19 8 26M66 84c-1 12 1 24 5 32M100 86v34M134 84c1 12-1 24-5 32M154 82c1 9-2 19-8 26"/>
+        </g>
+        <g fill="#fff" filter="url(#lips-soft)">
+            <ellipse cx="82" cy="92" rx="26" ry="8" opacity=".55" transform="rotate(-6 82 92)"/>
+            <ellipse cx="124" cy="94" rx="18" ry="6" opacity=".4" transform="rotate(8 124 94)"/>
+            <ellipse cx="62" cy="40" rx="13" ry="4" opacity=".5" transform="rotate(-26 62 40)"/>
+            <ellipse cx="138" cy="40" rx="12" ry="4" opacity=".42" transform="rotate(26 138 40)"/>
+        </g>
+        <g fill="#fff">
+            <ellipse cx="76" cy="90" rx="7" ry="2.4" opacity=".9" transform="rotate(-6 76 90)"/>
+            <circle cx="96" cy="94" r="1.6" opacity=".85"/>
+            <ellipse cx="60" cy="39" rx="4" ry="1.4" opacity=".85" transform="rotate(-26 60 39)"/>
+        </g>
+    </svg>`;
+
+    async function freeSpinsEnd() {
+        if (!has('right', 'kiss')) return;
+        strike('right', 'kiss', 2400);
+        sfx('kiss', 2);
+        if (!motion()) return;
+        await wait(320);
+        const girl = figs.find((fig) => sideOf(fig) === 'right' && fig.dataset.pose === 'kiss' && fig.getBoundingClientRect().width > 0)?.getBoundingClientRect();
+        const from = point('right', 'kiss', 'palm') ?? (girl ? { x: girl.left + girl.width * 0.4, y: girl.top + girl.height * 0.2 } : { x: innerWidth * 0.8, y: innerHeight * 0.3 });
+        const cx = innerWidth / 2;
+        const cy = innerHeight * 0.46;
+        const size = Math.min(innerWidth * 0.72, innerHeight * 0.66 * (200 / 130));
+        const lips = document.createElement('div');
+        lips.className = 'farewell-kiss';
+        lips.innerHTML = LIPS;
+        Object.assign(lips.style, { width: `${size}px` });
+        document.body.append(lips);
+        const at = (x, y, s, r) => `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+        // Up out of her hand, a little arc across to the middle of the screen, a smack, then past the camera.
+        const midX = from.x + (cx - from.x) * 0.55;
+        const midY = Math.min(from.y, cy) - innerHeight * 0.08;
+        const flight = animate(lips, [
+            { transform: at(from.x, from.y, 0.06, -18), opacity: 0 },
+            { transform: at(from.x, from.y, 0.12, -14), opacity: 1, offset: 0.08 },
+            { transform: at(midX, midY, 0.45, -6), opacity: 1, offset: 0.34 },
+            { transform: at(cx, cy, 1, 3), opacity: 1, offset: 0.58, easing: 'ease-out' },
+            { transform: at(cx, cy, 0.94, 0), opacity: 1, offset: 0.64 },
+            { transform: at(cx, cy, 1.02, 0), opacity: 1, offset: 0.76, easing: 'cubic-bezier(.6, 0, .9, .5)' },
+            { transform: at(cx, cy, 3.6, 0), opacity: 0 },
+        ], 2300, { easing: 'cubic-bezier(.35, .1, .45, 1)' });
+        // The smack: hearts burst behind the lips, a little shake.
+        setTimeout(() => {
+            burstAt(cx, cy, size * 1.25);
+            burstAt(cx, cy, size * 0.8);
+            sfx('kiss', 3);
+            shake(6, 420);
+        }, dur(2300 * 0.6));
+        await flight;
+        lips.remove();
+    }
+
     function amoreMultiplies() {
         if (!meter || !motion()) return;
         const r = meter.getBoundingClientRect();
@@ -561,5 +641,5 @@ export function createKit(api) {
         }, 1500);
     }
 
-    return { scenery, preload, react, spinStart, rest, tease, lineWin, kisses, amore, amoreMultiplies, freeSpins, celebrate };
+    return { scenery, preload, react, spinStart, rest, tease, lineWin, kisses, amore, amoreMultiplies, freeSpins, freeSpinsEnd, celebrate };
 }

@@ -135,5 +135,7 @@ return [
         'heartBurst' => $one('heart-burst'),
         'sunburst' => $one('sunburst'),
         'twinkle' => $one('twinkle'),
+        // The farewell kiss's lips, when the art has them (else the kit draws them).
+        'kissLips' => $img((string) ($art['kiss_lips'] ?? '')),
     ],
 ];
