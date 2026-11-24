@@ -1332,14 +1332,16 @@
            In cashout mode the inputs row collapses (display:none on inputs),
            so the bar effectively shrinks to 2 rows + a giant Cash Out CTA. */
         @media (max-width: 719px) {
-            body.embedded { --op-bar-h: 126px; }
+            /* The controls stay clear of a phone's (or its browser's) rounded bottom corners,
+               which in a casino's iframe no safe-area inset reports: 8px more room below them. */
+            body.embedded { --op-bar-h: 134px; }
             body.embedded .operator-panel {
                 flex-wrap: wrap;
                 white-space: normal;
                 height: auto;
                 min-height: var(--op-bar-h);
                 gap: 4px 6px;
-                padding: 5px 8px 6px;
+                padding: 5px 8px max(14px, env(safe-area-inset-bottom));
                 font-size: 11px;
                 align-items: center;
             }
@@ -1480,7 +1482,7 @@
             body.embedded .op-slot-toggle { width: 28px; height: 30px; border-radius: 6px; }
             /* Diving or cashed out, the fields are gone and the buttons taller: + sits mid-height. */
             body.embedded .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-slot-toggle { align-self: center; }
-            body.embedded.two-bets { --op-bar-h: 178px; }
+            body.embedded.two-bets { --op-bar-h: 186px; }
             body.embedded.two-bets .op-slot[data-mode="cashout"] .op-cashout-btn,
             body.embedded.two-bets .op-slot:is([data-mode="cashout"], [data-mode="cashed"]) .op-autobet-btn { height: 40px; font-size: 14px; }
             body.embedded.two-bets .op-slot[data-mode="cashed"] .op-cashed { height: 40px; }

@@ -171,18 +171,25 @@
                 .layout-duet .board-wrap { width: round(down, var(--bw), 5px); }
             }
             .layout-duet .logo-frame { display: none; }
-            .layout-duet .top .logo { display: block; height: clamp(70px, 13vh, 130px); }
+            /* The logo gets its own room at the top rather than spilling past it (and off the screen). */
+            body.layout-duet { --top: clamp(70px, 13vh, 130px); }
+            .layout-duet .top .logo { display: block; height: 100%; }
             .layout-duet .side { grid-area: side; justify-self: center; width: clamp(96px, 26vw, 140px); margin: 6px 0 0; }
             .layout-duet .buy-title { font-size: 10px; }
             .layout-duet .buy-price { font-size: 11px; }
             .amore { --bh: calc(var(--bw) * 3 / 5); right: -2%; bottom: calc(100% + var(--bw) * .01); width: calc(var(--bw) * .22); }
-            /* Each hostess's top half over a top corner of the frame, the frame hiding where she is cut. */
+            /* Each hostess's top half over a top corner of the frame, the frame hiding where she is cut.
+               No taller than the room above the frame, so her head stays on screen on a short
+               screen (a phone under a casino's header): the logo's row, plus the frame's cell
+               (100cqh) less the grid and the frame below it, which sits at the cell's bottom. */
             .hostess-peek { display: block; position: absolute; z-index: 2; bottom: calc(100% - 4px); width: 46%;
-                            height: min(34vh, calc(var(--bw) * .62)); clip-path: inset(-100vh -100vw 0 -100vw); pointer-events: none; }
+                            height: min(34vh, calc(var(--bw) * .62), calc(var(--top) + 100cqh - var(--bw) * 3 / 5 * (1 + var(--ky)) + 4px));
+                            clip-path: inset(-100vh -100vw 0 -100vw); pointer-events: none; }
             .hostess-peek.left { left: -6%; }
             .hostess-peek.right { right: -6%; }
             .hostess-peek .hostess-fig { left: 50%; bottom: calc(100% - 100% / .5); height: calc(100% / .5 * var(--k, 1)); }
-            .layout-duet .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools"; }
+            .layout-duet .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools";
+                                padding-bottom: max(16px, env(safe-area-inset-bottom)); /* as slot.blade.php's portrait .bar */ }
             .layout-duet .bar .meter { display: grid; gap: 2px; text-align: center; }
             .layout-duet .bet .meter { min-width: 3.6em; margin: 0; }
             .layout-duet #bet-minus, .layout-duet #bet-plus, .layout-duet .bal, .layout-duet .winm { margin: 0; }

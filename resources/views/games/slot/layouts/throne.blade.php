@@ -155,7 +155,8 @@
                                         height: min(50vh, calc(100cqh - var(--bw) * 5 / 6 * (1 + var(--ky)) + var(--top))); }
             .layout-throne .host-peek .host-fig { left: auto; right: 0; bottom: calc(100% - 100% / .5); height: calc(100% / .5 * var(--k, 1));
                                                    translate: none; transform-origin: 60% 100%; }
-            .layout-throne .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools"; }
+            .layout-throne .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools";
+                                  padding-bottom: max(16px, env(safe-area-inset-bottom)); /* as slot.blade.php's portrait .bar */ }
             .layout-throne .bar .meter { display: grid; gap: 2px; text-align: center; }
             .layout-throne .bet .meter { min-width: 3.6em; margin: 0; }
             .layout-throne #bet-minus, .layout-throne #bet-plus, .layout-throne .bal, .layout-throne .winm { margin: 0; }

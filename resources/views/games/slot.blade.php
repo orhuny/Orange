@@ -587,7 +587,10 @@
 
         @media (orientation: portrait) {
             :root { --top: clamp(36px, 7vh, 68px); }
-            .stage { --spin: clamp(64px, 19vw, 88px); --reach: 0; }
+            /* Room at both ends: the logo clear of the top, the controls clear of a phone's (or
+               its browser's) rounded bottom corners, which in a casino's iframe no safe-area
+               inset reports. */
+            .stage { --spin: clamp(64px, 19vw, 88px); --reach: 0; padding-top: max(8px, env(safe-area-inset-top)); }
             .bar .meter { min-height: 0; }
             .winm, .bal, #bet-minus, #bet-plus, .bet .meter { margin: 0; }
             .bg { background-image: var(--day-p); } .bg.night { background-image: var(--night-p); }
@@ -631,7 +634,7 @@
             .fp { display: none; }
             .frame-art { display: block; }
             .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools";
-                   row-gap: 5px; column-gap: 6px; margin-inline: auto; width: 100%; max-width: 560px; padding: 6px 2px max(8px, env(safe-area-inset-bottom)); }
+                   row-gap: 5px; column-gap: 6px; margin-inline: auto; width: 100%; max-width: 560px; padding: 6px 2px max(16px, env(safe-area-inset-bottom)); }
             .spin { margin-top: 0; justify-self: center; }
             .winm { justify-self: end; text-align: right; }
             .tools { --tool-size: clamp(30px, 8vw, 36px); justify-self: end; justify-content: center; display: flex; flex-wrap: wrap;
