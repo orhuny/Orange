@@ -27,17 +27,31 @@
 
         .logo { filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .65)); }
 
-        /* The Titan stands out from the sky: more contrast and light on him, a thin gold rim
-           light tracing his silhouette, and the light in his cracks pulsing (gold by day, ember
-           in the Eclipse). */
-        .host-body .pose { animation: titan-glow 4.8s ease-in-out infinite; }
-        @keyframes titan-glow {
-            0%, 100% { filter: contrast(1.16) brightness(1.12) saturate(1.12) drop-shadow(0 0 1.5px rgba(255, 228, 165, .95)) drop-shadow(0 0 12px rgba(255, 190, 90, .5)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); }
-            50% { filter: contrast(1.16) brightness(1.22) saturate(1.15) drop-shadow(0 0 2px rgba(255, 238, 190, 1)) drop-shadow(0 0 22px rgba(255, 200, 100, .7)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); } }
-        body.free .host-body .pose { animation-name: titan-ember; }
-        @keyframes titan-ember {
-            0%, 100% { filter: contrast(1.16) brightness(1.12) saturate(1.12) drop-shadow(0 0 1.5px rgba(255, 190, 140, .95)) drop-shadow(0 0 14px rgba(255, 100, 60, .5)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); }
-            50% { filter: contrast(1.16) brightness(1.24) saturate(1.15) drop-shadow(0 0 2px rgba(255, 210, 160, 1)) drop-shadow(0 0 24px rgba(255, 150, 70, .8)) drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); } }
+        /* The Titan stands out from the sky, a rim-lit figure cut out against it:
+           - on him: more contrast, light and colour;
+           - around his silhouette, from the inside out: a bright double gold rim light (ember in
+             the Eclipse), then a dark halo hugging it that separates him from the bright nebula,
+             and a deep shadow under him. Static: an animated filter would repaint the whole
+             figure every frame;
+           - behind him: the sky darkened (the layout's shadow, deeper here), and a small warm
+             glow behind his head and shoulders that breathes slowly (compositor-only). */
+        /* As specific as the layout's own .throne .host-body .pose, and after it, so this wins. */
+        .throne .host-body .pose, .host-peek .host-body .pose { animation: none;
+                           filter: contrast(1.28) brightness(1.18) saturate(1.22) drop-shadow(0 0 1.5px rgba(255, 246, 215, 1)) drop-shadow(0 0 3px rgba(255, 205, 110, .95))
+                                   drop-shadow(0 0 22px rgba(4, 2, 10, .9)) drop-shadow(0 16px 20px rgba(0, 0, 0, .6)); }
+        body.free .throne .host-body .pose, body.free .host-peek .host-body .pose {
+                           filter: contrast(1.28) brightness(1.18) saturate(1.22) drop-shadow(0 0 1.5px rgba(255, 225, 190, 1)) drop-shadow(0 0 3px rgba(255, 140, 80, .95))
+                                   drop-shadow(0 0 22px rgba(4, 2, 10, .9)) drop-shadow(0 16px 20px rgba(0, 0, 0, .6)); }
+        .throne .host::before { background: radial-gradient(closest-side, rgba(6, 3, 14, .7), rgba(6, 3, 14, .45) 58%, rgba(6, 3, 14, 0)); }
+        .throne .host::after { content: ''; position: absolute; z-index: 0; pointer-events: none; border-radius: 50%; mix-blend-mode: screen;
+                               left: calc(var(--bh) * var(--hk) * .405); top: 4%; width: calc(var(--bh) * var(--hk) * .46); height: 34%; translate: -50% 0;
+                               background: radial-gradient(closest-side, rgba(255, 196, 100, .42), rgba(255, 150, 60, .14) 55%, rgba(255, 150, 60, 0));
+                               animation: titan-aura 4.8s ease-in-out infinite; }
+        body.free .throne .host::after { background: radial-gradient(closest-side, rgba(255, 120, 70, .45), rgba(200, 40, 40, .15) 55%, rgba(200, 40, 40, 0)); }
+        .layout-throne .host-peek::before { content: ''; position: absolute; z-index: 0; pointer-events: none; border-radius: 50%;
+                                            left: 50%; top: 2%; width: 110%; height: 120%; translate: -44% 0;
+                                            background: radial-gradient(closest-side, rgba(8, 4, 16, .72), rgba(8, 4, 16, .5) 55%, rgba(8, 4, 16, 0)); }
+        @keyframes titan-aura { 0%, 100% { opacity: .6; scale: .96; } 50% { opacity: 1; scale: 1.04; } }
         .throne .pedestal { filter: drop-shadow(0 18px 24px rgba(0, 0, 0, .55)); }
 
         /* The feature cards' words: gold on obsidian. */
@@ -172,6 +186,6 @@
             .eclipse { --side: calc(var(--bw) * .34); --bh: calc(var(--bw) * 5 / 6); left: 4%; top: calc(var(--bw) * -.16); translate: 0 -50%; width: calc(var(--bw) * .26); }
         }
         @media (prefers-reduced-motion: reduce) {
-            .branch img, .host-body .pose, .eclipse .corona { animation: none; }
+            .branch img, .host-body .pose, .eclipse .corona, .throne .host::after { animation: none; }
             .cosmos-nebula { display: none; }
         }
