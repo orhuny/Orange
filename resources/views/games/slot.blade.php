@@ -784,7 +784,7 @@
                     {{-- The girl picker's button (slot-kit-riviera.js), on the frame's top-right corner. --}}
                     @if (! empty($theme['girlButton']))
                         <button id="girls-btn" class="girls-btn" type="button" aria-label="Choose your girls" title="Choose your girls"
-                                style="--girl-button: url('{{ $theme['girlButton'] }}')"></button>
+                                style="--girl-button: url('{{ $theme['girlButton'] }}')"><span class="girls-label">GIRLS</span></button>
                     @endif
                     {{-- Portrait: each girl's upper body over a top corner of the frame (the kit fills them). --}}
                     @foreach ($duet as $side)

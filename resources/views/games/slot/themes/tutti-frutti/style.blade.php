@@ -16,12 +16,20 @@
         .riviera-sky img { position: absolute; translate: -50% -50%; mix-blend-mode: screen; }
         .stage { z-index: 1; }
         /* ---- The girl picker (slot-kit-riviera.js) ---- */
-        .girls-btn { position: absolute; z-index: 9; right: calc(var(--bh) * (var(--er) - .1)); bottom: calc(100% - var(--bh) * .07); width: calc(var(--bh) * .17);
+        .girls-btn { position: absolute; z-index: 9; right: calc(var(--bh) * (var(--er) - .1)); bottom: calc(100% + var(--bh) * .03); width: calc(var(--bh) * .17);
                      aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: var(--girl-button) center / contain no-repeat;
                      filter: drop-shadow(0 8px 12px rgba(0, 40, 70, .4)); transition: scale .2s ease, opacity .3s ease; animation: girls-beat 2.8s ease-in-out infinite; }
         .girls-btn:hover:not(:disabled) { scale: 1.08; }
         .girls-btn:disabled { opacity: .5; cursor: default; animation: none; }
         .girls-btn.away { opacity: 0; pointer-events: none; }
+        /* The word under the heart, so the button says what it does. */
+        .girls-label { position: absolute; left: 50%; top: 88%; translate: -50% 0; padding: .28em .8em; border-radius: 999px; white-space: nowrap;
+                       font: 900 calc(var(--bh) * .026)/1 var(--num); letter-spacing: .1em; color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+                       background: linear-gradient(180deg, #ff5bb5, #d4007a); box-shadow: 0 0 0 2px #ffd76a, 0 3px 6px rgba(0, 0, 0, .35); }
+        /* Tap a girl to change her: her figure takes the pointer, and glows under it. */
+        .duet .hostess-fig.on .pose, .hostess-peek .hostess-fig.on .pose { pointer-events: auto; cursor: pointer; }
+        body:not(.free) .duet .hostess-fig.on:hover .pose { filter: drop-shadow(0 0 16px rgba(255, 90, 190, .75)) drop-shadow(0 14px 16px rgba(0, 40, 70, .35)); }
+        .girl-lead { margin: -2px 0 12px; font-size: 14px; opacity: .9; }
         @keyframes girls-beat { 0%, 70%, 100% { scale: 1; } 78% { scale: 1.1; } 86% { scale: .97; } }
         .girls-dialog { width: min(1040px, 94vw); max-height: 92dvh; overflow: auto; padding: clamp(14px, 2.4vw, 28px); border: 3px solid #f6c64b; border-radius: 26px;
                         color: #fff; text-align: center; font: 600 14px/1.3 var(--round);
@@ -59,6 +67,7 @@
         @media (orientation: portrait) {
             .branch { width: 38vw; bottom: -2vh; }
             .girls-btn { --bh: calc(var(--bw) * 3 / 5); right: 3%; bottom: auto; top: calc(100% + var(--bw) * .03); width: calc(var(--bw) * .17); }
+            .girls-label { font-size: 10px; }
             .girl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
         @media (orientation: landscape) and (max-height: 520px) {

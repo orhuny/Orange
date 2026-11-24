@@ -18,7 +18,7 @@
  */
 export function createKit(api) {
     const {
-        state, theme, $, board, reducedMotion, rand, dur, wait, animate, sfx, emit, sprite, cellBox, cellOnScreen, shake, floatText, WILD, SCATTER,
+        state, theme, cfg, $, board, reducedMotion, rand, dur, wait, animate, sfx, emit, sprite, cellBox, cellOnScreen, shake, floatText, WILD, SCATTER,
     } = api;
     const art = theme.kitArt ?? {};
     const motion = () => !reducedMotion && !state.quick;
@@ -150,14 +150,43 @@ export function createKit(api) {
     }
 
     // ---- The picker: choose your girls ---------------------------------------------------------------
+    // It opens before the game starts (after the intro), with the last pair picked, so a returning
+    // player only taps "Let's play". Between spins the heart button, or a tap on either girl,
+    // opens it again (on her side's tab).
 
     const girlsButton = $('girls-btn');
-    girlsButton?.addEventListener('click', openPicker);
+    girlsButton?.addEventListener('click', () => openPicker('right'));
+    // A tap on a girl: change her.
+    document.addEventListener('click', (e) => {
+        const fig = e.target.closest?.('.hostess-fig');
+        if (fig) openPicker(sideOf(fig) ?? 'right');
+    });
 
-    function openPicker() {
-        if (state.busy || !NAMES.length || typeof HTMLDialogElement === 'undefined') return;
-        sfx('click');
-        let slot = 'right';
+    /** Before the first spin: once the intro has played (embedded in a casino), or at once. */
+    function pickAtStart() {
+        const intro = $('intro');
+        let done = false;
+        const open = () => {
+            if (done) return;
+            done = true;
+            setTimeout(() => openPicker('right', true), 250);
+        };
+        if (cfg?.embedded && !reducedMotion && intro) {
+            // playIntro() opens the intro on load; the picker follows when it closes (played or skipped).
+            const watch = () => (intro.open ? intro.addEventListener('close', open, { once: true }) : open());
+            if (document.readyState === 'complete') setTimeout(watch, 50);
+            else window.addEventListener('load', () => setTimeout(watch, 50), { once: true });
+        } else if (document.readyState === 'complete') {
+            setTimeout(open, 400);
+        } else {
+            window.addEventListener('load', () => setTimeout(open, 400), { once: true });
+        }
+    }
+
+    function openPicker(start = 'right', atStart = false) {
+        if (state.busy || !NAMES.length || typeof HTMLDialogElement === 'undefined' || document.querySelector('.girls-dialog')) return;
+        if (!atStart) sfx('click');
+        let slot = SIDES.includes(start) ? start : 'right';
         const frame = theme.girlFrame ?? {};
         const w = frame.window ?? { x0: 0, y0: 0, x1: 1, y1: 1 };
         const dlg = document.createElement('dialog');
@@ -165,6 +194,7 @@ export function createKit(api) {
         dlg.setAttribute('aria-label', 'Choose your girls');
         dlg.style.cssText = `--frame: url('${frame.src ?? ''}'); --wx0: ${w.x0 * 100}%; --wy0: ${w.y0 * 100}%; --wx1: ${(1 - w.x1) * 100}%; --wy1: ${(1 - w.y1) * 100}%`;
         dlg.innerHTML = `<h2>CHOOSE YOUR GIRLS</h2>
+            <p class="girl-lead">Your girl blows the kisses, her friend cheers you on.</p>
             <div class="girl-slots" role="tablist">
                 <button type="button" class="girl-slot" role="tab" data-slot="right"><small>YOUR GIRL</small><b></b></button>
                 <button type="button" class="girl-slot" role="tab" data-slot="left"><small>HER FRIEND</small><b></b></button>
@@ -205,7 +235,8 @@ export function createKit(api) {
             if (swap) dress(other);
             sfx('kiss');
             strike(slot, 'win', 1600);
-            if (slot === 'right') slot = 'left';
+            // Her girl picked: on to her friend (from the start, or the girl's own tab).
+            if (slot === 'right' && (atStart || start === 'right')) slot = 'left';
             refresh();
         };
         dlg.addEventListener('click', (e) => {
@@ -517,6 +548,7 @@ export function createKit(api) {
     // ---- Start-up ------------------------------------------------------------------------------------
 
     for (const side of SIDES) dress(side);
+    pickAtStart();
 
     function preload() {
         [art.splash, ...(art.droplets ?? []), art.heartTrail, art.heartBurst, art.firework, art.twinkle, art.sweep].forEach((url) => url && sprite(url));

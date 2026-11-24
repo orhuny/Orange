@@ -111,6 +111,7 @@ return [
         'multipliers' => [
             'Kisses are wild on reels 2 to 5. A kiss may carry 2×, 3× or 5×: the multipliers on a paying line add up and multiply it.',
             'Free spins: Amore starts at ×1. Every kiss that lands adds 1, and Amore multiplies every line win until the free spins end.',
+            'Your girls: pick them before you play, and change them between spins with the GIRLS button or a tap on either girl. Just for fun: they never change the odds.',
         ],
     ],
     'fx' => [
