@@ -15,8 +15,9 @@
 
      --bh is the grid's height, as in the classic layout. The host's span from the grid's right
      edge is .74 of his height: the widest a pose reaches either side of his body's centre.
-     Portrait: the classic portrait, with the plaque above the grid and the host's head and
-     shoulders over the frame's top-right corner. --}}
+     Portrait: the grid as wide as the screen allows under the host's room, the logo in that
+     room's top-left corner (no row of its own), the host's upper body behind the frame's top-right
+     corner, then one row of slim feature pills and the bar. --}}
         body.layout-throne .stage {
             --side: clamp(140px, 11vw, 210px); --reach: 0; --spin: clamp(78px, 12vh, 118px);
             --hk: 1.2; /* the host's height, of the grid's */
@@ -127,33 +128,59 @@
         @media (orientation: portrait) {
             .throne, .layout-throne .logo-side { display: none; }
             .layout-throne .play { display: grid; grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); }
-            .layout-throne .side { flex-direction: row; align-self: auto; gap: 6px; }
-            /* Low cards, so the grid sits lower and the Titan gets more room above it. */
-            .layout-throne .side > .feature { padding: 7% 5% 6%; }
-            .layout-throne .buy { row-gap: 1px; }
-            .layout-throne .buy-icon { width: clamp(18px, 6vw, 28px); }
-            .layout-throne .buy-title { font-size: 10px; letter-spacing: .04em; }
-            .layout-throne .buy-price { font-size: 11px; }
+            /* The height of a phone goes to the frame and the Titan: the cards are one slim
+               row of gold-rimmed obsidian pills (the tall card art would take a third of a
+               short screen), and the spin button is a little smaller on a short screen. */
+            .layout-throne.layout-throne .stage { --spin: clamp(58px, min(19vw, 10.5vh), 88px); }
+            .layout-throne .side { flex-direction: row; align-self: auto; gap: 6px; margin-top: 2px; }
+            .layout-throne .side > .feature { flex: 1; min-width: 0; max-width: none; padding: 5px 7px; border: 1.5px solid transparent; border-radius: 12px; filter: none;
+                                              background: linear-gradient(180deg, rgba(36, 26, 48, .96), rgba(8, 5, 14, .97)) padding-box,
+                                                          linear-gradient(180deg, #ffe9a8, #c8963c 45%, #6b4a12) border-box;
+                                              box-shadow: 0 6px 14px rgba(0, 0, 0, .5), inset 0 -10px 16px -8px var(--glow, rgba(255, 170, 60, .45)); }
+            .layout-throne .side > .feature.super-buy { --glow: rgba(255, 80, 60, .55); }
+            .layout-throne .side > .feature.ante { --glow: rgba(40, 210, 200, .45); display: grid; grid-template-columns: 1fr auto; align-items: center;
+                                                   justify-items: start; text-align: left; gap: 4px; }
+            .layout-throne .buy { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icon title" "icon price"; justify-items: start; text-align: left;
+                                  column-gap: 5px; row-gap: 2px; min-height: 0; }
+            .layout-throne .buy-icon { width: clamp(22px, 7vw, 30px); }
+            .layout-throne .buy-title { font-size: 9.5px; line-height: 1.1; letter-spacing: .03em; }
+            .layout-throne .buy-title br { display: none; }
+            .layout-throne .buy-price { justify-self: stretch; padding: 1px 4px; font-size: 11px; }
+            .layout-throne .feature-title { margin: 0 0 1px; font-size: 10px; }
+            .layout-throne .ante-desc { font-size: 9px; line-height: 1.15; }
+            .layout-throne .toggle { width: 36px; height: 22px; }
+            .layout-throne .toggle i { width: 14px; height: 14px; }
+            .layout-throne .toggle[aria-pressed=true] i { transform: translateX(14px); }
+            .layout-throne .feature-note { font-size: 9px; }
             body.layout-throne.free .side { visibility: hidden; }
             /* Above the grid, clear of the host over the right corner. */
             .tumble { --bh: calc(var(--bw) * 5 / 6); bottom: calc(100% + var(--bw) * .01); height: calc(var(--bw) * .13); left: 38%; }
-            /* The room above the grid is the Titan's: the logo moves to the top left, and the
-               board sits at the bottom of its room (its bottom band just above the cards). */
-            .layout-throne .top { align-items: flex-start; padding-left: 2vw; }
-            .layout-throne .frame { place-items: end center; }
-            /* A slightly narrower grid than the classic phone layout's (92% of the width), so
-               the frame sits lower and more of the Titan shows above it. */
-            .layout-throne .board-wrap { --bw: min(92cqw, calc(120cqh / (1 + 2 * var(--ky))), 640px); margin-bottom: calc(var(--bw) * 5 / 6 * var(--ky)); }
+            /* The room above the grid is the Titan's, and the logo shares it: no row of its own,
+               it sits in the top left corner of his room, over the sky. The board sits at the
+               bottom of its room (its bottom band just above the cards). */
+            .layout-throne .top { position: absolute; left: 0; right: 0; top: max(8px, env(safe-area-inset-top)); height: auto; z-index: 3;
+                                  flex-direction: row; justify-content: flex-start; align-items: flex-start; padding-left: 3vw; }
+            .layout-throne .top .logo { width: 44vw; height: auto; max-height: 12vh; object-fit: contain; object-position: left top; }
+            /* No landscape padding (its --bh is the landscape grid's): the room is the board's. */
+            .layout-throne .frame { place-items: end center; padding: 0; }
+            /* The grid as wide as the room allows (96% of it), after keeping the Titan's room
+               above the frame (--tz: about a quarter of the height, the logo in its corner). */
+            .layout-throne .board-wrap { --tz: clamp(84px, 24cqh, 220px);
+                                         --bw: min(96cqw, calc((100cqh - var(--tz)) * 6 / 5 / (1 + 2 * var(--ky))), 640px);
+                                         margin-bottom: calc(var(--bw) * 5 / 6 * var(--ky)); }
             @supports (width: round(down, 10.5px, 1px)) {
                 .layout-throne .board-wrap { width: round(down, var(--bw), 6px); }
             }
-            /* His top half behind the frame's top-right corner, facing the grid, from the top of
-               the screen down to the grid's top edge (the room above the board, its container's
-               height less the board and its bottom band, plus the logo's row). The frame's top
-               band hides where he is cut, so he seems to stand behind the grid. */
-            .layout-throne .host-peek { left: auto; right: -10%; width: 66%;
-                                        height: min(50vh, calc(100cqh - var(--bw) * 5 / 6 * (1 + var(--ky)) + var(--top))); }
-            .layout-throne .host-peek .host-fig { left: auto; right: 0; bottom: calc(100% - 100% / .5); height: calc(100% / .5 * var(--k, 1));
+            /* His upper body behind the frame's top-right corner, facing the grid, from the top of
+               the screen down to the grid's top edge (the room above the board: its container's
+               height less the board and its bottom band). The frame's top band hides where he is
+               cut, so he seems to stand behind the grid. On a short screen he is shown closer
+               (the box shows his top 42%: head, halo, chest and hands), on a tall one more of
+               him (his top half), never wider than about the grid. */
+            .layout-throne .host-peek { left: auto; right: -12%; width: 70%;
+                                        height: calc(100cqh - var(--bw) * 5 / 6 * (1 + var(--ky))); }
+            .layout-throne .host-peek .host-fig { --fh: max(100% / .5, min(100% / .42, var(--bw) * 1.3));
+                                                   left: auto; right: 0; bottom: calc(100% - var(--fh)); height: calc(var(--fh) * var(--k, 1));
                                                    translate: none; transform-origin: 60% 100%; }
             .layout-throne .bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "bal spin win" "bet spin tools";
                                   padding-bottom: max(16px, env(safe-area-inset-bottom)); /* as slot.blade.php's portrait .bar */ }
@@ -163,6 +190,19 @@
             .layout-throne .bet .meter > b { white-space: nowrap; overflow-wrap: normal; }
             .layout-throne .winm small { font-size: 11px !important; }
             .layout-throne .winm #win { font-size: 22px; }
+        }
+        /* A short phone: the ante's pill keeps its name, its stake and its switch (the details
+           are in the rules), so the pills stay one low row. */
+        @media (orientation: portrait) and (max-height: 760px) {
+            .layout-throne .ante-desc { display: none; }
+            .layout-throne .side > .feature { padding-block: 4px; }
+            /* A tighter bar: smaller tools, less space between its rows. */
+            .layout-throne .bar { row-gap: 2px; padding-top: 2px; }
+            .layout-throne .bar .tools { --tool-size: 28px; gap: 3px; width: calc(3 * var(--tool-size) + 6px); }
+            .layout-throne .tool svg { width: 16px; height: 16px; }
+            .layout-throne .winm #win { font-size: 19px; }
+            /* His room is low here: he is shown closer (his top 38%), so he stays large. */
+            .layout-throne .host-peek .host-fig { --fh: max(100% / .5, min(100% / .38, var(--bw) * 1.6)); }
         }
         @media (prefers-reduced-motion: reduce) {
             .throne .host { animation: none; }
