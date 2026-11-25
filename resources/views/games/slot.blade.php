@@ -456,6 +456,52 @@
         table.pays th { font-size: 12px; color: #8a3b00; } table.pays td { text-align: center; padding: 2px 4px; border-top: 1px solid rgba(120, 60, 10, .15); }
         table.pays img { width: 44px; height: 44px; object-fit: contain; vertical-align: middle; }
         img.inline { width: 30px; height: 30px; vertical-align: middle; object-fit: contain; }
+        /* A paylines game's info (slot-game.js linesRules): sections, the lines drawn, worked examples. */
+        .dialog.info { max-width: min(880px, 96vw); padding: 22px clamp(14px, 3vw, 30px); }
+        .info h2 { margin: 0; text-align: center; font-size: clamp(22px, 3.4vw, 32px); }
+        .info .lead { margin: 2px 0 6px; text-align: center; font-weight: 700; color: #8a3b00; }
+        .info section { margin-top: 14px; padding-top: 12px; border-top: 2px dashed rgba(138, 59, 0, .18); }
+        .info h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 19px; }
+        .info-icon { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+        .info .steps, .info .rules-list { margin: 6px 0; padding-left: 22px; }
+        .info .steps li, .info .rules-list li { margin: 6px 0; line-height: 1.4; }
+        .lines-pays tr.rank-top td { background: rgba(255, 196, 0, .18); }
+        .lines-pays tr.rank-high td { background: rgba(255, 120, 60, .08); }
+        .lines-pays td { font-weight: 700; padding: 4px; }
+        .lines-pays .sym-cell { display: flex; align-items: center; gap: 8px; text-align: left; }
+        .lines-pays .sym-cell span { font-weight: 600; }
+        .lines-pays .dash { opacity: .35; }
+        .line-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+        .line-card { position: relative; margin: 0; padding: 6px 6px 6px 26px; border-radius: 10px; background: rgba(255, 255, 255, .7); box-shadow: inset 0 0 0 1px rgba(138, 59, 0, .12); }
+        .line-card svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .line-card rect { fill: rgba(138, 59, 0, .1); }
+        .line-card rect.on { fill-opacity: .35; }
+        .line-card polyline { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+        .line-no { position: absolute; left: 5px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+                   font: 800 11px/1 var(--num); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); box-shadow: 0 0 0 1.5px #fff; }
+        .examples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
+        .examples figure { margin: 0; }
+        .examples figcaption { margin-top: 6px; font-size: 14px; line-height: 1.35; }
+        .ex-board { position: relative; display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 3px; padding: 6px; border-radius: 12px;
+                    background: linear-gradient(180deg, #e9fbff, #c9eefa); box-shadow: inset 0 0 0 2px #e7b53c; }
+        .ex-cell { position: relative; display: grid; place-items: center; aspect-ratio: 1; border-radius: 8px; opacity: .45; }
+        .ex-cell.lit { opacity: 1; background: color-mix(in srgb, var(--line) 22%, #fff); box-shadow: 0 0 0 2px var(--line); }
+        .ex-cell img { width: 86%; height: 86%; object-fit: contain; }
+        .ex-cell b { position: absolute; bottom: 6%; font: 900 11px/1 var(--num); color: #fff; -webkit-text-stroke: 3px #8a0050; paint-order: stroke fill; }
+        .ex-board svg { position: absolute; inset: 6px; width: calc(100% - 12px); height: calc(100% - 12px); pointer-events: none; }
+        .ex-board polyline { fill: none; stroke: var(--line); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
+                             filter: drop-shadow(0 0 2px #fff); }
+        .kiss-cards { display: flex; flex-wrap: wrap; gap: 10px; }
+        .kiss-card { margin: 0; width: 84px; text-align: center; }
+        .kiss-card img { width: 64px; height: 64px; object-fit: contain; }
+        .kiss-card figcaption { font-weight: 800; font-size: 13px; }
+        .scatter-row { display: flex; align-items: center; gap: 12px; }
+        .scatter-row img { width: 72px; height: 72px; object-fit: contain; flex: none; }
+        @media (max-width: 640px) {
+            .line-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .examples { grid-template-columns: 1fr; }
+            .lines-pays .sym-cell span { display: none; }
+        }
         /* Game history: one row per bet, newest first; a row opens to its details and seeds. */
         .dialog.history { width: min(680px, 96vw); }
         .hist-head, .hrow summary { display: grid; grid-template-columns: minmax(84px, auto) 1fr auto 18px; gap: 10px; align-items: center; }

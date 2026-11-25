@@ -1527,33 +1527,143 @@ export function startSlot(cfg) {
         { button: 'Close', cls: 'wide' });
     }
 
-    /** A paylines game's paytable and rules. */
+    /**
+     * A paylines game's info: how to play, the paytable at the player's bet, every line drawn on
+     * a small grid in its colour, worked examples on real symbols, the wild, the scatter and free
+     * spins (with the amore), the buy, the limits and how to verify a bet.
+     */
     function linesRules() {
         const r = cfg.rules;
         const bet = toUnits(state.bet);
-        const amount = (x) => shown((bet * BigInt(Math.round(Number(x) * 100))) / 100n);
+        const money = (x) => shown((bet * BigInt(Math.round(Number(x) * 100))) / 100n);
+        const cur = state.currency ? ` ${state.currency}` : '';
+        const n = LINES.length;
+        const pay = (symbol, count) => (r.paytable ?? []).find((p) => p.symbol === symbol)?.pays?.[count] ?? null;
+        const nameOf = (symbol) => theme.symbols[symbol]?.name ?? symbol;
         const counts = [...new Set((r.paytable ?? []).flatMap((p) => Object.keys(p.pays)))].sort((a, b) => b - a);
-        const rows = (r.paytable ?? []).map((p) => `<tr><td><img src="${theme.symbols[p.symbol]?.img}" alt="${p.name}"></td>
-            ${counts.map((n) => `<td>${p.pays[n] ? amount(p.pays[n]) : '—'}</td>`).join('')}</tr>`).join('');
-        const scatter = Object.entries(r.scatter_pays ?? {}).map(([n, x]) => `${n} → ${amount(x)}`).join(' · ');
-        const award = Object.entries(r.free_spins?.awarded_by_count ?? {}).map(([n, spins]) => `${n} → ${spins}`).join(' · ');
-        const multipliers = (r.wilds?.base_game ?? []).filter((v) => v > 1).map((v) => `${v}×`).join(', ');
+        const rank = (i) => (i === 0 ? 'rank-top' : i < 4 ? 'rank-high' : 'rank-low');
+        const rows = (r.paytable ?? []).map((p, i) => `<tr class="${rank(i)}"><td class="sym-cell"><img src="${theme.symbols[p.symbol]?.img}" alt=""><span>${p.name}</span></td>
+            ${counts.map((c) => `<td>${p.pays[c] ? money(p.pays[c]) : '<span class="dash">—</span>'}</td>`).join('')}</tr>`).join('');
+
+        // A line on a small grid: its cells lit along it, in its colour, with its number.
+        const lineCard = (rows, i) => {
+            const colour = LINE_COLOURS[i % LINE_COLOURS.length];
+            const cells = [];
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row < ROWS; row++) {
+                    const on = rows[col] === row;
+                    cells.push(`<rect x="${col * 10 + 0.8}" y="${row * 10 + 0.8}" width="8.4" height="8.4" rx="1.6" class="${on ? 'on' : ''}"${on ? ` style="fill: ${colour}"` : ''}/>`);
+                }
+            }
+            const points = rows.map((row, col) => `${col * 10 + 5},${row * 10 + 5}`).join(' ');
+            return `<figure class="line-card"><span class="line-no" style="background: ${colour}">${i + 1}</span>
+                <svg viewBox="0 0 ${COLS * 10} ${ROWS * 10}" aria-label="Line ${i + 1}">${cells.join('')}
+                <polyline points="${points}" style="stroke: ${colour}"/></svg></figure>`;
+        };
+
+        // A small board of real symbols, column by column, with one line drawn and its run lit.
+        const board = (letters, values, lineNo, run) => {
+            const path = LINES[lineNo - 1];
+            const cellHtml = [];
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    const i = col * ROWS + row;
+                    const s = letters[i];
+                    const lit = path[col] === row && col < run;
+                    const img = s === WILD ? theme.wilds?.[values[i] ?? 1] : theme.symbols[s]?.img;
+                    const tag = s === WILD ? `<b>${(values[i] ?? 1) > 1 ? `×${values[i]}` : 'WILD'}</b>` : '';
+                    cellHtml.push(`<span class="ex-cell${lit ? ' lit' : ''}"><img src="${img ?? ''}" alt="">${tag}</span>`);
+                }
+            }
+            const colour = LINE_COLOURS[(lineNo - 1) % LINE_COLOURS.length];
+            const points = path.map((row, col) => `${(col + 0.5) * 20},${(row + 0.5) * 20}`).join(' ');
+            return `<div class="ex-board" style="--cols: ${COLS}; --line: ${colour}">${cellHtml.join('')}
+                <svg viewBox="0 0 ${COLS * 20} ${ROWS * 20}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}"/></svg></div>`;
+        };
+        // Example 1: three peaches on line 1 (the middle row). Example 2: pineapples with two kisses on line 1.
+        const ex1 = board('EAG' + 'HAI' + 'BAC' + 'DFE' + 'IHG', [], 1, 3);
+        const ex2Values = { 4: 2, 10: 3 };
+        const ex2 = board('EBG' + 'HWI' + 'CBD' + 'GWE' + 'IFH', ex2Values, 1, 4);
+        const a3 = pay('A', '3');
+        const b4 = pay('B', '4');
+
+        const multis = (r.wilds?.base_game ?? []).filter((v) => v > 1);
+        const kissCards = [1, ...multis].map((v) => `<figure class="kiss-card"><img src="${theme.wilds?.[v] ?? ''}" alt=""><figcaption>${v > 1 ? `Wild ×${v}` : 'Wild'}</figcaption></figure>`).join('');
+        const scatterRows = Object.entries(r.scatter_pays ?? {}).map(([c, x]) => `<tr><td>${c} cocktails</td><td>${money(x)}${cur}</td><td>${r.free_spins?.awarded_by_count?.[c] ?? '—'} free spins</td></tr>`).join('');
         const f = state.fairness;
-        dialog(`<h2>Paytable</h2><p class="note">Pays at your bet of ${shown(state.bet)} ${state.currency}, on ${LINES.length} fixed lines, left to right.</p>
-            <table class="pays"><thead><tr><th></th>${counts.map((n) => `<th>${n}×</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
-            <p><img class="inline" src="${theme.wilds?.[1] ?? ''}" alt=""> <strong>Wild</strong>: stands in for every fruit on reels 2 to 5. Some carry ${multipliers}; the multipliers on a line add up.</p>
-            <p><img class="inline" src="${theme.symbols.S?.img}" alt=""> <strong>Scatter</strong>, anywhere: ${scatter} (× the bet). Free spins: ${award}; ${r.free_spins?.retrigger_scatters} or more in free spins add ${r.free_spins?.retrigger_awarded}.</p>
-            <h3>How it plays</h3>
-            <ul><li>A line pays when the same fruit lands on it from the leftmost reel, the peach from 2, the others from 3. Each line pays its best run; the wins of all lines add up.</li>
-            ${(theme.text?.multipliers ?? []).map((line) => `<li>${line}</li>`).join('')}
-            ${features.buy ? `<li>Buy free spins: ${(Number(COSTS.buy) / 100).toLocaleString('en')}× the bet starts the feature at once.</li>` : ''}
-            <li>Maximum win: ${Number(r.max_win).toLocaleString()}× the bet; the round ends when it is reached.</li>
-            <li>Return to player: ${(Number(r.rtp) * 100).toFixed(2)}%.</li>
-            ${state.limits?.max_win ? `<li>Your casino pays at most ${shown(state.limits.max_win)} ${state.currency} per bet.</li>` : ''}</ul>
-            <h3>Provably fair</h3>
+        const icon = (name) => `<span class="info-icon">${name}</span>`;
+
+        dialog(`<div class="info">
+            <h2>${cfg.gameName}</h2>
+            <p class="lead">${n} lines · 5 reels · 3 rows · wins up to ${Number(r.max_win).toLocaleString('en')}× your bet</p>
+
+            <section><h3>${icon('🎯')} How to play</h3>
+            <ol class="steps">
+                <li><strong>Set your bet</strong> with − and +, or tap <strong>BET</strong> to pick it from the list. Your bet covers all ${n} lines: each line plays 1/${n} of it.</li>
+                <li><strong>Spin</strong> with the big button (or the space bar). The reels stop one by one, left to right.</li>
+                <li><strong>Win</strong> when the same fruit lines up on a line, starting on the leftmost reel. Every paying line lights up in its colour, with its number glowing on both sides of the frame.</li>
+                <li><strong>Turbo</strong> (⚡) plays faster; <strong>Autoplay</strong> plays a series of spins and stops when free spins come. Tap the reels to hurry a spin along.</li>
+            </ol></section>
+
+            <section><h3>${icon('🍑')} Paytable</h3>
+            <p class="note">What a line pays at your bet of ${shown(state.bet)}${cur}, for the same fruit side by side from the leftmost reel. The peach pays from 2 in a row; every other fruit from 3.</p>
+            <table class="pays lines-pays"><thead><tr><th>Fruit</th>${counts.map((c) => `<th>${c} in a row</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></section>
+
+            <section><h3>${icon('〰️')} The ${n} lines</h3>
+            <p class="note">Every spin plays all ${n} lines. A line runs from the leftmost reel to the right through the cells shown; its number and colour are the ones on the frame.</p>
+            <div class="line-cards">${LINES.map(lineCard).join('')}</div></section>
+
+            <section><h3>${icon('✨')} How a line pays</h3>
+            <ul class="rules-list">
+                <li>The fruits must be side by side on the line, <strong>starting on the leftmost reel</strong>. A run that starts on the second reel doesn't pay.</li>
+                <li>Each line pays its run once: <strong>4 in a row pays the 4</strong>, not the 3 as well.</li>
+                <li>Wins on different lines <strong>add up</strong>, and a cocktail win adds to them.</li>
+            </ul>
+            <div class="examples">
+                <figure>${ex1}<figcaption>3 peaches on line 1 pay <strong>${a3 ? money(a3) : '—'}${cur}</strong>.</figcaption></figure>
+                <figure>${ex2}<figcaption>A kiss stands in for a pineapple, so line 1 has 4 pineapples; its kisses carry ×2 and ×3, which add up to ×5: ${b4 ? `${money(b4)} × 5 = <strong>${money(Number(b4) * 5)}${cur}</strong>` : '×5'}.</figcaption></figure>
+            </div></section>
+
+            <section><h3>${icon('💋')} The kiss: wild</h3>
+            <div class="kiss-cards">${kissCards}</div>
+            <ul class="rules-list">
+                <li>A kiss lands on reels 2 to 5 and <strong>stands in for any fruit</strong> on every line through it.</li>
+                <li>Some kisses carry a <strong>multiplier</strong> (${multis.map((v) => `×${v}`).join(', ')}). The multipliers on one paying line <strong>add up</strong> and multiply that line's win.</li>
+                <li>A kiss can't stand in for the cocktail.</li>
+            </ul></section>
+
+            <section><h3>${icon('🍹')} The cocktail: free spins</h3>
+            <div class="scatter-row"><img src="${theme.symbols.S?.img ?? ''}" alt="">
+            <table class="pays"><thead><tr><th>Anywhere on the reels</th><th>Pays</th><th>Awards</th></tr></thead><tbody>${scatterRows}</tbody></table></div>
+            <ul class="rules-list">
+                <li>Cocktails pay <strong>anywhere</strong>, not on lines, and their pay is never multiplied.</li>
+                <li>${r.free_spins?.retrigger_scatters} or more cocktails during free spins add <strong>${r.free_spins?.retrigger_awarded} more spins</strong> (up to ${r.free_spins?.max} in all).</li>
+                <li>Free spins play at the bet that started them, at no cost.</li>
+            </ul></section>
+
+            <section><h3>${icon('💗')} Amore</h3>
+            <ul class="rules-list">
+                <li>In free spins the <strong>Amore</strong> heart starts at <strong>×1</strong>. Every kiss that lands adds <strong>1</strong> to it, before that spin pays.</li>
+                <li>Amore multiplies <strong>every line win</strong> for the rest of the free spins (cocktail pays aren't multiplied).</li>
+                <li>Example: three kisses in your first free spins make Amore ×4; a line paying 2.00 then pays 8.00. A kiss's own multiplier counts on its line as well.</li>
+            </ul></section>
+
+            ${features.buy ? `<section><h3>${icon('🛒')} Buy free spins</h3><p>Start the free spins at once for <strong>${money(Number(COSTS.buy) / 100)}${cur}</strong> (${(Number(COSTS.buy) / 100).toLocaleString('en')}× your bet). The bought spin always lands 3 to 5 cocktails, so 10 to 15 free spins.</p></section>` : ''}
+
+            ${theme.girls ? `<section><h3>${icon('💃')} Your girls</h3><p>Pick your girl and her friend before you play; change them between spins with the <strong>GIRLS</strong> button or a tap on either girl. Your girl blows the kisses, her friend cheers you on. <strong>Just for fun: they never change the odds.</strong></p></section>` : ''}
+
+            <section><h3>${icon('ℹ️')} Good to know</h3>
+            <ul class="rules-list">
+                <li>Maximum win: <strong>${Number(r.max_win).toLocaleString('en')}× your bet</strong> per round, free spins included; the round ends when it is reached.</li>
+                ${state.limits?.max_win ? `<li>Your casino pays at most <strong>${shown(state.limits.max_win)}${cur}</strong> per bet.</li>` : ''}
+                <li>Return to player: <strong>${(Number(r.rtp) * 100).toFixed(2)}%</strong>, the long-run average over many millions of spins; any single session can be far above or below it.</li>
+                <li>Every bet is settled on the server the moment you spin; the reels only show the result.</li>
+            </ul></section>
+
+            <section><h3>${icon('🔒')} Provably fair</h3>
             <p class="note">Every spin and free spin is drawn from your seed pair before anything moves. Rotate your seeds to reveal the server seed and verify any bet at ${cfg.verifyUrl}.</p>
-            ${f ? `<p class="mono">Last bet: server seed hash ${f.server_seed_hash} · client seed ${f.client_seed} · nonce ${f.nonce}</p>` : ''}`,
-        { button: 'Close', cls: 'wide' });
+            ${f ? `<p class="mono">Last bet: server seed hash ${f.server_seed_hash} · client seed ${f.client_seed} · nonce ${f.nonce}</p>` : ''}</section>
+        </div>`, { button: 'Close', cls: 'wide info' });
     }
 
     // ---- Game history -----------------------------------------------------------------------------
